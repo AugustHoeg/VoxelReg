@@ -1,0 +1,245 @@
+import itk
+import SimpleITK as sitk
+import numpy as np
+from tqdm import tqdm
+from utils.utils_plot import viz_multiple_images, viz_registration
+
+
+# Class reference for ElastixRegistrationMethod:
+# https://elastix.dev/doxygen/classitk_1_1ElastixRegistrationMethod.html
+
+def get_itk_translation_transform(translation_vec=[0.0, 0.0, 0.0], save_path=None):
+
+    transform = itk.TranslationTransform[itk.D, 3].New()
+    transform.SetOffset(translation_vec)
+    if save_path is not None:
+        itk.transformwrite(transform, save_path)
+
+    return transform
+
+
+def get_default_parameter_object(registration_model='translation', resolutions=4, max_iterations=1024, save_path=None):
+
+    """
+
+    :param registration_model: Can be translation, rigid, affine, bspline, spline, groupwise
+    :param resolutions:
+    :param max_iterations:
+    :return:
+    """
+
+    # The Elastix manual is here: https://courses.compute.dtu.dk/02502/docs/elastix-5.2.0-manual.pdf
+    parameter_object = itk.ParameterObject.New()
+    parameter_map = parameter_object.GetDefaultParameterMap(registration_model, resolutions)
+    parameter_map['AutomaticTransformInitialization'] = ['true']
+    parameter_map['AutomaticTransformInitializationMethod'] = ['CenterOfGravity']
+    parameter_map['HowToCombineTransforms'] = ['Compose']
+
+    #parameter_map["WriteResultImage"] = ["false"]
+    #parameter_map["WriteIterationInfo"] = ["true"]
+    #parameter_map["WriteTransformParametersEachIteration"] = ["true"]
+    #parameter_map["LogToFile"] = ["true"]
+
+    parameter_map['MaximumNumberOfIterations'] = str(max_iterations)
+    parameter_object.AddParameterMap(parameter_map)
+
+    if save_path is not None:
+        # Save custom parameter map
+        parameter_object.WriteParameterFile(parameter_map, save_path)
+
+    return parameter_object, parameter_map
+
+
+def get_default_parameter_object_list(registration_models, resolution_list, max_iteration_list, save_path=None):
+
+    """
+
+    :param registration_model: Can be translation, rigid, affine, bspline, spline, groupwise
+    :param resolutions:
+    :param max_iterations:
+    :return:
+    """
+
+    # The Elastix manual is here: https://courses.compute.dtu.dk/02502/docs/elastix-5.2.0-manual.pdf
+    parameter_object = itk.ParameterObject.New()
+
+    for i in range(len(registration_models)):
+        registration_model = registration_models[i]
+        resolutions = resolution_list[i]
+        max_iterations = max_iteration_list[i]
+
+        # Get default parameter map for the current model and resolution
+        parameter_map = parameter_object.GetDefaultParameterMap(registration_model, resolutions)
+        parameter_map['MaximumNumberOfIterations'] = str(max_iterations)
+
+        # Add the parameter map to the object
+        parameter_object.AddParameterMap(parameter_map)
+
+    if save_path is not None:
+        # Save custom parameter map
+        parameter_object.WriteParameterFile(parameter_map, save_path)
+
+    return parameter_object, parameter_map
+
+
+def get_elastix_registration_object(fixed_image, moving_image, parameter_object, log_mode="console"):
+
+    # Define the elastix registration object and set the parameter object
+    elastix_object = itk.ElastixRegistrationMethod.New(fixed_image, moving_image)
+    elastix_object.SetParameterObject(parameter_object)
+
+    # Set additional options
+    if log_mode == "file":
+        elastix_object.SetLogToFile(True)
+    elif log_mode == "console":
+        elastix_object.SetLogToConsole(True)
+    else:
+        elastix_object.SetLogToConsole(False)
+
+    return elastix_object
+
+
+def get_spaced_coords(shape, spacing):
+    """
+    Generates evenly spaced 3D coordinates within a 3D image volume.
+
+    Parameters:
+        shape (tuple of int): The shape of the 3D image as (depth, height, width).
+        spacing (int or tuple of int): The spacing between points. Can be a single int or a tuple (dz, dy, dx).
+
+    Returns:
+        numpy.ndarray: Array of shape (N, 3) with (z, y, x) coordinates.
+    """
+    if isinstance(spacing, int):
+        dz = dy = dx = spacing
+    else:
+        dz, dy, dx = spacing
+
+    z = np.arange(0, shape[0], dz)
+    y = np.arange(0, shape[1], dy)
+    x = np.arange(0, shape[2], dx)
+
+    zz, yy, xx = np.meshgrid(z, y, x, indexing='ij')
+    coords = np.stack([zz, yy, xx], axis=-1).reshape(-1, 3)
+
+    return coords
+
+
+def get_spaced_coords_around_point(center, shape, spacing, size):
+    """
+    Generates a grid of evenly spaced 3D coordinates around a center point.
+
+    Parameters:
+        center (tuple of float): The (z, y, x) center point.
+        shape (tuple of int): The shape of the 3D image volume (depth, height, width).
+        spacing (int or tuple): The spacing between coordinates. Can be int or (dz, dy, dx).
+        size (int or tuple): Number of samples in each direction. Can be int (applied to all dims) or (nz, ny, nx).
+
+    Returns:
+        numpy.ndarray: Array of shape (N, 3) with valid (z, y, x) coordinates within image bounds.
+    """
+    # Unpack parameters
+    dz, dy, dx = (spacing, spacing, spacing) if isinstance(spacing, int) else spacing
+    nz, ny, nx = (size, size, size) if isinstance(size, int) else size
+
+    # Symmetric offsets around 0
+    offsets_z = dz * (np.arange(nz) - (nz - 1) / 2)
+    offsets_y = dy * (np.arange(ny) - (ny - 1) / 2)
+    offsets_x = dx * (np.arange(nx) - (nx - 1) / 2)
+
+    # Create grid of offsets
+    zz, yy, xx = np.meshgrid(offsets_z, offsets_y, offsets_x, indexing='ij')
+    offsets = np.stack([zz, yy, xx], axis=-1).reshape(-1, 3)
+
+    # Add offsets to center
+    center = np.array(center).reshape(1, 3)
+    coords = center + offsets
+
+    # Clip to valid bounds
+    #shape = np.array(shape).reshape(1, 3)
+    #coords = coords[(coords >= 0).all(axis=1) & (coords < shape).all(axis=1)]
+
+    return coords
+
+
+
+def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, center, spacing=(50, 20, 20), size=(2, 2, 2), log_mode=None, visualize=False, fig_name=None):
+
+    parameter_object, parameter_map = get_default_parameter_object('translation', 4)
+    elastix_object = get_elastix_registration_object(fixed_image_sparse, moving_image_sparse, parameter_object, log_mode=log_mode)
+
+    shape_diff = np.subtract(moving_image_sparse.shape, fixed_image_sparse.shape).astype(np.float64)
+    if center is None:  # defaults to aligning upper slices and center in x and y
+        center = [shape_diff[0], shape_diff[1] / 2, shape_diff[2] / 2]
+    else:
+        center[0] = shape_diff[0] if center[0] is None else center[0]
+        center[1] = shape_diff[1] / 2 if center[1] is None else center[1]
+        center[2] = shape_diff[2] / 2 if center[2] is None else center[2]
+
+    translation_coords = get_spaced_coords_around_point(center, shape=shape_diff + 1, spacing=spacing, size=size)
+
+    best_metric = -1
+
+    #mse = np.mean((fixed_array - result_array) ** 2)
+
+    progress_bar = tqdm(translation_coords, desc="Running coarse registration")
+
+    for translation in progress_bar:
+        progress_bar.set_postfix({'Translation': translation[::-1], 'Best Metric': best_metric})
+
+        # Get elastix registration object
+        transform = get_itk_translation_transform(translation[::-1], save_path=None)
+        elastix_object.SetInitialTransform(transform)
+
+        # Run the registration
+        elastix_object.UpdateLargestPossibleRegion()  # Update filter object (required)
+        result_image = elastix_object.GetOutput()
+        result_transform_object = elastix_object.GetTransformParameterObject()
+
+        result_array = itk.array_view_from_image(result_image)
+        fixed_array = itk.array_view_from_image(fixed_image_sparse)
+
+        metric = np.corrcoef(fixed_array.reshape(-1), result_array.reshape(-1))[0, 1]
+
+        if metric > best_metric:
+            best_metric = metric
+            best_result = itk.ImageDuplicator(result_image)  # ensure deep copy
+            best_transform_object = result_transform_object
+
+        if visualize:
+            # Visualize the results
+            dim = result_array.shape[0]
+            off = int(dim * 0.05)  # offset for visualization
+            diff = fixed_image_sparse[:] - best_result[:]
+            viz_multiple_images([fixed_image_sparse, best_result, diff], [dim-i*off-5 for i in range(3)], savefig=True, title=fig_name + "_coarse")
+            #viz_registration(fixed_image_sparse, best_result, [dim-i*off-1 for i in range(3)])
+
+    return best_result, best_transform_object, best_metric
+
+
+
+def elastix_refined_registration(fixed_image_sparse, moving_image_sparse, coarse_transform_object, registration_models, resolution_list, max_iteration_list, log_mode=None, visualize=False, fig_name=None):
+
+    parameter_object, parameter_map = get_default_parameter_object_list(registration_models, resolution_list, max_iteration_list)
+
+    elastix_object = get_elastix_registration_object(fixed_image_sparse, moving_image_sparse, parameter_object, log_mode=log_mode)
+
+    # Set transform parameter object from coarse registration as the initial tranformation for the refinement
+    elastix_object.SetInitialTransformParameterObject(coarse_transform_object)
+
+    # Run the registration
+    elastix_object.UpdateLargestPossibleRegion()  # Update filter object (required)
+    result_image_small_refined = elastix_object.GetOutput()
+    result_transform_parameters = elastix_object.GetTransformParameterObject()
+
+    if visualize:
+        # Visualize the results
+        dim = result_image_small_refined.shape[0]
+        off = int(dim * 0.05)  # offset for visualization
+        diff = fixed_image_sparse[:] - result_image_small_refined[:]
+        viz_multiple_images([fixed_image_sparse, result_image_small_refined, diff], [dim-i*off-5 for i in range(3)], axis=2, savefig=True, title=fig_name + "_refined")
+        viz_registration(fixed_image_sparse, result_image_small_refined, [dim-i*off-5 for i in range(3)], axis=2, savefig=True, title=fig_name + "_eval")
+
+    return result_image_small_refined, result_transform_parameters
+
+
