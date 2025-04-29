@@ -50,9 +50,9 @@ def parse_arguments():
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the registered output image.")
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
 
-    parser.add_argument("--center", type=float, default=[1450, 161, 161], help="Initial guess for coarse registration, formatted as [D, H, W]")
-    parser.add_argument("--size", type=float, default=(1, 1, 1), help="Number of coords around initial guess in (x,y,z) to apply coarse registration")
-    parser.add_argument("--spacing", type=float, default=(25, 20, 20), help="Voxel spacing in (x,y,z) between coarse registration coords")
+    parser.add_argument("--center", type=float, nargs=3, default=[1459, 161, 161], help="Initial guess for coarse registration, formatted as [D, H, W]")
+    parser.add_argument("--size", type=float, nargs=3, default=[1, 1, 1], help="Number of coords around initial guess in (x,y,z) to apply coarse registration")
+    parser.add_argument("--spacing", type=float, nargs=3, default=[25, 20, 20], help="Voxel spacing in (x,y,z) between coarse registration coords")
 
     args = parser.parse_args()
     return args
@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     if args.run_type == "HOME PC":
         project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/"
-    elif args.run_type == "DTU HPC":
+    elif args.run_type == "DTU_HPC":
         project_path = "/dtu/3d-imaging-center/projects/2025_DANFIX_163_VoDaSuRe/raw_data_extern/"
 
     # Assign paths
@@ -106,6 +106,7 @@ if __name__ == "__main__":
         center=center,
         spacing=spacing,
         size=size,
+        write_result_image=True,
         log_mode=None,
         visualize=True,
         fig_name=out_name

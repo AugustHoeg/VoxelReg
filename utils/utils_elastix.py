@@ -18,7 +18,7 @@ def get_itk_translation_transform(translation_vec=[0.0, 0.0, 0.0], save_path=Non
     return transform
 
 
-def get_default_parameter_object(registration_model='translation', resolutions=4, max_iterations=1024, save_path=None):
+def get_default_parameter_object(registration_model='translation', resolutions=4, max_iterations=1024, write_result_image=True, save_path=None):
 
     """
 
@@ -34,6 +34,10 @@ def get_default_parameter_object(registration_model='translation', resolutions=4
     parameter_map['AutomaticTransformInitialization'] = ['true']
     parameter_map['AutomaticTransformInitializationMethod'] = ['CenterOfGravity']
     parameter_map['HowToCombineTransforms'] = ['Compose']
+    if write_result_image:
+        parameter_map['WriteResultImage'] = ['true']
+    else:
+        parameter_map['WriteResultImage'] = ['false']
 
     #parameter_map["WriteResultImage"] = ["false"]
     #parameter_map["WriteIterationInfo"] = ["true"]
@@ -163,9 +167,11 @@ def get_spaced_coords_around_point(center, shape, spacing, size):
 
 
 
-def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, center, spacing=(50, 20, 20), size=(2, 2, 2), log_mode=None, visualize=False, fig_name=None):
+def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, center, spacing=(50, 20, 20), size=(2, 2, 2), write_result_image=True, log_mode=None, visualize=False, fig_name=None):
 
-    parameter_object, parameter_map = get_default_parameter_object('translation', 4)
+    print("Running coarse registration")
+
+    parameter_object, parameter_map = get_default_parameter_object('translation', resolutions=4, write_result_image=write_result_image, save_path=None)
     elastix_object = get_elastix_registration_object(fixed_image_sparse, moving_image_sparse, parameter_object, log_mode=log_mode)
 
     shape_diff = np.subtract(moving_image_sparse.shape, fixed_image_sparse.shape).astype(np.float64)
@@ -219,6 +225,8 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
 
 
 def elastix_refined_registration(fixed_image_sparse, moving_image_sparse, coarse_transform_object, registration_models, resolution_list, max_iteration_list, log_mode=None, visualize=False, fig_name=None):
+
+    print("Running refined registration with models: ", registration_models)
 
     parameter_object, parameter_map = get_default_parameter_object_list(registration_models, resolution_list, max_iteration_list)
 

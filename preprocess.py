@@ -27,9 +27,9 @@ def parse_arguments():
 
     parser.add_argument("--margin_percent", type=float, default=0.0, help="Margin percentage for cropping.")
     parser.add_argument("--divis_factor", type=int, default=4, help="Divisibility factor for cropping.")
-    parser.add_argument("--save_downscaled", default=True, help="Save downscaled image.")
+    parser.add_argument("--save_downscaled", default=0, help="Save downscaled image.")
     parser.add_argument("--f", type=int, default=1, help="Resolution factor.")
-    parser.add_argument("--mask_threshold", default="otsu", help="Threshold for binary mask image, default 'otsu'.")
+    parser.add_argument("--mask_threshold", default=None, help="Threshold for binary mask image, default is None.")
 
     args = parser.parse_args()
     return args
@@ -41,16 +41,19 @@ if __name__ == "__main__":
 
     if args.run_type == "HOME PC":
         project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/"
-    elif args.run_type == "DTU HPC":
+    elif args.run_type == "DTU_HPC":
         project_path = "/dtu/3d-imaging-center/projects/2025_DANFIX_163_VoDaSuRe/raw_data_extern/"
 
     # Assign paths
     if args.sample_path is not None:
         sample_path = os.path.join(project_path, args.sample_path)
+        print("Sample path: ", sample_path)
     if args.scan_path is not None:
         scan_path = os.path.join(sample_path, args.scan_path)
+        print("Scan path: ", scan_path)
     if args.out_name is not None:
         out_name = args.out_name  # os.path.join(sample_path, args.out_name)
+        print("Output name: ", out_name)
 
     # Define other parameters
     min_size = tuple(args.min_size)
@@ -68,7 +71,7 @@ if __name__ == "__main__":
     viz_slices(image, slices, savefig=True, title=out_name + "_preprocessed")
     if down is not None:
         slices = [down.shape[0] - 2, down.shape[0] - 4, down.shape[0] - 6]
-        viz_slices(down, slices, savefig=True, title=out_name + "down_4_preprocessed")
+        viz_slices(down, slices, savefig=True, title=out_name + "_down_4_preprocessed")
 
     #
     # # Load moving image tiff as dask array, assuming everything fits in RAM

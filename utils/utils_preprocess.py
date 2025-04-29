@@ -7,6 +7,7 @@ from skimage.filters import threshold_otsu
 from utils.utils_plot import viz_slices, viz_multiple_images
 from utils.utils_tiff import load_tiff, write_tiff, center_crop
 from utils.utils_nifti import write_nifti
+from utils.utils_txm import load_txm
 
 
 
@@ -17,7 +18,7 @@ def crop_to_roi(image, roi_factor, margin_percent=0.50, divis_factor=2, minimum_
     roi[1:] = ((roi[1:] // roi_factor) * (1 + margin_percent)).astype(int)  # Reduce size
     roi = (roi // divis_factor * divis_factor).astype(int)  # Ensure shape is divisible by d
 
-    minimum_size = [np.minimum(val1, val2) for val1, val2 in zip(roi, minimum_size)]
+    #minimum_size = [np.minimum(val1, val2) for val1, val2 in zip(roi, minimum_size)]
 
     if minimum_size is not None:
         roi = np.maximum(roi, minimum_size)  # Ensure minimum size
@@ -39,6 +40,8 @@ def preprocess(scan_path, out_name, f, margin_percent, divis_factor, min_size, m
 
     if file_extension == ".tiff" or file_extension == ".tif":
         image = load_tiff(scan_path)
+    elif file_extension == ".txm":
+        image = load_txm(scan_path)
     else:
         assert False, "Unsupported file format."
 
