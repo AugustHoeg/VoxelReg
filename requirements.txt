@@ -29,6 +29,5 @@ httpx
 locust
 netron
 bentoml
-evidently
 pandas
 h5py

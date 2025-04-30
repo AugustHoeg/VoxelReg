@@ -9,7 +9,12 @@ from utils.utils_tiff import load_tiff, write_tiff, center_crop
 from utils.utils_nifti import write_nifti
 from utils.utils_txm import load_txm
 
-
+def norm(image):
+    # image = (image - np.min(image)) / (np.max(image) - np.min(image))
+    image_min = np.min(image)
+    image_max = np.max(image)
+    image -= image_min
+    image /= (image_max - image_min)
 
 def crop_to_roi(image, roi_factor, margin_percent=0.50, divis_factor=2, minimum_size=(2000, 2000, 2000), maximum_size=(2000, 2000, 2000)):
 
@@ -32,7 +37,7 @@ def crop_to_roi(image, roi_factor, margin_percent=0.50, divis_factor=2, minimum_
     return crop_image
 
 
-def preprocess(scan_path, out_name, f, margin_percent, divis_factor, min_size, max_size, save_downscaled=False, mask_threshold=None):
+def preprocess(scan_path, out_name, f, margin_percent, divis_factor, min_size, max_size, pyramid_depth=3, mask_threshold=None):
 
     filename, file_extension = os.path.splitext(os.path.basename(scan_path))
     if out_name is None:
@@ -51,46 +56,41 @@ def preprocess(scan_path, out_name, f, margin_percent, divis_factor, min_size, m
     # convert to float
     image = image.astype(np.float32)
 
-    # Normalize to [0, 1]
-    image_min = np.min(image)
-    image_max = np.max(image)
-    image -= image_min
-    image /= (image_max - image_min)
+    # Create image pyramid
+    pyramid = []
+    pyramid.append(image)
 
+    # Create output directory
     out_base_path = os.path.join(os.path.dirname(scan_path), "processed")
     os.makedirs(out_base_path, exist_ok=True)
 
-    down = None
-    if save_downscaled:
-        down = downscale_local_mean(image, (2, 2, 2)).astype(np.float32)
-        down = downscale_local_mean(down, (2, 2, 2)).astype(np.float32)
+    # Create pyramid images
+    for depth in range(pyramid_depth - 1):
+        print(f"Creating pyramid level: {depth+1}/{pyramid_depth}")
+        pyramid.append(downscale_local_mean(pyramid[depth], (2, 2, 2)).astype(np.float32))
 
-        # Ensure range is between [0, 1]
-        down = (down - np.min(down)) / (np.max(down) - np.min(down))
+    for i in range(len(pyramid)):
+        print(f"Saving pyramid image: {i}/{len(pyramid)}")
+        norm(pyramid[i])  # Ensure range is between [0, 1]
 
         # Save downscaled images
-        np.save(os.path.join(out_base_path, out_name + "_down_4.npy"), down)
-        #write_tiff(down, os.path.join(sample_path, filename + "_down_4.tiff"))
-        write_nifti(down, os.path.join(out_base_path, out_name + "_down_4.nii.gz"))  # for itk-snap
+        # write_tiff(down, os.path.join(sample_path, filename + f"_down_{2**(i+1)}.tiff"))
+        np.save(os.path.join(out_base_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
+        write_nifti(pyramid[i], os.path.join(out_base_path, out_name + f"_scale_{2**i}.nii.gz"))  # for itk-snap
 
-    if mask_threshold is not None:
-        mask_image = down if save_downscaled else image
-        if mask_threshold == "otsu":
-            mask_threshold = threshold_otsu(mask_image)
-            print("Otsu threshold: ", mask_threshold)
-        else:
-            mask_threshold = float(mask_threshold)
-            print("Custom threshold: ", mask_threshold)
-        mask = np.zeros_like(mask_image)
-        mask[mask_image > mask_threshold] = 1
-        mask = mask.astype(np.uint8)
-        # Save mask
-        np.save(os.path.join(out_base_path, out_name + "_mask.npy"), mask)
-        #write_tiff(mask, os.path.join(sample_path, filename + "_mask.tiff"))
-        write_nifti(mask, os.path.join(out_base_path, out_name + "_mask.nii.gz"))
+        if mask_threshold is not None:
+            mask_image = pyramid[i]
+            if mask_threshold == "otsu":
+                mask_threshold = threshold_otsu(mask_image)
+                print("Otsu threshold: ", mask_threshold)
+            else:
+                mask_threshold = float(mask_threshold)
+                print("Custom threshold: ", mask_threshold)
+            mask = np.zeros_like(mask_image)
+            mask[mask_image > mask_threshold] = 1
+            mask = mask.astype(np.uint8)
+            np.save(os.path.join(out_base_path, out_name + f"_scale_{2**i}_mask.npy"), mask)
+            #write_tiff(mask, os.path.join(sample_path, filename + "_mask.tiff"))
+            write_nifti(mask, os.path.join(out_base_path, out_name + f"_scale_{2**i}_mask.nii.gz"))
 
-    np.save(os.path.join(out_base_path, out_name + ".npy"), image)
-    #write_tiff(image, os.path.join(sample_path, "processed", filename + ".tiff"))
-    write_nifti(image, os.path.join(out_base_path, out_name + ".nii.gz"))  # for itk-snap
-
-    return image, down
+    return pyramid

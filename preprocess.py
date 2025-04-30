@@ -7,11 +7,11 @@ from utils.utils_preprocess import crop_to_roi, preprocess
 project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/"
 sample_path = project_path + "Larch_A_bin1x1/"
 
-#scan_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"  # LR image is the moving image
-#out_name = "Larch_A_LFOV_crop_full_height"  # Name of the output file
+scan_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"  # LR image is the moving image
+out_name = "Larch_A_LFOV_pos1"  # Name of the output file
 
-scan_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"  # HR image is the reference
-out_name = "Larch_A_4x_pos1"  # Name of the output file
+#scan_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"  # HR image is the reference
+#out_name = "Larch_A_4x_pos1"  # Name of the output file
 
 def parse_arguments():
 
@@ -22,13 +22,13 @@ def parse_arguments():
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the processed image.")
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
 
-    parser.add_argument("--min_size", type=int, nargs=3, default=(2000, 1900, 1900), help="Minimum size for cropping.")
-    parser.add_argument("--max_size", type=int, nargs=3, default=(2000, 1900, 1900), help="Maximum size for cropping.")
+    parser.add_argument("--min_size", type=int, nargs=3, default=(1980, 800, 800), help="Minimum size for cropping.")
+    parser.add_argument("--max_size", type=int, nargs=3, default=(1980, 800, 800), help="Maximum size for cropping.")
 
-    parser.add_argument("--margin_percent", type=float, default=0.0, help="Margin percentage for cropping.")
-    parser.add_argument("--divis_factor", type=int, default=4, help="Divisibility factor for cropping.")
-    parser.add_argument("--save_downscaled", default=0, help="Save downscaled image.")
-    parser.add_argument("--f", type=int, default=1, help="Resolution factor.")
+    parser.add_argument("--margin_percent", type=float, default=0.5, help="Margin percentage for cropping.")
+    parser.add_argument("--divis_factor", type=int, default=2, help="Divisibility factor for cropping.")
+    parser.add_argument("--pyramid_depth", type=int, default=3, help="Depth of saved image pyramid.")
+    parser.add_argument("--f", type=int, default=4, help="Resolution factor.")
     parser.add_argument("--mask_threshold", default=None, help="Threshold for binary mask image, default is None.")
 
     args = parser.parse_args()
@@ -62,16 +62,18 @@ if __name__ == "__main__":
     margin_percent = args.margin_percent  # X% size increase margin of moving image
     divis_factor = args.divis_factor  # Ensure shape is divisible by d
     mask_threshold = args.mask_threshold  # Threshold for masking
-    save_downscaled = args.save_downscaled  # Save downscaled image
+    pyramid_depth = args.pyramid_depth  # Save downscaled image
 
-    image, down = preprocess(scan_path, out_name, f, margin_percent, divis_factor, min_size, max_size, save_downscaled, mask_threshold)  # Preprocess moving image
+    pyramid = preprocess(scan_path, out_name, f, margin_percent, divis_factor, min_size, max_size, pyramid_depth, mask_threshold)  # Preprocess moving image
 
     # Visualize
-    slices = [image.shape[0] - 8, image.shape[0] - 16, image.shape[0] - 24]
-    viz_slices(image, slices, savefig=True, title=out_name + "_preprocessed")
-    if down is not None:
-        slices = [down.shape[0] - 2, down.shape[0] - 4, down.shape[0] - 6]
-        viz_slices(down, slices, savefig=True, title=out_name + "_down_4_preprocessed")
+    for i, image in enumerate(pyramid):
+        slices = [image.shape[0] - 16, image.shape[0] - 20, image.shape[0] - 24]
+        viz_slices(image, slices, savefig=True, title=out_name + f"scale_{2**i}_preprocessed")
+
+        #if down is not None:
+        #    slices = [down.shape[0] - 2, down.shape[0] - 4, down.shape[0] - 6]
+        #    viz_slices(down, slices, savefig=True, title=out_name + "_down_4_preprocessed")
 
     #
     # # Load moving image tiff as dask array, assuming everything fits in RAM
