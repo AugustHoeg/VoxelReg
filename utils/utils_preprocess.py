@@ -111,7 +111,7 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
         pyramid.append(downscale_local_mean(pyramid[depth], (2, 2, 2)).astype(np.float32))
         pyramid_affines.append(compute_affine_scale(pyramid_affines[depth], scale=2))
 
-    for i in range(len(pyramid)):
+    for i in range(1, len(pyramid)):
 
         if mask_threshold is not None:
             mask_image = pyramid[i]
