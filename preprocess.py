@@ -54,7 +54,7 @@ if __name__ == "__main__":
         scan_path = os.path.join(sample_path, args.scan_path)
         print("Scan path: ", scan_path)
     if args.out_path is not None:
-        out_path = args.out_path  # os.path.join(sample_path, args.out_name)
+        out_path = os.path.join(sample_path, args.out_path)  # os.path.join(sample_path, args.out_name)
         print("Output name: ", out_name)
     if args.out_name is not None:
         out_name = args.out_name  # os.path.join(sample_path, args.out_name)
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     mask_threshold = args.mask_threshold  # Threshold for masking
     pyramid_depth = args.pyramid_depth  # Save downscaled image
 
-    pyramid = preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, min_size, max_size, pyramid_depth, mask_threshold)  # Preprocess moving image
+    pyramid, affines = preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, min_size, max_size, pyramid_depth, mask_threshold)  # Preprocess moving image
 
     # Visualize
     for i, image in enumerate(pyramid):

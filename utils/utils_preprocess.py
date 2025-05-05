@@ -84,6 +84,7 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
         affine = np.eye(4)  # Identity matrix for TIFF
     elif file_extension == ".txm":
         image, metadata = load_txm(scan_path)
+        print("######### TXM metadata ########## \n", metadata)
         affine = get_affine_txm(metadata)
     else:
         assert False, "Unsupported file format."
@@ -136,4 +137,4 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
         # np.save(os.path.join(out_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
         write_nifti(pyramid[i], pyramid_affines[i], os.path.join(out_path, out_name + f"_scale_{2**i}.nii.gz"))  # for itk-snap
 
-    return pyramid
+    return pyramid, pyramid_affines
