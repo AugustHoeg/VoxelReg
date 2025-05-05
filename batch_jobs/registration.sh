@@ -17,7 +17,7 @@ CUDA_VERSION=12.1      # CUDA version (default: 11.6)
 #BSUB -W 8:00
 # request 40GB of system-memory rusage=40
 ###BSUB -R "select[gpu40gb]"
-#BSUB -R "rusage[mem=8GB]"
+#BSUB -R "rusage[mem=16GB]"
 #BSUB -u "august.hoeg@gmail.com"
 #BSUB -B
 #BSUB -N
