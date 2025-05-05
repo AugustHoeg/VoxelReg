@@ -4,9 +4,10 @@ import numpy as np
 
 if __name__ == "__main__":
 
-    #base_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Bamboo_A_bin1x1/"
+    #base_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Larch_A_bin1x1/"
     base_path = "/dtu/3d-imaging-center/projects/2025_DANFIX_163_VoDaSuRe/raw_data_extern/"
 
+    #fixed_image_path = base_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"
     fixed_image_path = base_path + "Bamboo_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_pos1_recon_000.tiff"
     moving_image_path = base_path + "Bamboo_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon_000.tiff"
 

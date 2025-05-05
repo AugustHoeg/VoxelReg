@@ -1,5 +1,27 @@
+import numpy as np
 import itk
 import SimpleITK as sitk
+
+def crop_itk_image(image, crop_start, crop_end):
+
+    start = np.array(crop_start)
+    spacing = np.array(image.GetSpacing())
+    origin = np.array(image.GetOrigin())
+    direction = np.array(image.GetDirection()).reshape(3, 3)
+
+    offset = direction @ (spacing * start)
+    new_origin = origin + offset
+    new_size = crop_end - crop_start
+    return new_origin, new_size
+
+
+def crop_itk_metadata(origin, spacing, direction, crop_start, crop_end):
+
+    offset = direction @ (spacing * crop_start)
+    new_origin = origin + offset
+    new_size = crop_end - crop_start
+    return new_origin, new_size
+
 
 def scale_spacing_and_origin(itk_image, scale_factor):
 

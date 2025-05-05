@@ -90,3 +90,5 @@ def viz_registration(fixed_image, moving_image, slice_indices, title=None, axis=
         print(f"Saved figure as {title}.png")
     else:
         plt.show()
+
+
