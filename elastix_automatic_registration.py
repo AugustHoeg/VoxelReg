@@ -47,6 +47,7 @@ def parse_arguments():
     parser.add_argument("--sample_path", type=str, required=False, help="Path to the sample directory.")
     parser.add_argument("--fixed_path", type=str, required=False, help="Path to fixed image.")
     parser.add_argument("--moving_path", type=str, required=False, help="Path to fixed image.")
+    parser.add_argument("--out_path", type=str, required=True, help="Path to the output file.")
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the registered output image.")
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
 
@@ -69,13 +70,17 @@ if __name__ == "__main__":
 
     # Assign paths
     if args.sample_path is not None:
-        sample_path = os.path.join(project_path, args.sample_path, "processed/")
+        sample_path = os.path.join(project_path, args.sample_path)
     if args.moving_path is not None:
         moving_path = os.path.join(sample_path, args.moving_path)
     if args.fixed_path is not None:
         fixed_path = os.path.join(sample_path, args.fixed_path)
+    if args.out_path is not None:
+        out_path = os.path.join(sample_path, args.out_path)  # os.path.join(sample_path, args.out_name)
+        print("Output path: ", out_path)
     if args.out_name is not None:
         out_name = args.out_name  # out_name = os.path.join(sample_path, args.out_name)
+        print("Output name: ", out_name)
 
     moving_array_sparse = np.load(moving_path)
     fixed_array_sparse = np.load(fixed_path)
@@ -141,7 +146,7 @@ if __name__ == "__main__":
 
     #np.save(sample_path + "Larch_LFOV_pos1_registered.npy", result_array)
 
-    out_path = os.path.join(sample_path, out_name + ".npy")
-    np.save(out_path, result_array)
+    full_out_path = os.path.join(out_path, out_name + ".npy")
+    np.save(full_out_path, result_array)
 
-    print(f"Registration complete, output saved to {out_path}")
+    print(f"Registration complete, output saved to {full_out_path}")

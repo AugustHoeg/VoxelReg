@@ -27,6 +27,9 @@ def masked_norm(image, mask):
     # Normalize the image using the mask values
     image -= masked_image_min
     image /= (masked_image_max - masked_image_min)
+
+    # Set values outside mask to zero
+    image[mask == 0] = 0
     return image
 
 
@@ -110,7 +113,7 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
         pyramid_affines.append(compute_affine_scale(pyramid_affines[depth], scale=2))
 
     for i in range(len(pyramid)):
-        print("Pyramid level: ", i)
+
         if mask_threshold is not None:
             mask_image = pyramid[i]
             if mask_threshold == "otsu":
@@ -124,6 +127,7 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
             mask = mask.astype(np.uint8)
             # np.save(os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.npy"), mask)
             # write_tiff(mask, os.path.join(sample_path, filename + "_mask.tiff"))
+            print("Saving mask for pyramid level: ", i)
             write_nifti(mask, pyramid_affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.nii.gz"))
 
             # Normalize the image based on the mask
@@ -135,6 +139,7 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
         # Save downscaled images
         # write_tiff(down, os.path.join(sample_path, filename + f"_down_{2**(i+1)}.tiff"))
         # np.save(os.path.join(out_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
+        print("Saving image for pyramid level: ", i)
         write_nifti(pyramid[i], pyramid_affines[i], os.path.join(out_path, out_name + f"_scale_{2**i}.nii.gz"))  # for itk-snap
 
     return pyramid, pyramid_affines

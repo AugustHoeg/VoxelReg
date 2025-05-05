@@ -55,7 +55,7 @@ if __name__ == "__main__":
         print("Scan path: ", scan_path)
     if args.out_path is not None:
         out_path = os.path.join(sample_path, args.out_path)  # os.path.join(sample_path, args.out_name)
-        print("Output name: ", out_name)
+        print("Output path: ", out_path)
     if args.out_name is not None:
         out_name = args.out_name  # os.path.join(sample_path, args.out_name)
         print("Output name: ", out_name)
