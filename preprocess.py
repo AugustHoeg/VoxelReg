@@ -7,7 +7,7 @@ from utils.utils_preprocess import crop_to_roi, preprocess
 project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/"
 sample_path = project_path + "Larch_A_bin1x1/"
 
-scan_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"  # LR image is the moving image
+scan_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.txm"  # LR image is the moving image
 out_name = "Larch_A_LFOV_pos1"  # Name of the output file
 
 #scan_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"  # HR image is the reference
@@ -19,6 +19,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Preprocess 3D image data for registration.")
     parser.add_argument("--sample_path", type=str, required=False, help="Path to the sample directory.")
     parser.add_argument("--scan_path", type=str, required=False, help="Path to the scan file.")
+    parser.add_argument("--out_path", type=str, required=False, help="Path to the output file.")
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the processed image.")
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
 
@@ -51,6 +52,9 @@ if __name__ == "__main__":
     if args.scan_path is not None:
         scan_path = os.path.join(sample_path, args.scan_path)
         print("Scan path: ", scan_path)
+    if args.out_path is not None:
+        out_path = args.out_path  # os.path.join(sample_path, args.out_name)
+        print("Output name: ", out_name)
     if args.out_name is not None:
         out_name = args.out_name  # os.path.join(sample_path, args.out_name)
         print("Output name: ", out_name)

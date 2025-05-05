@@ -54,13 +54,13 @@ source "${VENV_DIR}/${VENV_NAME}/bin/activate"
 echo "About to run scripts"
 
 SAMPLE_PATH=""
-MOVING_PATH="Larch_A_LFOV_crop_full_height.npy"
+MOVING_PATH="Larch_A_LFOV_pos1.npy"
 FIXED_PATH="Larch_A_4x_pos1_down_4.npy"
 OUT_NAME="Larch_A_LFOV_pos1_registered"
 
 python -u elastix_automatic_registration.py --sample_path "$SAMPLE_PATH" \
 --fixed_path "$FIXED_PATH" --moving_path "$MOVING_PATH" --out_name "$OUT_NAME" --run_type "DTU_HPC" \
---center 1450 161 161 --size 1 1 1 --spacing 25 20 20
+--center 1438 161 161 --size 1 1 1 --spacing 25 20 20
 
 echo "Done"
 
