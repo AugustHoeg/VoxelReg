@@ -4,7 +4,7 @@ import itk
 import numpy as np
 from utils.utils_elastix import elastix_coarse_registration_sweep, elastix_refined_registration
 from utils.utils_itk import create_itk_view, scale_spacing_and_origin
-from utils.utils_tiff import load_tiff
+from utils.utils_tiff import load_tiff, write_tiff
 
 
 # Define paths
@@ -135,6 +135,8 @@ if __name__ == "__main__":
         fig_name=out_name
     )
 
+    print(f"Registration completed successfully. \n")
+
     # Save results
     result_array = itk.array_view_from_image(result_refined)
 
@@ -149,4 +151,9 @@ if __name__ == "__main__":
     full_out_path = os.path.join(out_path, out_name + ".npy")
     np.save(full_out_path, result_array)
 
-    print(f"Registration complete, output saved to {full_out_path}")
+    print(f"Output saved to {full_out_path}")
+
+    full_out_path = os.path.join(out_path, out_name + ".tiff")
+    write_tiff(result_array, full_out_path)
+
+    print(f"Output saved to {full_out_path}")
