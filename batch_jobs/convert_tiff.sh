@@ -17,7 +17,7 @@ CUDA_VERSION=12.1      # CUDA version (default: 11.6)
 #BSUB -W 8:00
 # request 40GB of system-memory rusage=40
 ###BSUB -R "select[gpu40gb]"
-#BSUB -R "rusage[mem=16GB]"
+#BSUB -R "rusage[mem=8GB]"
 #BSUB -u "august.hoeg@gmail.com"
 #BSUB -B
 #BSUB -N
@@ -53,14 +53,11 @@ source "${VENV_DIR}/${VENV_NAME}/bin/activate"
 
 echo "About to run scripts"
 
-SAMPLE_PATH=""
-MOVING_PATH="Larch_A_LFOV_pos1.npy"
-FIXED_PATH="Larch_A_4x_pos1_down_4.npy"
-OUT_NAME="Larch_A_LFOV_pos1_registered"
+SAMPLE_PATH="stitched"
+IMAGE_PATH="Elm_A_4x_stitch_scale_4.npy"
+OUT_NAME="Elm_A_4x_stitch_scale_4.tiff"
 
-python -u elastix_automatic_registration.py --sample_path "$SAMPLE_PATH" \
---fixed_path "$FIXED_PATH" --moving_path "$MOVING_PATH" --out_name "$OUT_NAME" --run_type "DTU_HPC" \
---center 1438 161 161 --size 1 1 1 --spacing 25 20 20
+python -u convert_tiff.py --sample_path "$SAMPLE_PATH" --image_path "$IMAGE_PATH" --out_name "$OUT_NAME" --run_type "DTU_HPC"
 
 echo "Done"
 

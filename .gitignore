@@ -6,6 +6,7 @@ __pycache__/
 
 batch_errors/**
 batch_outputs/**
+batch_jobs/**
 
 dxchange/
 
