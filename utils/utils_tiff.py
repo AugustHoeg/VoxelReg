@@ -79,7 +79,7 @@ def center_crop(image, target_shape):
     crop_end = [min(image.shape[i], center[i] + target_shape[i] // 2) for i in range(3)]
 
     cropped_image = image[crop_start[0]:crop_end[0], crop_start[1]:crop_end[1], crop_start[2]:crop_end[2]]
-    return cropped_image
+    return cropped_image, crop_start, crop_end
 
 
 def write_downsampled_tiff(image, output_path, factor, ret=False):

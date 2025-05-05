@@ -6,7 +6,7 @@ from skimage.filters import threshold_otsu
 
 from utils.utils_plot import viz_slices, viz_multiple_images
 from utils.utils_tiff import load_tiff, write_tiff, center_crop
-from utils.utils_nifti import write_nifti
+from utils.utils_nifti import write_nifti, compute_affine_crop, compute_affine_scale
 from utils.utils_txm import load_txm, get_affine_txm
 
 
@@ -51,6 +51,23 @@ def crop_to_roi(image, roi_factor, margin_percent=0.50, divis_factor=2, minimum_
     return crop_image
 
 
+def define_roi(input_size, reduce_factor, margin_percent=0.50, divis_factor=2, minimum_size=(2000, 2000, 2000), maximum_size=(2000, 2000, 2000)):
+
+    # Define roi
+    roi = np.array(input_size)
+    roi[1:] = ((roi[1:] // reduce_factor) * (1 + margin_percent)).astype(int)  # Reduce size
+    roi = (roi // divis_factor * divis_factor).astype(int)  # Ensure shape is divisible by d
+
+    # minimum_size = [np.minimum(val1, val2) for val1, val2 in zip(roi, minimum_size)]
+
+    if minimum_size is not None:
+        roi = np.maximum(roi, minimum_size)  # Ensure minimum size
+    if maximum_size is not None:
+        roi = np.minimum(roi, maximum_size)  # Ensure maximum size
+
+    return roi
+
+
 def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, min_size, max_size, pyramid_depth=3, mask_threshold=None):
 
     filename, file_extension = os.path.splitext(os.path.basename(scan_path))
@@ -71,8 +88,10 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
     else:
         assert False, "Unsupported file format."
 
-    image = crop_to_roi(image, roi_factor=f, margin_percent=margin_percent, divis_factor=divis_factor,
-                         minimum_size=min_size, maximum_size=max_size)  # Reduce size
+    roi = define_roi(image.shape, f, margin_percent, divis_factor, minimum_size=min_size, maximum_size=max_size)
+    image, crop_start, crop_end = center_crop(image, roi)
+    print(f"crop start: {crop_start}, crop end: {crop_end}, crop shape: {image.shape}")
+    affine = compute_affine_crop(affine, crop_start, crop_end)  # Compute new affine based on crop roi
 
     # convert to float
     image = image.astype(np.float32)
@@ -80,11 +99,14 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
     # Create image pyramid
     pyramid = []
     pyramid.append(image)
+    pyramid_affines = []
+    pyramid_affines.append(affine)
 
     # Create pyramid images
     for depth in range(pyramid_depth - 1):
         print(f"Creating pyramid level: {depth+1}/{pyramid_depth-1}")
         pyramid.append(downscale_local_mean(pyramid[depth], (2, 2, 2)).astype(np.float32))
+        pyramid_affines.append(compute_affine_scale(pyramid_affines[depth], scale=2))
 
     for i in range(len(pyramid)):
         print("Pyramid level: ", i)
@@ -99,9 +121,9 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
             mask = np.zeros_like(mask_image)
             mask[mask_image > mask_threshold] = 1
             mask = mask.astype(np.uint8)
-            np.save(os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.npy"), mask)
+            # np.save(os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.npy"), mask)
             # write_tiff(mask, os.path.join(sample_path, filename + "_mask.tiff"))
-            write_nifti(mask, os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.nii.gz"))
+            write_nifti(mask, pyramid_affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.nii.gz"))
 
             # Normalize the image based on the mask
             masked_norm(pyramid[i], mask)  # Ensure range is between [0, 1]
@@ -111,7 +133,7 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
 
         # Save downscaled images
         # write_tiff(down, os.path.join(sample_path, filename + f"_down_{2**(i+1)}.tiff"))
-        np.save(os.path.join(out_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
-        write_nifti(pyramid[i], os.path.join(out_path, out_name + f"_scale_{2**i}.nii.gz"))  # for itk-snap
+        # np.save(os.path.join(out_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
+        write_nifti(pyramid[i], pyramid_affines[i], os.path.join(out_path, out_name + f"_scale_{2**i}.nii.gz"))  # for itk-snap
 
     return pyramid

@@ -8,6 +8,7 @@ project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokument
 sample_path = project_path + "Larch_A_bin1x1/"
 
 scan_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.txm"  # LR image is the moving image
+out_path = project_path + "stitched/processed/" + "Larch_A_bin1x1/"
 out_name = "Larch_A_LFOV_pos1"  # Name of the output file
 
 #scan_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"  # HR image is the reference
@@ -68,7 +69,7 @@ if __name__ == "__main__":
     mask_threshold = args.mask_threshold  # Threshold for masking
     pyramid_depth = args.pyramid_depth  # Save downscaled image
 
-    pyramid = preprocess(scan_path, out_name, f, margin_percent, divis_factor, min_size, max_size, pyramid_depth, mask_threshold)  # Preprocess moving image
+    pyramid = preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, min_size, max_size, pyramid_depth, mask_threshold)  # Preprocess moving image
 
     # Visualize
     for i, image in enumerate(pyramid):

@@ -41,3 +41,25 @@ def crop_nifti(data, affine, crop_start, crop_end):
     new_affine[:3, 3] = new_origin[:3]
 
     return cropped_data, new_affine
+
+def compute_affine_crop(affine, crop_start, crop_end):
+
+    # Define crop indices (example)
+    x0, y0, z0 = crop_start  # starting voxel indices
+
+    # Compute new affine
+    # The new origin in world coordinates = affine @ [x0, y0, z0, 1]
+    new_origin = affine @ [x0, y0, z0, 1]
+    new_affine = affine.copy()
+    new_affine[:3, 3] = new_origin[:3]
+
+    return new_affine
+
+def compute_affine_scale(affine, scale):
+
+    # Compute new affine
+    # The new origin in world coordinates = affine @ [x0, y0, z0, 1]
+    new_affine = affine.copy()
+    new_affine[:3, :3] *= scale
+
+    return new_affine

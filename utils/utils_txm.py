@@ -8,7 +8,7 @@ def load_txm(input_path, dtype=np.float32):
     return image, metadata
 
 
-def get_affine_txm(metadata):
+def get_affine_txm(metadata, custom_origin=None):
 
     pixel_size = metadata['pixel_size']  # in microns
 
@@ -17,11 +17,22 @@ def get_affine_txm(metadata):
 
     voxel_spacing_mm = [pixel_size_mm] * 3  # Isotropic assumed
 
-    # Create the affine transformation matrix, assuming Nifti (Z,Y,X) order
-    affine = np.diag([voxel_spacing_mm[2], voxel_spacing_mm[1], voxel_spacing_mm[0], 1])
+    # Create the affine transformation matrix, assuming Nifti (D,H,W) order
+    affine = np.diag([voxel_spacing_mm[0], voxel_spacing_mm[1], voxel_spacing_mm[2], 1])
+
+    x_offset = metadata['x_positions'][0] / 1000.0
+    y_offset = metadata['y_positions'][0] / 1000.0
+    z_offset = metadata['z_positions'][0] / 1000.0  # Assuming the first position is the reference
 
     # Set the translation part of the affine matrix
-    affine[0:3, 3] = 0  # we assume the origin is at (0, 0, 0)
+    if custom_origin is not None:
+        affine[0, 3] = custom_origin[0]
+        affine[1, 3] = custom_origin[1]
+        affine[2, 3] = custom_origin[2]
+    else:
+        affine[0, 3] = x_offset
+        affine[1, 3] = y_offset
+        affine[2, 3] = z_offset
 
     return affine
 
