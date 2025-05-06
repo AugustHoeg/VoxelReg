@@ -128,7 +128,7 @@ if __name__ == "__main__":
         fixed_image_sparse,
         moving_image_sparse,
         center_mm=center,
-        spacing_mm=spacing,
+        grid_spacing_mm=spacing,
         grid_size=size,
         write_result_image=True,
         log_mode=None,
