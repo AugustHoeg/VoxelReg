@@ -83,7 +83,7 @@ if __name__ == "__main__":
         out_name = args.out_name  # out_name = os.path.join(sample_path, args.out_name)
         print("Output name: ", out_name)
 
-    filename, file_extension = os.path.splitext(os.path.basename(moving_path))
+    filename, file_extension = os.path.basename(moving_path).split('.', 1)
 
     if file_extension == ".nii" or file_extension == ".nii.gz":
         moving_image_sparse = itk.imread(moving_path)
