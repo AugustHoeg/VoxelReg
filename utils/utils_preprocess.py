@@ -20,7 +20,7 @@ def norm(image):
 
 def masked_norm(image, mask):
     # Get the min and max of the masked image
-    masked_image = image[mask]
+    masked_image = image[mask > 0]
     masked_image_min = np.min(masked_image)
     masked_image_max = np.max(masked_image)
 
@@ -32,7 +32,7 @@ def masked_norm(image, mask):
     image[mask == 0] = 0
 
     # Set values inside mask to normalized values
-    image[mask] = masked_image
+    image[mask > 0] = masked_image
 
 
 def crop_to_roi(image, roi_factor, margin_percent=0.50, divis_factor=2, minimum_size=(2000, 2000, 2000), maximum_size=(2000, 2000, 2000)):
