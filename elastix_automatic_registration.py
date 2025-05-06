@@ -85,11 +85,11 @@ if __name__ == "__main__":
 
     filename, file_extension = os.path.basename(moving_path).split('.', 1)
 
-    if file_extension == ".nii" or file_extension == ".nii.gz":
+    if file_extension == "nii" or file_extension == "nii.gz":
         moving_image_sparse = itk.imread(moving_path)
         fixed_image_sparse = itk.imread(fixed_path)
 
-    elif file_extension == ".tiff" or file_extension == ".tif":
+    elif file_extension == "tiff" or file_extension == "tif":
         moving_array_sparse = load_tiff(moving_path)
         fixed_array_sparse = load_tiff(fixed_path)
 
@@ -100,7 +100,7 @@ if __name__ == "__main__":
         fixed_image_sparse = create_itk_view(fixed_array_sparse)
         scale_spacing_and_origin(fixed_image_sparse, 1.0)
 
-    elif file_extension == ".npy":
+    elif file_extension == "npy":
         moving_array_sparse = np.load(moving_path)
         fixed_array_sparse = np.load(fixed_path)
 
