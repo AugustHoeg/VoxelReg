@@ -20,16 +20,19 @@ def norm(image):
 
 def masked_norm(image, mask):
     # Get the min and max of the masked image
-    masked_image = image[mask > 0]
+    masked_image = image[mask]
     masked_image_min = np.min(masked_image)
     masked_image_max = np.max(masked_image)
 
     # Normalize the image using the mask values
-    image[mask] -= masked_image_min
-    image[mask] /= (masked_image_max - masked_image_min)
+    masked_image -= masked_image_min
+    masked_image /= (masked_image_max - masked_image_min)
 
     # Set values outside mask to zero
     image[mask == 0] = 0
+
+    # Set values inside mask to normalized values
+    image[mask] = masked_image
 
 
 def crop_to_roi(image, roi_factor, margin_percent=0.50, divis_factor=2, minimum_size=(2000, 2000, 2000), maximum_size=(2000, 2000, 2000)):
@@ -123,7 +126,7 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
                 print("Custom threshold: ", mask_threshold)
             mask = np.zeros_like(mask_image)
             mask[mask_image > mask_threshold] = 1
-            mask = mask.astype(np.uint8)
+            mask = mask.astype(bool)
             # np.save(os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.npy"), mask)
             # write_tiff(mask, os.path.join(sample_path, filename + "_mask.tiff"))
             print("Saving mask for pyramid level: ", i)
