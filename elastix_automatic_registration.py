@@ -127,9 +127,9 @@ if __name__ == "__main__":
     result_coarse, coarse_trans_obj, metric = elastix_coarse_registration_sweep(
         fixed_image_sparse,
         moving_image_sparse,
-        center=center,
-        spacing=spacing,
-        size=size,
+        center_mm=center,
+        spacing_mm=spacing,
+        grid_size=size,
         write_result_image=True,
         log_mode=None,
         visualize=True,

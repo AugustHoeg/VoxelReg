@@ -3,6 +3,7 @@ import SimpleITK as sitk
 import numpy as np
 from tqdm import tqdm
 from utils.utils_plot import viz_multiple_images, viz_registration
+from utils.utils_itk import pixel2world
 
 
 # Class reference for ElastixRegistrationMethod:
@@ -129,7 +130,7 @@ def get_spaced_coords(shape, spacing):
     return coords
 
 
-def get_spaced_coords_around_point(center_mm, spacing_mm, pixel_size_mm, grid_size):
+def get_spaced_coords_around_point(center_mm, grid_spacing_mm, grid_size, spacing_mm):
     """
     Generates a grid of evenly spaced 3D coordinates around a center point.
 
@@ -142,11 +143,11 @@ def get_spaced_coords_around_point(center_mm, spacing_mm, pixel_size_mm, grid_si
     Returns:
         numpy.ndarray: Array of shape (N, 3) with valid (z, y, x) coordinates within image bounds.
     """
-    center = np.ceil(np.array(center_mm) / pixel_size_mm).astype(int)
-    spacing = np.ceil(np.array(spacing_mm) / pixel_size_mm).astype(int)
+    center = np.ceil(np.array(center_mm) / spacing_mm).astype(int)
+    grid_spacing = np.ceil(np.array(grid_spacing_mm) / spacing_mm).astype(int)
 
     # Unpack parameters
-    dz, dy, dx = (spacing, spacing, spacing) if isinstance(spacing, int) else spacing
+    dz, dy, dx = (grid_spacing, grid_spacing, grid_spacing) if isinstance(grid_spacing, int) else grid_spacing
     nz, ny, nx = (grid_size, grid_size, grid_size) if isinstance(grid_size, int) else grid_size
 
     # Symmetric offsets around 0
@@ -163,7 +164,7 @@ def get_spaced_coords_around_point(center_mm, spacing_mm, pixel_size_mm, grid_si
     coords = center + offsets
 
     # Convert to back to mm
-    coords = coords * pixel_size_mm
+    coords = coords * spacing_mm
 
     # Clip to valid bounds
     #shape = np.array(shape).reshape(1, 3)
@@ -173,22 +174,26 @@ def get_spaced_coords_around_point(center_mm, spacing_mm, pixel_size_mm, grid_si
 
 
 
-def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, center, spacing=(50, 20, 20), size=(2, 2, 2), write_result_image=True, log_mode=None, visualize=False, fig_name=None):
+def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, center_mm, grid_spacing_mm=(1, 1, 1), grid_size=(2, 2, 2), write_result_image=True, log_mode=None, visualize=False, fig_name=None):
 
     print("Running coarse registration")
 
     parameter_object, parameter_map = get_default_parameter_object('translation', resolutions=4, write_result_image=write_result_image, save_path=None)
     elastix_object = get_elastix_registration_object(fixed_image_sparse, moving_image_sparse, parameter_object, log_mode=log_mode)
 
-    shape_diff = np.subtract(moving_image_sparse.shape, fixed_image_sparse.shape).astype(np.float64)
-    if center is None:  # defaults to aligning upper slices and center in x and y
-        center = [shape_diff[0], shape_diff[1] / 2, shape_diff[2] / 2]
-    else:
-        center[0] = shape_diff[0] if center[0] is None else center[0]
-        center[1] = shape_diff[1] / 2 if center[1] is None else center[1]
-        center[2] = shape_diff[2] / 2 if center[2] is None else center[2]
+    p_moving = pixel2world(moving_image_sparse, moving_image_sparse.shape).astype(np.float32)
+    p_fixed = pixel2world(fixed_image_sparse, fixed_image_sparse.shape).astype(np.float32)
 
-    translation_coords = get_spaced_coords_around_point(center, shape=shape_diff + 1, spacing=spacing, size=size)
+    p_diff = (p_moving - p_fixed)
+    if center_mm is None:  # defaults to aligning upper slices and center in x and y
+        center_mm = [p_diff[0], p_diff[1] / 2, p_diff[2] / 2]
+    else:
+        center_mm[0] = p_diff[0] if center_mm[0] is None else center_mm[0]
+        center_mm[1] = p_diff[1] / 2 if center_mm[1] is None else center_mm[1]
+        center_mm[2] = p_diff[2] / 2 if center_mm[2] is None else center_mm[2]
+
+    spacing_mm = np.array(moving_image_sparse.GetSpacing())
+    translation_coords = get_spaced_coords_around_point(center_mm, grid_spacing_mm, grid_size, spacing_mm)
 
     best_metric = -1
 
