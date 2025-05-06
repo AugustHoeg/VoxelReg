@@ -12,6 +12,7 @@ def parse_arguments():
     parser.add_argument("--out_path", type=str, required=False, help="Path to the output file.")
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the registered output image.")
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
+    parser.add_argument("--chunk_size", type=int, nargs=3, default=(648, 648, 648), help="Size of each chunk (D, H, W).")
 
     args = parser.parse_args()
     return args
@@ -60,7 +61,7 @@ if __name__ == "__main__":
     # If you must open large images, consider using memory-mapped arrays:
     # image = np.load("image.npy", mmap_mode='r')  # won't load entire array into RAM
 
-    chunk_size = (648, 648, 648)
+    chunk_size = args.chunk_size
 
     print("Image shape: ", image.shape)
     print("Chunk size: ", chunk_size)
