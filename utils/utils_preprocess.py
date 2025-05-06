@@ -90,7 +90,7 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
     elif file_extension == ".txm":
         image, metadata = load_txm(scan_path)
         print("######### TXM metadata ########## \n", metadata)
-        affine = get_affine_txm(metadata)
+        affine = get_affine_txm(metadata, custom_origin=(0, 0, 0))
     else:
         assert False, "Unsupported file format."
 
