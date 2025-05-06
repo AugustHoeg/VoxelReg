@@ -129,7 +129,7 @@ def get_spaced_coords(shape, spacing):
     return coords
 
 
-def get_spaced_coords_around_point(center, shape, spacing, size):
+def get_spaced_coords_around_point(center_mm, spacing_mm, pixel_size_mm, grid_size):
     """
     Generates a grid of evenly spaced 3D coordinates around a center point.
 
@@ -142,9 +142,12 @@ def get_spaced_coords_around_point(center, shape, spacing, size):
     Returns:
         numpy.ndarray: Array of shape (N, 3) with valid (z, y, x) coordinates within image bounds.
     """
+    center = np.ceil(np.array(center_mm) / pixel_size_mm).astype(int)
+    spacing = np.ceil(np.array(spacing_mm) / pixel_size_mm).astype(int)
+
     # Unpack parameters
     dz, dy, dx = (spacing, spacing, spacing) if isinstance(spacing, int) else spacing
-    nz, ny, nx = (size, size, size) if isinstance(size, int) else size
+    nz, ny, nx = (grid_size, grid_size, grid_size) if isinstance(grid_size, int) else grid_size
 
     # Symmetric offsets around 0
     offsets_z = dz * (np.arange(nz) - (nz - 1) / 2)
@@ -158,6 +161,9 @@ def get_spaced_coords_around_point(center, shape, spacing, size):
     # Add offsets to center
     center = np.array(center).reshape(1, 3)
     coords = center + offsets
+
+    # Convert to back to mm
+    coords = coords * pixel_size_mm
 
     # Clip to valid bounds
     #shape = np.array(shape).reshape(1, 3)
