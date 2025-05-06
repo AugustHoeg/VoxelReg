@@ -55,6 +55,7 @@ def compute_affine_crop(affine, crop_start, crop_end):
 
     return new_affine
 
+
 def compute_affine_scale(affine, scale):
 
     # Compute new affine
@@ -63,3 +64,31 @@ def compute_affine_scale(affine, scale):
     new_affine[:3, :3] *= scale
 
     return new_affine
+
+
+def modify_nifti_origin(nifti_path, new_origin):
+
+    """
+    Modify the origin of a NIfTI file to a new specified origin.
+
+    # Example usage
+    sample_path = "/dtu/3d-imaging-center/projects/2025_DANFIX_163_VoDaSuRe/raw_data_extern/stitched/processed/Bamboo_A_bin1x1/"
+    nifti_path = sample_path + "Bamboo_A_bin1x1.nii.gz"
+    modify_nifti_origin(nifti_path, new_origin=(0, 0, 0))
+
+    :param nifti_path:
+    :param new_origin:
+    :return:
+    """
+
+    img = nib.load(nifti_path)
+
+    # Modify the affine: keep voxel spacing and orientation, but move origin to (0, 0, 0)
+    new_affine = img.affine.copy()
+    new_affine[:3, 3] = new_origin  # Set the translation (origin) to (0, 0, 0)
+
+    # Create a new NIfTI image with the modified affine
+    new_img = nib.Nifti1Image(img.dataobj, affine=new_affine, header=img.header)
+
+    # Save the modified image
+    nib.save(new_img, nifti_path)
