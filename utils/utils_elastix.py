@@ -194,6 +194,7 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
 
     spacing_mm = np.array(moving_image_sparse.GetSpacing())
     translation_coords = get_spaced_coords_around_point(center_mm, grid_spacing_mm, grid_size, spacing_mm)
+    print("translation_coords", translation_coords)
 
     best_metric = -1
 
