@@ -92,3 +92,21 @@ def modify_nifti_origin(nifti_path, new_origin):
 
     # Save the modified image
     nib.save(new_img, nifti_path)
+
+
+def get_affine_from_itk_image(image):
+
+    origin = np.array(image.GetOrigin())  # (x0, y0, z0)
+    spacing = np.array(image.GetSpacing())  # (sx, sy, sz)
+    direction = np.array(image.GetDirection())  # 9 elements (row-major)
+
+    # Reshape direction to 3x3
+    direction = direction.reshape(3, 3)
+
+    # Compute nifti affine
+    affine = np.eye(4)
+    affine[:3, :3] = direction @ np.diag(spacing)
+    affine[:3, 3] = origin
+    return affine
+
+

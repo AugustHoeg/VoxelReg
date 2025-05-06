@@ -5,6 +5,7 @@ import numpy as np
 from utils.utils_elastix import elastix_coarse_registration_sweep, elastix_refined_registration
 from utils.utils_itk import create_itk_view, scale_spacing_and_origin
 from utils.utils_tiff import load_tiff, write_tiff
+from utils.utils_nifti import write_nifti, get_affine_from_itk_image
 
 
 # Define paths
@@ -82,18 +83,36 @@ if __name__ == "__main__":
         out_name = args.out_name  # out_name = os.path.join(sample_path, args.out_name)
         print("Output name: ", out_name)
 
-    moving_array_sparse = np.load(moving_path)
-    fixed_array_sparse = np.load(fixed_path)
+    filename, file_extension = os.path.splitext(os.path.basename(moving_path))
 
-    #moving_array_sparse = np.load(sample_path + "Larch_A_LFOV_crop_full_height.npy")
-    #fixed_array_sparse = np.load(sample_path + "Larch_A_4x_pos1_down_4.npy")
+    if file_extension == ".nii" or file_extension == ".nii.gz":
+        moving_image_sparse = itk.imread(moving_path)
+        fixed_image_sparse = itk.imread(fixed_path)
 
-    # Convert to ITK images and set spacing and origin
-    moving_image_sparse = create_itk_view(moving_array_sparse)
-    scale_spacing_and_origin(moving_image_sparse, 1.0)
+    elif file_extension == ".tiff" or file_extension == ".tif":
+        moving_array_sparse = load_tiff(moving_path)
+        fixed_array_sparse = load_tiff(fixed_path)
 
-    fixed_image_sparse = create_itk_view(fixed_array_sparse)
-    scale_spacing_and_origin(fixed_image_sparse, 1.0)
+        # Convert to ITK images and set spacing and origin
+        moving_image_sparse = create_itk_view(moving_array_sparse)
+        scale_spacing_and_origin(moving_image_sparse, 1.0)
+
+        fixed_image_sparse = create_itk_view(fixed_array_sparse)
+        scale_spacing_and_origin(fixed_image_sparse, 1.0)
+
+    elif file_extension == ".npy":
+        moving_array_sparse = np.load(moving_path)
+        fixed_array_sparse = np.load(fixed_path)
+
+        # Convert to ITK images and set spacing and origin
+        moving_image_sparse = create_itk_view(moving_array_sparse)
+        scale_spacing_and_origin(moving_image_sparse, 1.0)
+
+        fixed_image_sparse = create_itk_view(fixed_array_sparse)
+        scale_spacing_and_origin(fixed_image_sparse, 1.0)
+    else:
+        raise ValueError(f"Unsupported file extension: {file_extension}")
+
 
     # Coarse registration parameters
     #center = [731, 65, 65]  # None
@@ -150,10 +169,12 @@ if __name__ == "__main__":
 
     full_out_path = os.path.join(out_path, out_name + ".npy")
     np.save(full_out_path, result_array)
-
     print(f"Output saved to {full_out_path}")
 
     full_out_path = os.path.join(out_path, out_name + ".tiff")
     write_tiff(result_array, full_out_path)
+    print(f"Output saved to {full_out_path}")
 
+    full_out_path = os.path.join(out_path, out_name + ".nii.gz")
+    write_nifti(result_array, affine=get_affine_from_itk_image(result_refined), output_path=full_out_path)
     print(f"Output saved to {full_out_path}")
