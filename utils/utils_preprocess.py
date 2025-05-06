@@ -126,7 +126,7 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
                 print("Custom threshold: ", mask_threshold)
             mask = np.zeros_like(mask_image)
             mask[mask_image > mask_threshold] = 1
-            mask = mask.astype(bool)
+            mask = mask.astype(np.uint8)
             # np.save(os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.npy"), mask)
             # write_tiff(mask, os.path.join(sample_path, filename + "_mask.tiff"))
             print("Saving mask for pyramid level: ", i)
