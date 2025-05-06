@@ -20,7 +20,7 @@ def norm(image):
 
 def masked_norm(image, mask):
     # Get the min and max of the masked image
-    masked_image = image[mask]
+    masked_image = image[mask > 0]
     masked_image_min = np.min(masked_image)
     masked_image_max = np.max(masked_image)
 
