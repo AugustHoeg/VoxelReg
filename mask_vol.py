@@ -42,13 +42,16 @@ if __name__ == "__main__":
     if args.out_name is not None:
         out_name = args.out_name  # os.path.join(sample_path, args.out_name)
         print("Output name: ", out_name)
+    if args.mask_path is not None:
+        mask_path = os.path.join(sample_path, args.mask_path)
+        print("Mask path: ", mask_path)
 
     print(f"Loading {scan_path}")
     image = np.load(scan_path).astype(np.float32)
     # If you must open large images, consider using memory-mapped arrays:
     # image = np.load("image.npy", mmap_mode='r')  # won't load entire array into RAM
 
-    mask = np.load(args.mask_path).astype(np.uint8)
+    mask = np.load(mask_path).astype(np.uint8)
 
     # Create output directory if it doesn't exist
     os.makedirs(out_path, exist_ok=True)
