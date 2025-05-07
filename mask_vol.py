@@ -12,7 +12,7 @@ def parse_arguments():
     parser.add_argument("--out_path", type=str, required=False, help="Path to the output file.")
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the registered output image.")
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
-    parser.add_argument("--mask_path", type=int, required=False, help="Size of each chunk (D, H, W).")
+    parser.add_argument("--mask_path", type=str, required=False, help="Size of each chunk (D, H, W).")
 
     args = parser.parse_args()
     return args
