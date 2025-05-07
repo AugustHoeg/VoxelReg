@@ -136,7 +136,7 @@ def itk_checkerboard(fixed_image, moving_image, checker_pattern=(10, 10, 10)):
 
     return checkerboard_filter.GetOutput()
 
-def pixel2world(image, point):
+def voxel2world(image, point):
 
     x, y, z = point
 
@@ -144,4 +144,6 @@ def pixel2world(image, point):
     spacing = np.array(image.GetSpacing())
     direction = np.array(image.GetDirection()).reshape(3, 3)
 
-    return origin + direction @ (spacing * [x, y, z])
+    world_point = origin + direction @ (spacing * [x, y, z])
+
+    return world_point

@@ -42,28 +42,56 @@ def crop_nifti(data, affine, crop_start, crop_end):
 
     return cropped_data, new_affine
 
-def compute_affine_crop(affine, crop_start, crop_end):
+def compute_affine_crop(affine, crop_start):
+    """
+    Compute the new affine matrix based on the crop region.
+    :param affine: original affine matrix
+    :param crop_start: starting voxel indices for cropping
+    :return: new affine matrix
+    """
 
-    # Define crop indices (example)
-    x0, y0, z0 = crop_start  # starting voxel indices
-
-    # Compute new affine
     # The new origin in world coordinates = affine @ [x0, y0, z0, 1]
-    new_origin = affine @ [x0, y0, z0, 1]
-    new_affine = affine.copy()
-    new_affine[:3, 3] = new_origin[:3]
+    new_origin = get_crop_origin(affine, crop_start)
+
+    # Set the translation part of the affine matrix to the new origin
+    new_affine = set_origin(affine.copy(), new_origin)
 
     return new_affine
-
 
 def compute_affine_scale(affine, scale):
+    """
+    Compute the new affine matrix based on the scale.
+    :param affine: original affine matrix
+    :param scale: scaling factor
+    :return: new affine matrix
+    """
 
-    # Compute new affine
-    # The new origin in world coordinates = affine @ [x0, y0, z0, 1]
-    new_affine = affine.copy()
-    new_affine[:3, :3] *= scale
+    # Set the scaling part of the affine matrix
+    new_affine = set_affine_scale(affine.copy(), scale)
 
     return new_affine
+
+def get_crop_origin(affine, crop_start):
+
+    # The new origin in world coordinates = affine @ [x0, y0, z0, 1]
+    new_origin = voxel2world(affine, crop_start)
+
+    return new_origin
+
+
+def set_origin(affine, new_origin):
+
+    # Set the translation part of the affine matrix to the new origin
+    affine[:3, 3] = new_origin
+
+    return affine
+
+
+def set_affine_scale(affine, scale):
+
+    affine[:3, :3] *= scale
+
+    return affine
 
 
 def modify_nifti_origin(nifti_path, new_origin):
@@ -108,5 +136,22 @@ def get_affine_from_itk_image(image):
     affine[:3, :3] = direction @ np.diag(spacing)
     affine[:3, 3] = origin
     return affine
+
+
+def voxel2world(affine, point):
+
+    """
+    Convert a point in pixel coordinates to world coordinates using the affine transformation matrix.
+    :param affine: 4x4 affine transformation matrix
+    :param point: 3D point in pixel coordinates (x, y, z)
+    :return: 3D point in world coordinates (x_w, y_w, z_w)
+    """
+    point_homogeneous = np.array([point[0], point[1], point[2], 1])
+    world_point = affine @ point_homogeneous
+    return world_point[:3]
+
+
+
+
 
 
