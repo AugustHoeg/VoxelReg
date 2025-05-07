@@ -72,7 +72,7 @@ if __name__ == "__main__":
     if args.moving_out_path is not None:
         moving_out_path = os.path.join(sample_path, args.moving_out_path)  # os.path.join(sample_path, args.out_name)
         print("Moving output path: ", moving_out_path)
-    if args.moving_out_path is not None:
+    if args.fixed_out_path is not None:
         fixed_out_path = os.path.join(sample_path, args.fixed_out_path)  # os.path.join(sample_path, args.out_name)
         print("Fixed output path: ", fixed_out_path)
 
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     ##################### MOVING IMAGE ######################
 
     # Load moving image
-    moving, moving_affine = get_image_and_affine(args.moving_path, custom_origin=(0, 0, 0))
+    moving, moving_affine = get_image_and_affine(moving_path, custom_origin=(0, 0, 0))
 
     # Define moving image space
     moving, moving_affine, moving_crop_start, moving_crop_end = define_image_space(moving, moving_affine, f=args.f,
@@ -102,7 +102,7 @@ if __name__ == "__main__":
     ##################### FIXED IMAGE ######################
 
     # Load fixed image
-    fixed, fixed_affine = get_image_and_affine(args.fixed_path, custom_origin=(0, 0, 0))
+    fixed, fixed_affine = get_image_and_affine(fixed_path, custom_origin=(0, 0, 0))
 
     # Define fixed image space
     fixed, fixed_affine, fixed_crop_start, fixed_crop_end = define_image_space(fixed, fixed_affine, f=1,
