@@ -86,18 +86,18 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
 
     if file_extension == ".tiff" or file_extension == ".tif":
         image = load_tiff(scan_path)
-        affine = np.eye(4)  # Identity matrix for TIFF
+        nifti_affine = np.eye(4)  # Identity matrix for TIFF
     elif file_extension == ".txm":
         image, metadata = load_txm(scan_path)
         print("######### TXM metadata ########## \n", metadata)
-        affine = get_affine_txm(metadata, custom_origin=(0, 0, 0))
+        nifti_affine = get_affine_txm(metadata, custom_origin=(0, 0, 0))
     else:
         assert False, "Unsupported file format."
 
     roi = define_roi(image.shape, f, margin_percent, divis_factor, minimum_size=min_size, maximum_size=max_size)
     image, crop_start, crop_end = center_crop(image, roi)
     print(f"crop start: {crop_start}, crop end: {crop_end}, crop shape: {image.shape}")
-    affine = compute_affine_crop(affine, crop_start, crop_end)  # Compute new affine based on crop roi
+    nifti_affine = compute_affine_crop(nifti_affine, crop_start, crop_end)  # Compute new affine based on crop roi
 
     # convert to float
     image = image.astype(np.float32)
@@ -106,7 +106,7 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
     pyramid = []
     pyramid.append(image)
     pyramid_affines = []
-    pyramid_affines.append(affine)
+    pyramid_affines.append(nifti_affine)
 
     # Create pyramid images
     for depth in range(pyramid_depth - 1):

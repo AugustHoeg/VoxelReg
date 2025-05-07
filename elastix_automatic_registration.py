@@ -18,6 +18,17 @@ moving_path = sample_path + "Larch_A_LFOV_crop_full_height.npy"
 fixed_path = sample_path + "Larch_A_4x_pos1_down_4.npy"
 out_name = "Larch_A_LFOV_registered"  # Name of the output file
 
+
+# Define paths
+sample_path = project_path + "Elm_A_bin1x1/"
+#moving_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"
+#fixed_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"
+
+moving_path = sample_path + "Elm_A_LFOV_stitch_scale_1.nii.gz"
+fixed_path = sample_path + "Elm_A_4x_stitch_scale_4.nii.gz"
+out_name = "Elm_A_LFOV_registered"  # Name of the output file
+
+
 # Load downsampled images
 f = 4  # Resolution factor between the two images
 d = 2  # Downsampling factor
@@ -48,7 +59,7 @@ def parse_arguments():
     parser.add_argument("--sample_path", type=str, required=False, help="Path to the sample directory.")
     parser.add_argument("--fixed_path", type=str, required=False, help="Path to fixed image.")
     parser.add_argument("--moving_path", type=str, required=False, help="Path to fixed image.")
-    parser.add_argument("--out_path", type=str, required=True, help="Path to the output file.")
+    parser.add_argument("--out_path", type=str, required=False, help="Path to the output file.")
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the registered output image.")
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
 
