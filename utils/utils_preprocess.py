@@ -63,7 +63,7 @@ def define_roi(input_size, reduce_factor, margin_percent=0.50, divis_factor=2, m
     roi[1:] = ((roi[1:] // reduce_factor) * (1 + margin_percent)).astype(int)  # Reduce size
     roi = (roi // divis_factor * divis_factor).astype(int)  # Ensure shape is divisible by d
 
-    for i, min_val, max_val in enumerate(minimum_size, maximum_size):
+    for i, (min_val, max_val) in enumerate(zip(minimum_size, maximum_size)):
         min_val[i] = input_size[i] if minimum_size[i] == -1 else minimum_size[i]
         max_val[i] = input_size[i] if maximum_size[i] == -1 else maximum_size[i]
 
