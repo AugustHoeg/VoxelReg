@@ -26,8 +26,8 @@ def parse_arguments():
 
     parser.add_argument("--moving_out_path", type=str, required=False, help="Path to the output file.")
     parser.add_argument("--fixed_out_path", type=str, required=False, help="Path to the output file.")
-    parser.add_argument("--moving_out_name", type=str, required=False, help="Output name for the processed image.")
-    parser.add_argument("--fixed_out_name", type=str, required=False, help="Output name for the processed image.")
+    parser.add_argument("--moving_out_name", type=str, required=False, default="moving", help="Output name for the processed image.")
+    parser.add_argument("--fixed_out_name", type=str, required=False, default="fixed", help="Output name for the processed image.")
 
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
 

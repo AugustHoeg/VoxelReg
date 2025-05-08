@@ -165,7 +165,7 @@ def get_image_and_affine(scan_path, custom_origin=(0, 0, 0)):
         assert False, "Unsupported file format."
 
     print("Image shape: ", image.shape)
-    print("Nifti affine: ", nifti_affine)
+    print("Nifti affine: \n", nifti_affine)
     return image, nifti_affine
 
 
@@ -176,7 +176,7 @@ def define_image_space(image, nifti_affine, f, margin_percent, divis_factor, min
     print(f"crop start: {crop_start}, crop end: {crop_end}, crop shape: {image.shape}")
 
     nifti_affine = compute_affine_crop(nifti_affine, crop_start)  # Compute new affine based on crop roi
-    print("Nifti origin after crop: ", nifti_affine)
+    print("Nifti affine after crop: \n", nifti_affine)
 
     return image, nifti_affine, crop_start, crop_end
 
