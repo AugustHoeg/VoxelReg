@@ -56,7 +56,7 @@ def crop_to_roi(image, roi_factor, margin_percent=0.50, divis_factor=2, minimum_
     return crop_image
 
 
-def define_roi(input_size, reduce_factor, margin_percent=0.50, divis_factor=2, minimum_size=[2000, 2000, 2000], maximum_size=[2000, 2000, 2000]):
+def define_roi(input_size, reduce_factor, margin_percent=0.50, divis_factor=2, minimum_size=(2000, 2000, 2000), maximum_size=(2000, 2000, 2000)):
 
     # Define roi
     roi = np.array(input_size)
