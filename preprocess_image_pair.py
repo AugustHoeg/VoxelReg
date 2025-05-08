@@ -96,7 +96,7 @@ if __name__ == "__main__":
     # Visualize
     for i, image in enumerate(pyramid):
         slices = [image.shape[0] - 16, image.shape[0] - 20, image.shape[0] - 24]
-        viz_slices(image, slices, savefig=True, title=args.moving_out_name + f"scale_{2 ** i}_preprocessed")
+        viz_slices(image, slices, savefig=True, title=args.moving_out_name + f"_scale_{2 ** i}_preprocessed")
 
 
     ##################### FIXED IMAGE ######################
@@ -113,7 +113,7 @@ if __name__ == "__main__":
 
     # Set fixed origin to moving image top slice, centered in H, W
     size_diff = voxel2world(moving_affine, moving.shape) - voxel2world(fixed_affine, fixed.shape)
-    set_origin(fixed_affine, new_origin=[size_diff, size_diff / 2, size_diff / 2])
+    set_origin(fixed_affine, new_origin=[size_diff[0], size_diff[1] / 2, size_diff[2] / 2])
 
     # Get & save moving image pyramid
     pyramid, mask_pyramid, affines = get_image_pyramid(fixed, fixed_affine, args.fixed_pyramid_depth, args.fixed_mask_threshold)
@@ -123,6 +123,6 @@ if __name__ == "__main__":
     # Visualize
     for i, image in enumerate(pyramid):
         slices = [image.shape[0] - 16, image.shape[0] - 20, image.shape[0] - 24]
-        viz_slices(image, slices, savefig=True, title=args.fixed_out_name + f"scale_{2**i}_preprocessed")
+        viz_slices(image, slices, savefig=True, title=args.fixed_out_name + f"_scale_{2**i}_preprocessed")
 
     print("Done")
