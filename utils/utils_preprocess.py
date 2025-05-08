@@ -56,16 +56,15 @@ def crop_to_roi(image, roi_factor, margin_percent=0.50, divis_factor=2, minimum_
     return crop_image
 
 
-def define_roi(input_size, reduce_factor, margin_percent=0.50, divis_factor=2, minimum_size=(2000, 2000, 2000), maximum_size=(2000, 2000, 2000)):
+def define_roi(input_size, reduce_factor, margin_percent=0.50, divis_factor=2, minimum_size=[2000, 2000, 2000], maximum_size=[2000, 2000, 2000]):
 
     # Define roi
     roi = np.array(input_size)
     roi[1:] = ((roi[1:] // reduce_factor) * (1 + margin_percent)).astype(int)  # Reduce size
     roi = (roi // divis_factor * divis_factor).astype(int)  # Ensure shape is divisible by d
 
-    for i in range(len(minimum_size)):
-        minimum_size[i] = input_size[i] if minimum_size[i] == -1 else minimum_size[i]
-        maximum_size[i] = input_size[i] if maximum_size[i] == -1 else maximum_size[i]
+    minimum_size = [input_size[i] if minimum_size[i] == -1 else minimum_size[i] for i in range(len(minimum_size))]
+    maximum_size = [input_size[i] if maximum_size[i] == -1 else maximum_size[i] for i in range(len(maximum_size))]
 
     if minimum_size is not None:
         roi = np.maximum(roi, minimum_size)  # Ensure minimum size
