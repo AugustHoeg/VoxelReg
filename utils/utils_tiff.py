@@ -81,7 +81,7 @@ def center_crop(image, target_shape):
     cropped_image = image[crop_start[0]:crop_end[0], crop_start[1]:crop_end[1], crop_start[2]:crop_end[2]]
     return cropped_image, crop_start, crop_end
 
-def top_center_crop(image, target_shape):
+def top_center_crop(image, target_shape, top_index="last"):
     """
     Top-center crop a 3D image to the target shape.
     Use -1 in any dimension to keep the original size in that dimension.
@@ -100,7 +100,12 @@ def top_center_crop(image, target_shape):
     target_shape = tuple(image.shape[i] if target_shape[i] == -1 else target_shape[i] for i in range(3))
 
     # Top-center position
-    top_center = (0, image.shape[1] // 2, image.shape[2] // 2)
+    if top_index == "first":
+        top_center = (0, image.shape[1] // 2, image.shape[2] // 2)
+    elif top_index == "last":
+        top_center = (max(0, image.shape[0] - target_shape[0]), image.shape[1] // 2, image.shape[2] // 2)
+    else:
+        raise ValueError("top_index must be 'first' or 'last'")
 
     # Compute start and end indices for cropping
     crop_start = (
