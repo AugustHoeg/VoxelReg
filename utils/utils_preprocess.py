@@ -5,7 +5,7 @@ from skimage.transform import downscale_local_mean
 from skimage.filters import threshold_otsu
 
 from utils.utils_plot import viz_slices, viz_multiple_images
-from utils.utils_tiff import load_tiff, write_tiff, center_crop
+from utils.utils_tiff import load_tiff, write_tiff, center_crop, top_center_crop
 from utils.utils_nifti import write_nifti, get_crop_origin, set_origin, set_affine_scale, compute_affine_scale, compute_affine_crop
 from utils.utils_txm import load_txm, get_affine_txm
 
@@ -172,7 +172,7 @@ def get_image_and_affine(scan_path, custom_origin=(0, 0, 0)):
 def define_image_space(image, nifti_affine, f, margin_percent, divis_factor, min_size, max_size):
 
     roi = define_roi(image.shape, f, margin_percent, divis_factor, minimum_size=min_size, maximum_size=max_size)
-    image, crop_start, crop_end = center_crop(image, roi)
+    image, crop_start, crop_end = top_center_crop(image, roi)
     print(f"crop start: {crop_start}, crop end: {crop_end}, crop shape: {image.shape}")
 
     nifti_affine = compute_affine_crop(nifti_affine, crop_start)  # Compute new affine based on crop roi

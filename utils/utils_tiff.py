@@ -81,6 +81,40 @@ def center_crop(image, target_shape):
     cropped_image = image[crop_start[0]:crop_end[0], crop_start[1]:crop_end[1], crop_start[2]:crop_end[2]]
     return cropped_image, crop_start, crop_end
 
+def top_center_crop(image, target_shape):
+
+    """
+    Center crop a 3D image to the target shape.
+
+    Args:
+        image (ndarray): Input 3D image.
+        target_shape (tuple): Target shape for cropping.
+
+    Returns:
+        ndarray: Cropped image.
+    """
+
+    if image.shape == tuple(target_shape):
+        return image
+
+    D, H, W = image.shape
+    target_shape = [image.shape[i] if target_shape[i] == -1 else target_shape[i] for i in range(3)]
+
+    top_center = (0, H // 2, W // 2)
+
+    crop_start = np.zeros(3)
+    crop_start[0] = top_center[0]
+    crop_start[1] = max(0, top_center[1] - target_shape[1] // 2)
+    crop_start[2] = max(0, top_center[2] - target_shape[2] // 2)
+
+    crop_end = np.zeros(3)
+    crop_end[0] = min(top_center[0] + target_shape[0], image.shape[0])
+    crop_end[1] = min(image.shape[1], top_center[1] + target_shape[1] // 2)
+    crop_end[2] = min(image.shape[2], top_center[2] + target_shape[2] // 2)
+
+    cropped_image = image[crop_start[0]:crop_end[0], crop_start[1]:crop_end[1], crop_start[2]:crop_end[2]]
+    return cropped_image, crop_start, crop_end
+
 
 def write_downsampled_tiff(image, output_path, factor, ret=False):
     """
