@@ -114,8 +114,10 @@ if __name__ == "__main__":
                                                                                divis_factor=4)
 
     # Set fixed origin to moving image top slice, centered in H, W
-    pos_diff = voxel2world(moving_affine, moving.shape) - voxel2world(fixed_affine, fixed.shape)
-    set_origin(fixed_affine, new_origin=[pos_diff[0], pos_diff[1], pos_diff[2]])
+    p1 = [moving.shape[0], moving.shape[1] / 2, moving.shape[2] / 2]
+    p2 = [fixed.shape[0], fixed.shape[1] / 2, fixed.shape[2] / 2]
+    pos_diff = voxel2world(moving_affine, p1) - voxel2world(fixed_affine, p2)
+    set_origin(fixed_affine, new_origin=pos_diff)
     print("nifti affine after set pos\n", fixed_affine)
 
     # Get & save moving image pyramid

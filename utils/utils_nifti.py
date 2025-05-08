@@ -151,6 +151,14 @@ def voxel2world(affine, point):
     return world_point[:3]
 
 
+def compute_world_size(affine, image_shape):
+
+    size = np.abs(affine[:3, :3]) @ (np.array(image_shape) - 1)
+    return size
+
+
+
+
 
 
 
