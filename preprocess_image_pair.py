@@ -96,7 +96,7 @@ if __name__ == "__main__":
     # Visualize
     for i, image in enumerate(pyramid):
         slices = [image.shape[0] - 16, image.shape[0] - 20, image.shape[0] - 24]
-        viz_slices(image, slices, savefig=True, title=moving_path + f"scale_{2 ** i}_preprocessed")
+        viz_slices(image, slices, savefig=True, title=args.moving_out_name + f"scale_{2 ** i}_preprocessed")
 
 
     ##################### FIXED IMAGE ######################
@@ -123,6 +123,6 @@ if __name__ == "__main__":
     # Visualize
     for i, image in enumerate(pyramid):
         slices = [image.shape[0] - 16, image.shape[0] - 20, image.shape[0] - 24]
-        viz_slices(image, slices, savefig=True, title=fixed_out_path + f"scale_{2**i}_preprocessed")
+        viz_slices(image, slices, savefig=True, title=args.fixed_out_name + f"scale_{2**i}_preprocessed")
 
     print("Done")
