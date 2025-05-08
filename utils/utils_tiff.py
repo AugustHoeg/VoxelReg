@@ -82,37 +82,45 @@ def center_crop(image, target_shape):
     return cropped_image, crop_start, crop_end
 
 def top_center_crop(image, target_shape):
-
     """
-    Center crop a 3D image to the target shape.
+    Top-center crop a 3D image to the target shape.
+    Use -1 in any dimension to keep the original size in that dimension.
 
     Args:
-        image (ndarray): Input 3D image.
-        target_shape (tuple): Target shape for cropping.
+        image (ndarray): Input 3D image with shape (D, H, W).
+        target_shape (tuple of int): Desired shape (D, H, W) for cropping. Use -1 to keep original size.
 
     Returns:
-        ndarray: Cropped image.
+        tuple: (cropped_image, crop_start, crop_end)
     """
-
     if image.shape == tuple(target_shape):
-        return image
+        return image, (0, 0, 0), image.shape
 
-    D, H, W = image.shape
-    target_shape = [image.shape[i] if target_shape[i] == -1 else target_shape[i] for i in range(3)]
+    # Resolve -1 entries in target_shape to use original dimensions
+    target_shape = tuple(image.shape[i] if target_shape[i] == -1 else target_shape[i] for i in range(3))
 
-    top_center = (0, H // 2, W // 2)
+    # Top-center position
+    top_center = (0, image.shape[1] // 2, image.shape[2] // 2)
 
-    crop_start = np.zeros(3)
-    crop_start[0] = top_center[0]
-    crop_start[1] = max(0, top_center[1] - target_shape[1] // 2)
-    crop_start[2] = max(0, top_center[2] - target_shape[2] // 2)
+    # Compute start and end indices for cropping
+    crop_start = (
+        top_center[0],
+        max(0, top_center[1] - target_shape[1] // 2),
+        max(0, top_center[2] - target_shape[2] // 2),
+    )
+    crop_end = (
+        min(image.shape[0], crop_start[0] + target_shape[0]),
+        min(image.shape[1], crop_start[1] + target_shape[1]),
+        min(image.shape[2], crop_start[2] + target_shape[2]),
+    )
 
-    crop_end = np.zeros(3)
-    crop_end[0] = min(top_center[0] + target_shape[0], image.shape[0])
-    crop_end[1] = min(image.shape[1], top_center[1] + target_shape[1] // 2)
-    crop_end[2] = min(image.shape[2], top_center[2] + target_shape[2] // 2)
+    # Perform cropping
+    cropped_image = image[
+        int(crop_start[0]):int(crop_end[0]),
+        int(crop_start[1]):int(crop_end[1]),
+        int(crop_start[2]):int(crop_end[2]),
+    ]
 
-    cropped_image = image[crop_start[0]:crop_end[0], crop_start[1]:crop_end[1], crop_start[2]:crop_end[2]]
     return cropped_image, crop_start, crop_end
 
 
