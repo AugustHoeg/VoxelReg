@@ -28,7 +28,7 @@ if __name__ == "__main__":
 
     # Assign paths
     if args.sample_path is not None:
-        sample_path = os.path.join(project_path, args.sample_path, "processed/")
+        sample_path = os.path.join(project_path, args.sample_path)
     if args.image_path is not None:
         image_path = os.path.join(sample_path, args.image_path)
     if args.out_name is not None:
