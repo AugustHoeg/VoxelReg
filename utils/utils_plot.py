@@ -3,6 +3,10 @@ import matplotlib.pyplot as plt
 from utils.utils_itk import itk_checkerboard
 
 def viz_slices(array, slice_indices, title=None, axis=0, savefig=False):
+    # if slice_indices is int, convert to list
+    if isinstance(slice_indices, int):
+        slice_indices = [slice_indices]
+
     plt.figure(figsize=(8*len(slice_indices), 8))
 
     for slice in slice_indices:
