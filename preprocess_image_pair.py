@@ -31,8 +31,8 @@ def parse_arguments():
 
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
 
-    parser.add_argument("--moving_min_size", type=int, nargs=3, default=(1500, 800, 800), help="Minimum size for cropping.")
-    parser.add_argument("--moving_max_size", type=int, nargs=3, default=(1500, 800, 800), help="Maximum size for cropping.")
+    parser.add_argument("--moving_min_size", type=int, nargs=3, default=(1600, 800, 800), help="Minimum size for cropping.")
+    parser.add_argument("--moving_max_size", type=int, nargs=3, default=(1600, 800, 800), help="Maximum size for cropping.")
     parser.add_argument("--fixed_min_size", type=int, nargs=3, default=(0, 1944, 1944), help="Minimum size for cropping.")
     parser.add_argument("--fixed_max_size", type=int, nargs=3, default=(9999, 1944, 1944), help="Maximum size for cropping.")
 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
 
     # Get & save moving image pyramid
     pyramid, mask_pyramid, affines = get_image_pyramid(moving, moving_affine, args.moving_pyramid_depth, args.moving_mask_threshold)
-    #save_image_pyramid(pyramid, mask_pyramid, affines, moving_path, moving_out_path, args.moving_out_name)
+    save_image_pyramid(pyramid, mask_pyramid, affines, moving_path, moving_out_path, args.moving_out_name)
 
     # Visualize
     for i, image in enumerate(pyramid):
@@ -119,7 +119,7 @@ if __name__ == "__main__":
 
     # Get & save moving image pyramid
     pyramid, mask_pyramid, affines = get_image_pyramid(fixed, fixed_affine, args.fixed_pyramid_depth, args.fixed_mask_threshold)
-    #save_image_pyramid(pyramid, mask_pyramid, affines, fixed_path, fixed_out_path, args.fixed_out_name)
+    save_image_pyramid(pyramid, mask_pyramid, affines, fixed_path, fixed_out_path, args.fixed_out_name)
 
     # Visualize
     for i, image in enumerate(pyramid):
