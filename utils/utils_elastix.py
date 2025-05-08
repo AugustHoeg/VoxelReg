@@ -181,16 +181,12 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
     parameter_object, parameter_map = get_default_parameter_object('translation', resolutions=4, write_result_image=write_result_image, save_path=None)
     elastix_object = get_elastix_registration_object(fixed_image_sparse, moving_image_sparse, parameter_object, log_mode=log_mode)
 
-    p_moving = pixel2world(moving_image_sparse, moving_image_sparse.shape).astype(np.float32)
-    p_fixed = pixel2world(fixed_image_sparse, fixed_image_sparse.shape).astype(np.float32)
-
-    p_diff = (p_moving - p_fixed)
     if center_mm is None:  # defaults to aligning upper slices and center in x and y
-        center_mm = [p_diff[0], p_diff[1] / 2, p_diff[2] / 2]
+        center_mm = [0, 0, 0]
     else:
-        center_mm[0] = p_diff[0] if center_mm[0] is None else center_mm[0]
-        center_mm[1] = p_diff[1] / 2 if center_mm[1] is None else center_mm[1]
-        center_mm[2] = p_diff[2] / 2 if center_mm[2] is None else center_mm[2]
+        center_mm[0] = 0 if center_mm[0] is None else center_mm[0]
+        center_mm[1] = 0 if center_mm[1] is None else center_mm[1]
+        center_mm[2] = 0 if center_mm[2] is None else center_mm[2]
 
     spacing_mm = np.array(moving_image_sparse.GetSpacing())
     translation_coords = get_spaced_coords_around_point(center_mm, grid_spacing_mm, grid_size, spacing_mm)
