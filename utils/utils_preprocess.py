@@ -190,7 +190,7 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_threshold=None)
     image_pyramid = []
     image_pyramid.append(image)
     affines = []
-    affines.append(nifti_affine)
+    affines.append(nifti_affine.copy())
     mask_pyramid = []
 
     # Create pyramid images
@@ -234,14 +234,14 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
         out_path = os.path.join(os.path.dirname(scan_path), "processed")
     os.makedirs(out_path, exist_ok=True)
 
-    for i in range(len(image_pyramid)):
+    for i in range(2, len(image_pyramid)):
         # Save downscaled images
         # write_tiff(down, os.path.join(sample_path, filename + f"_down_{2**(i+1)}.tiff"))
         # np.save(os.path.join(out_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
         print("Saving image for pyramid level: ", i)
         write_nifti(image_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii.gz"))
 
-    for i in range(len(mask_pyramid)):
+    for i in range(2, len(mask_pyramid)):
         # np.save(os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.npy"), mask)
         # write_tiff(mask, os.path.join(sample_path, filename + "_mask.tiff"))
         print("Saving mask for pyramid level: ", i)
