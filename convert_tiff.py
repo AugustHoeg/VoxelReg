@@ -35,7 +35,7 @@ if __name__ == "__main__":
         out_name = args.out_name  # out_name = os.path.join(sample_path, args.out_name)
 
     print(f"Loading {image_path}")
-    image = np.load(image_path).astype(np.float32)
+    image = np.load(image_path).astype(np.float16)
 
     print(f"Loading {image_path}")
     write_tiff(image, os.path.join(sample_path, out_name))
