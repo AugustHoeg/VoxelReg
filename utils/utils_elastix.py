@@ -3,7 +3,6 @@ import SimpleITK as sitk
 import numpy as np
 from tqdm import tqdm
 from utils.utils_plot import viz_multiple_images, viz_registration
-from utils.utils_itk import pixel2world
 
 
 # Class reference for ElastixRegistrationMethod:
