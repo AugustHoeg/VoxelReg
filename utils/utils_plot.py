@@ -2,14 +2,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from utils.utils_itk import itk_checkerboard
 
-def viz_slices(array, slice_indices, title=None, axis=2, savefig=False):
+def viz_slices(array, slice_indices, title=None, axis=0, savefig=False):
     plt.figure(figsize=(8*len(slice_indices), 8))
 
     for slice in slice_indices:
         plt.subplot(1, len(slice_indices), slice_indices.index(slice) + 1)
-        if axis == 0:
+        if axis == 1:
             plt.imshow(array[:, slice, :], vmin=0)
-        elif axis == 1:
+        elif axis == 2:
             plt.imshow(array[:, :, slice], vmin=0)
         else:
             # Default to axis 2

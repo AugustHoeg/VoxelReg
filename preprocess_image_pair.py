@@ -95,8 +95,10 @@ if __name__ == "__main__":
 
     # Visualize
     for i, image in enumerate(pyramid):
-        slices = [image.shape[0] - 16, image.shape[0] - 20, image.shape[0] - 24]
-        viz_slices(image, slices, savefig=True, title=args.moving_out_name + f"_scale_{2 ** i}_preprocessed")
+        slices = [image.shape[0]//2, image.shape[1]//2, image.shape[2]//2]
+        viz_slices(image, slices[0], savefig=True, title=args.moving_out_name + f"_scale_{2 ** i}_pre_axis_0", axis=0)
+        viz_slices(image, slices[1], savefig=True, title=args.moving_out_name + f"_scale_{2 ** i}_pre_axis_1", axis=1)
+        viz_slices(image, slices[2], savefig=True, title=args.moving_out_name + f"_scale_{2 ** i}_pre_axis_2", axis=2)
 
 
     ##################### FIXED IMAGE ######################
@@ -119,10 +121,11 @@ if __name__ == "__main__":
     pyramid, mask_pyramid, affines = get_image_pyramid(fixed, fixed_affine, args.fixed_pyramid_depth, args.fixed_mask_threshold)
     #save_image_pyramid(pyramid, mask_pyramid, affines, fixed_path, fixed_out_path, args.fixed_out_name)
 
-
     # Visualize
     for i, image in enumerate(pyramid):
-        slices = [image.shape[0] - 16, image.shape[0] - 20, image.shape[0] - 24]
-        viz_slices(image, slices, savefig=True, title=args.fixed_out_name + f"_scale_{2**i}_preprocessed")
+        slices = [image.shape[0] // 2, image.shape[1] // 2, image.shape[2] // 2]
+        viz_slices(image, slices[0], savefig=True, title=args.fixed_out_name + f"_scale_{2 ** i}_pre_axis_0", axis=0)
+        viz_slices(image, slices[1], savefig=True, title=args.fixed_out_name + f"_scale_{2 ** i}_pre_axis_1", axis=1)
+        viz_slices(image, slices[2], savefig=True, title=args.fixed_out_name + f"_scale_{2 ** i}_pre_axis_2", axis=2)
 
     print("Done")
