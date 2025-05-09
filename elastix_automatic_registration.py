@@ -5,7 +5,7 @@ import numpy as np
 from utils.utils_elastix import elastix_coarse_registration_sweep, elastix_refined_registration
 from utils.utils_itk import create_itk_view, scale_spacing_and_origin
 from utils.utils_tiff import load_tiff, write_tiff
-from utils.utils_preprocess import norm
+from utils.utils_preprocess import norm, masked_norm
 
 
 # Define paths
@@ -67,6 +67,8 @@ def parse_arguments():
     parser.add_argument("--size", type=int, nargs=3, default=(1, 1, 1), help="Number of coords around initial guess in (x,y,z) to apply coarse registration")
     parser.add_argument("--spacing", type=float, nargs=3, default=(0.25, 0.25, 0.25), help="Voxel spacing in (x,y,z) between coarse registration coords")
 
+    parser.add_argument("--mask_path", type=str, required=False, help="Path to the mask image.")
+
     args = parser.parse_args()
     return args
 
@@ -93,16 +95,21 @@ if __name__ == "__main__":
     if args.out_name is not None:
         out_name = args.out_name  # out_name = os.path.join(sample_path, args.out_name)
         print("Output name: ", out_name)
+    if args.mask_path is not None:
+        mask_path = os.path.join(sample_path, args.mask_path)
+        print("Mask path: ", mask_path)
 
     filename, file_extension = os.path.basename(moving_path).split('.', 1)
 
     if file_extension == "nii" or file_extension == "nii.gz":
         moving_image_sparse = itk.imread(moving_path)
         fixed_image_sparse = itk.imread(fixed_path)
+        mask_image_sparse = itk.imread(mask_path)
 
     elif file_extension == "tiff" or file_extension == "tif":
         moving_array_sparse = load_tiff(moving_path)
         fixed_array_sparse = load_tiff(fixed_path)
+        mask_array_sparse = load_tiff(mask_path)
 
         # Convert to ITK images and set spacing and origin
         moving_image_sparse = create_itk_view(moving_array_sparse)
@@ -110,10 +117,14 @@ if __name__ == "__main__":
 
         fixed_image_sparse = create_itk_view(fixed_array_sparse)
         scale_spacing_and_origin(fixed_image_sparse, 1.0)
+
+        mask_image_sparse = create_itk_view(mask_array_sparse)
+        scale_spacing_and_origin(mask_image_sparse, 1.0)
 
     elif file_extension == "npy":
         moving_array_sparse = np.load(moving_path)
         fixed_array_sparse = np.load(fixed_path)
+        mask_array_sparse = np.load(mask_path)
 
         # Convert to ITK images and set spacing and origin
         moving_image_sparse = create_itk_view(moving_array_sparse)
@@ -121,6 +132,9 @@ if __name__ == "__main__":
 
         fixed_image_sparse = create_itk_view(fixed_array_sparse)
         scale_spacing_and_origin(fixed_image_sparse, 1.0)
+
+        mask_image_sparse = create_itk_view(mask_array_sparse)
+        scale_spacing_and_origin(mask_image_sparse, 1.0)
     else:
         raise ValueError(f"Unsupported file extension: {file_extension}")
 
@@ -155,12 +169,14 @@ if __name__ == "__main__":
     )
 
     # Refined registration parameters
-    registration_models = ['affine', 'bspline']
-    resolution_list = [4, 4]
-    max_iteration_list = [256, 256]
-    metric_list = ['AdvancedMattesMutualInformation', 'AdvancedMattesMutualInformation']
-    no_registration_samples_list = [2048, 2048]
-    write_result_image_list = [False, True]
+    registration_models = ['rigid', 'affine', 'bspline']
+    resolution_list = [4, 4, 4]
+    max_iteration_list = [512, 512, 512]
+    metric_list = ['AdvancedMattesMutualInformation',
+                   'AdvancedMattesMutualInformation',
+                   'AdvancedMattesMutualInformation']
+    no_registration_samples_list = [4096, 4096, 4096]
+    write_result_image_list = [False, False, True]
 
     # Refine registration
     result_refined, refined_trans_obj = elastix_refined_registration(
@@ -184,8 +200,8 @@ if __name__ == "__main__":
     result_array = itk.array_from_image(result_refined).astype(np.float32)
 
     # Enforce normalization to [0, 1]
-    norm(result_array)
-    norm(result_refined)
+    masked_norm(result_array, mask_array_sparse)
+    masked_norm(result_refined, mask_image_sparse)
 
     full_out_path = os.path.join(out_path, out_name + ".npy")
     np.save(full_out_path, result_array)
