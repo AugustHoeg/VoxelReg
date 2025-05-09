@@ -200,16 +200,25 @@ if __name__ == "__main__":
 
     print(f"Registration completed successfully. \n")
 
+    # Extract metadata
+    origin = result_refined.GetOrigin()
+    spacing = result_refined.GetSpacing()
+    direction = result_refined.GetDirection()
+
     # Get array for tiff and npy
-    result_array = itk.array_from_image(result_refined).astype(np.float32)
+    result_array = itk.array_from_image(result_refined)  # .astype(np.float32)
 
     # Enforce normalization to [0, 1]
     if args.mask_path is not None:
         masked_norm(result_array, mask_array_sparse)
-        masked_norm(result_refined, mask_image_sparse)
     else:
         norm(result_array)
-        norm(result_refined)
+
+    # Convert to ITK image
+    result_image = itk.image_from_array(result_array)
+    result_image.SetOrigin(origin)
+    result_image.SetSpacing(spacing)
+    result_image.SetDirection(direction)
 
     full_out_path = os.path.join(out_path, out_name + ".npy")
     np.save(full_out_path, result_array)
@@ -221,5 +230,8 @@ if __name__ == "__main__":
 
     full_out_path = os.path.join(out_path, out_name + ".nii.gz")
     itk.imwrite(result_refined, full_out_path)
+
+    full_out_path = os.path.join(out_path, out_name + "array_test.nii.gz")
+    itk.imwrite(result_image, full_out_path)
     #write_nifti(result_array, affine=get_affine_from_itk_image(result_refined), output_path=full_out_path)
     print(f"Output saved to {full_out_path}")
