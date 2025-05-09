@@ -234,7 +234,7 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
         out_path = os.path.join(os.path.dirname(scan_path), "processed")
     os.makedirs(out_path, exist_ok=True)
 
-    for i in range(2, len(image_pyramid)):
+    for i in range(0, len(image_pyramid)):
         # Save downscaled images
         # write_tiff(down, os.path.join(sample_path, filename + f"_down_{2**(i+1)}.tiff"))
         # np.save(os.path.join(out_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
