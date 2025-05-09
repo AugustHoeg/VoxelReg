@@ -244,10 +244,10 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
     progress_bar = tqdm(translation_coords, desc="Running coarse registration")
 
     for translation in progress_bar:
-        progress_bar.set_postfix({'Translation': translation[::-1], 'Best Metric': best_metric})
+        progress_bar.set_postfix({'Translation': translation, 'Best Metric': best_metric})
 
         # Get elastix registration object
-        transform = get_itk_translation_transform(translation[::-1], save_path=None)
+        transform = get_itk_translation_transform(translation, save_path=None)
         elastix_object.SetInitialTransform(transform)
 
         # Run the registration

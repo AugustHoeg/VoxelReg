@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from utils.utils_itk import itk_checkerboard
 
-def viz_slices(array, slice_indices, title=None, axis=0, savefig=True, save_dir="figures"):
+def viz_slices(array, slice_indices, title="output", axis=0, savefig=True, save_dir="figures"):
     # if slice_indices is int, convert to list
     if isinstance(slice_indices, int):
         slice_indices = [slice_indices]
