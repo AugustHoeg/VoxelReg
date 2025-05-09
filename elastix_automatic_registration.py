@@ -180,14 +180,12 @@ if __name__ == "__main__":
 
     print(f"Registration completed successfully. \n")
 
-    # Enforce normalization to [0, 1]
-    min_val = np.min(result_refined)
-    max_val = np.max(result_refined)
-    result_refined = result_refined - min_val
-    result_refined = result_refined / (max_val - min_val)
-
     # Get array for tiff and npy
     result_array = itk.array_from_image(result_refined).astype(np.float32)
+
+    # Enforce normalization to [0, 1]
+    norm(result_array)
+    norm(result_refined)
 
     full_out_path = os.path.join(out_path, out_name + ".npy")
     np.save(full_out_path, result_array)
