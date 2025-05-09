@@ -67,7 +67,7 @@ def parse_arguments():
     parser.add_argument("--size", type=int, nargs=3, default=(1, 1, 1), help="Number of coords around initial guess in (x,y,z) to apply coarse registration")
     parser.add_argument("--spacing", type=float, nargs=3, default=(0.25, 0.25, 0.25), help="Voxel spacing in (x,y,z) between coarse registration coords")
 
-    parser.add_argument("--mask_path", type=str, required=False, help="Path to the mask image.")
+    parser.add_argument("--mask_path", type=str, required=False, default=None, help="Path to the mask image.")
 
     args = parser.parse_args()
     return args
@@ -104,12 +104,12 @@ if __name__ == "__main__":
     if file_extension == "nii" or file_extension == "nii.gz":
         moving_image_sparse = itk.imread(moving_path)
         fixed_image_sparse = itk.imread(fixed_path)
-        mask_image_sparse = itk.imread(mask_path)
+        if args.mask_path is not None:
+            mask_image_sparse = itk.imread(mask_path)
 
     elif file_extension == "tiff" or file_extension == "tif":
         moving_array_sparse = load_tiff(moving_path)
         fixed_array_sparse = load_tiff(fixed_path)
-        mask_array_sparse = load_tiff(mask_path)
 
         # Convert to ITK images and set spacing and origin
         moving_image_sparse = create_itk_view(moving_array_sparse)
@@ -118,13 +118,14 @@ if __name__ == "__main__":
         fixed_image_sparse = create_itk_view(fixed_array_sparse)
         scale_spacing_and_origin(fixed_image_sparse, 1.0)
 
-        mask_image_sparse = create_itk_view(mask_array_sparse)
-        scale_spacing_and_origin(mask_image_sparse, 1.0)
+        if args.mask_path is not None:
+            mask_array_sparse = load_tiff(mask_path)
+            mask_image_sparse = create_itk_view(mask_array_sparse)
+            scale_spacing_and_origin(mask_image_sparse, 1.0)
 
     elif file_extension == "npy":
         moving_array_sparse = np.load(moving_path)
         fixed_array_sparse = np.load(fixed_path)
-        mask_array_sparse = np.load(mask_path)
 
         # Convert to ITK images and set spacing and origin
         moving_image_sparse = create_itk_view(moving_array_sparse)
@@ -133,8 +134,10 @@ if __name__ == "__main__":
         fixed_image_sparse = create_itk_view(fixed_array_sparse)
         scale_spacing_and_origin(fixed_image_sparse, 1.0)
 
-        mask_image_sparse = create_itk_view(mask_array_sparse)
-        scale_spacing_and_origin(mask_image_sparse, 1.0)
+        if args.mask_path is not None:
+            mask_array_sparse = np.load(mask_path)
+            mask_image_sparse = create_itk_view(mask_array_sparse)
+            scale_spacing_and_origin(mask_image_sparse, 1.0)
     else:
         raise ValueError(f"Unsupported file extension: {file_extension}")
 
@@ -200,8 +203,12 @@ if __name__ == "__main__":
     result_array = itk.array_from_image(result_refined).astype(np.float32)
 
     # Enforce normalization to [0, 1]
-    masked_norm(result_array, mask_array_sparse)
-    masked_norm(result_refined, mask_image_sparse)
+    if args.mask_path is not None:
+        masked_norm(result_array, mask_array_sparse)
+        masked_norm(result_refined, mask_image_sparse)
+    else:
+        norm(result_array)
+        norm(result_refined)
 
     full_out_path = os.path.join(out_path, out_name + ".npy")
     np.save(full_out_path, result_array)
