@@ -183,7 +183,7 @@ if __name__ == "__main__":
     write_result_image_list = [False, False, True]
 
     # Refine registration
-    result_refined, refined_trans_obj = elastix_refined_registration(
+    result_image, refined_trans_obj = elastix_refined_registration(
         fixed_image_sparse,
         moving_image_sparse,
         coarse_trans_obj,
@@ -201,21 +201,21 @@ if __name__ == "__main__":
     print(f"Registration completed successfully. \n")
 
     # Extract metadata
-    origin = result_refined.GetOrigin()
-    spacing = result_refined.GetSpacing()
-    direction = result_refined.GetDirection()
+    origin = result_image.GetOrigin()
+    spacing = result_image.GetSpacing()
+    direction = result_image.GetDirection()
 
-    # Get array for tiff and npy
-    result_array = itk.array_from_image(result_refined)  # .astype(np.float32)
+    # Get array for normalization
+    result_array = itk.array_view_from_image(result_image)  # .astype(np.float32)
 
     # Enforce normalization to [0, 1]
     if args.mask_path is not None:
-        masked_norm(result_array, mask_array_sparse)
+        masked_norm(result_array, mask_array_sparse)  # in-place
     else:
-        norm(result_array)
+        norm(result_array)  # in-place
 
     # Convert to ITK image
-    result_image = itk.image_from_array(result_array)
+    result_image = itk.image_view_from_array(result_array)
     result_image.SetOrigin(origin)
     result_image.SetSpacing(spacing)
     result_image.SetDirection(direction)
@@ -229,9 +229,6 @@ if __name__ == "__main__":
     print(f"Output saved to {full_out_path}")
 
     full_out_path = os.path.join(out_path, out_name + ".nii.gz")
-    itk.imwrite(result_refined, full_out_path)
-
-    full_out_path = os.path.join(out_path, out_name + "array_test.nii.gz")
     itk.imwrite(result_image, full_out_path)
     #write_nifti(result_array, affine=get_affine_from_itk_image(result_refined), output_path=full_out_path)
     print(f"Output saved to {full_out_path}")
