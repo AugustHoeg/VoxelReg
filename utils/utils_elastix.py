@@ -128,6 +128,23 @@ def get_spaced_coords(shape, spacing):
 
     return coords
 
+def get_positional_grid(center_mm, grid_spacing_mm, grid_size):
+
+    offsets = []
+    for i in range(3):
+        if grid_size[i] % 2 == 0:  # even
+            start = center_mm[i] + ((grid_size[i] - 1) / 2) * grid_spacing_mm[i]
+            stop = center_mm[i] - ((grid_size[i] - 1) / 2) * grid_spacing_mm[i]
+            offsets.append(np.linspace(start, stop, grid_size[i]))
+        else:  # odd
+            start = center_mm[i] + (grid_size[i] // 2) * grid_spacing_mm[i]
+            stop = center_mm[i] - (grid_size[i]// 2) * grid_spacing_mm[i]
+            offsets.append(np.linspace(start, stop, grid_size[i]))
+    grid = np.meshgrid(offsets[0], offsets[1], offsets[2], indexing='ij')
+    grid = np.stack(grid, axis=-1).reshape(-1, 3)
+
+    return grid
+
 
 def get_spaced_coords_around_point(center_mm, grid_spacing_mm, grid_size, spacing_mm):
     """
@@ -142,8 +159,8 @@ def get_spaced_coords_around_point(center_mm, grid_spacing_mm, grid_size, spacin
     Returns:
         numpy.ndarray: Array of shape (N, 3) with valid (z, y, x) coordinates within image bounds.
     """
-    center = np.ceil(np.array(center_mm) / spacing_mm).astype(int)
-    grid_spacing = np.ceil(np.array(grid_spacing_mm) / spacing_mm).astype(int)
+    center = np.round(np.array(center_mm) / spacing_mm).astype(int)
+    grid_spacing = np.round(np.array(grid_spacing_mm) / spacing_mm).astype(int)
 
     # Unpack parameters
     dz, dy, dx = (grid_spacing, grid_spacing, grid_spacing) if isinstance(grid_spacing, int) else grid_spacing
@@ -181,14 +198,11 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
     elastix_object = get_elastix_registration_object(fixed_image_sparse, moving_image_sparse, parameter_object, log_mode=log_mode)
 
     if center_mm is None:  # defaults to aligning upper slices and center in x and y
-        center_mm = [0, 0, 0]
+        center_mm = (0.0, 0.0, 0.0)
     else:
-        center_mm[0] = 0 if center_mm[0] is None else center_mm[0]
-        center_mm[1] = 0 if center_mm[1] is None else center_mm[1]
-        center_mm[2] = 0 if center_mm[2] is None else center_mm[2]
+        center_mm = tuple(0.0 if center_val is None else center_val for center_val in center_mm)  # ensure all are not None
 
-    spacing_mm = np.array(moving_image_sparse.GetSpacing())
-    translation_coords = get_spaced_coords_around_point(center_mm, grid_spacing_mm, grid_size, spacing_mm)
+    translation_coords = get_positional_grid(center_mm, grid_spacing_mm, grid_size)
     print("translation_coords", translation_coords)
 
     best_metric = -1

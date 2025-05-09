@@ -5,7 +5,7 @@ import numpy as np
 from utils.utils_elastix import elastix_coarse_registration_sweep, elastix_refined_registration
 from utils.utils_itk import create_itk_view, scale_spacing_and_origin
 from utils.utils_tiff import load_tiff, write_tiff
-from utils.utils_nifti import write_nifti, get_affine_from_itk_image
+from utils.utils_preprocess import norm
 
 
 # Define paths
@@ -20,13 +20,13 @@ out_name = "Larch_A_LFOV_registered"  # Name of the output file
 
 
 # Define paths
-sample_path = project_path + "Elm_A_bin1x1/"
+sample_path = project_path + "unregistered/"
 #moving_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"
 #fixed_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"
 
-moving_path = sample_path + "Elm_A_LFOV_stitch_scale_1.nii.gz"
-fixed_path = sample_path + "Elm_A_4x_stitch_scale_4.nii.gz"
-out_name = "Elm_A_LFOV_registered"  # Name of the output file
+moving_path = sample_path + "Bamboo_A_LFOV_stitch_scale_1.nii.gz"
+fixed_path = sample_path + "Bamboo_A_4x_stitch_scale_4.nii.gz"
+out_name = "Bamboo_A_registered"  # Name of the output file
 
 
 # Load downsampled images
@@ -63,9 +63,9 @@ def parse_arguments():
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the registered output image.")
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
 
-    parser.add_argument("--center", type=float, nargs=3, default=[1459, 161, 161], help="Initial guess for coarse registration, formatted as [D, H, W]")
-    parser.add_argument("--size", type=float, nargs=3, default=[1, 1, 1], help="Number of coords around initial guess in (x,y,z) to apply coarse registration")
-    parser.add_argument("--spacing", type=float, nargs=3, default=[25, 20, 20], help="Voxel spacing in (x,y,z) between coarse registration coords")
+    parser.add_argument("--center", type=float, nargs=3, default=(0.0, 0.0, 0.0), help="Initial guess for coarse registration, formatted as [D, H, W]")
+    parser.add_argument("--size", type=float, nargs=3, default=(1, 1, 1), help="Number of coords around initial guess in (x,y,z) to apply coarse registration")
+    parser.add_argument("--spacing", type=float, nargs=3, default=(0.25, 0.25, 0.25), help="Voxel spacing in (x,y,z) between coarse registration coords")
 
     args = parser.parse_args()
     return args
@@ -167,16 +167,17 @@ if __name__ == "__main__":
 
     print(f"Registration completed successfully. \n")
 
-    # Save results
-    result_array = itk.array_view_from_image(result_refined)
-
     # Convert to float
-    result_array = result_array.astype(np.float32)
+    result_refined = result_refined.astype(np.float32)
 
     # Enforce normalization to [0, 1]
-    result_array = (result_array - np.min(result_array)) / (np.max(result_array) - np.min(result_array))
+    min_val = np.min(result_refined)
+    max_val = np.max(result_refined)
+    result_refined = result_refined - min_val
+    result_refined = result_refined / (max_val - min_val)
 
-    #np.save(sample_path + "Larch_LFOV_pos1_registered.npy", result_array)
+    # Get array view
+    result_array = itk.array_view_from_image(result_refined)
 
     full_out_path = os.path.join(out_path, out_name + ".npy")
     np.save(full_out_path, result_array)
@@ -187,5 +188,6 @@ if __name__ == "__main__":
     print(f"Output saved to {full_out_path}")
 
     full_out_path = os.path.join(out_path, out_name + ".nii.gz")
-    write_nifti(result_array, affine=get_affine_from_itk_image(result_refined), output_path=full_out_path)
+    itk.imwrite(result_refined, full_out_path)
+    #write_nifti(result_array, affine=get_affine_from_itk_image(result_refined), output_path=full_out_path)
     print(f"Output saved to {full_out_path}")
