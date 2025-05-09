@@ -148,7 +148,7 @@ if __name__ == "__main__":
     )
 
     # Refined registration parameters
-    registration_models = ['affine', 'bspline']
+    registration_models = ['similarity', 'affine']
     resolution_list = [4, 4]
     max_iteration_list = [256, 256]
 
@@ -167,17 +167,14 @@ if __name__ == "__main__":
 
     print(f"Registration completed successfully. \n")
 
-    # Convert to float
-    result_refined = result_refined.astype(np.float32)
-
     # Enforce normalization to [0, 1]
     min_val = np.min(result_refined)
     max_val = np.max(result_refined)
     result_refined = result_refined - min_val
     result_refined = result_refined / (max_val - min_val)
 
-    # Get array view
-    result_array = itk.array_view_from_image(result_refined)
+    # Get array for tiff and npy
+    result_array = itk.array_from_image(result_refined).astype(np.float32)
 
     full_out_path = os.path.join(out_path, out_name + ".npy")
     np.save(full_out_path, result_array)
