@@ -79,9 +79,9 @@ def viz_registration(fixed_image, moving_image, slice_indices, title=None, axis=
     for slice in slice_indices:
         # Plot checkerboard image
         plt.subplot(2, len(slice_indices), plot_count)
-        if axis == 0:
+        if axis == 1:
             plt.imshow(checker[:, slice, :])
-        elif axis == 1:
+        elif axis == 2:
             plt.imshow(checker[:, :, slice])
         else:
             # Default to axis 2
