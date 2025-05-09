@@ -148,7 +148,7 @@ if __name__ == "__main__":
     )
 
     # Refined registration parameters
-    registration_models = ['similarity', 'affine']
+    registration_models = ['affine', 'bspline']
     resolution_list = [4, 4]
     max_iteration_list = [256, 256]
 
