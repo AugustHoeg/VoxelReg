@@ -24,8 +24,8 @@ sample_path = project_path + "unregistered/"
 #moving_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"
 #fixed_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"
 
-moving_path = sample_path + "Bamboo_A_LFOV_stitch_scale_1.nii.gz"
-fixed_path = sample_path + "Bamboo_A_4x_stitch_scale_4.nii.gz"
+moving_path = sample_path + "moving_scale_1.nii.gz"
+fixed_path = sample_path + "fixed_scale_4.nii.gz"
 out_name = "Bamboo_A_registered"  # Name of the output file
 
 
@@ -134,6 +134,10 @@ if __name__ == "__main__":
     spacing = args.spacing
     size = args.size
 
+    #ImageTypeOut = itk.Image[itk.F, 3]  # e.g., float32, 3D
+    #moving_image_sparse = itk.cast_image_filter(moving_image_sparse, ttype=[type(moving_image_sparse), ImageTypeOut])
+    #fixed_image_sparse = itk.cast_image_filter(fixed_image_sparse, ttype=[type(fixed_image_sparse), ImageTypeOut])
+
     # Run coarse registration via sweep
     result_coarse, coarse_trans_obj, metric = elastix_coarse_registration_sweep(
         fixed_image_sparse,
@@ -141,7 +145,10 @@ if __name__ == "__main__":
         center_mm=center,
         grid_spacing_mm=spacing,
         grid_size=size,
-        write_result_image=True,
+        resolutions=4,
+        max_iterations=256,
+        metric='AdvancedNormalizedCorrelation',
+        no_registration_samples=2048,
         log_mode=None,
         visualize=True,
         fig_name=out_name
@@ -151,6 +158,9 @@ if __name__ == "__main__":
     registration_models = ['affine', 'bspline']
     resolution_list = [4, 4]
     max_iteration_list = [256, 256]
+    metric_list = ['AdvancedMattesMutualInformation', 'AdvancedMattesMutualInformation']
+    no_registration_samples_list = [2048, 2048]
+    write_result_image_list = [False, True]
 
     # Refine registration
     result_refined, refined_trans_obj = elastix_refined_registration(
@@ -160,6 +170,9 @@ if __name__ == "__main__":
         registration_models,
         resolution_list,
         max_iteration_list,
+        write_result_image_list,
+        metric_list,
+        no_registration_samples_list,
         log_mode=None,
         visualize=True,
         fig_name=out_name

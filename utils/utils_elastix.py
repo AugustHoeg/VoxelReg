@@ -18,7 +18,40 @@ def get_itk_translation_transform(translation_vec=[0.0, 0.0, 0.0], save_path=Non
     return transform
 
 
-def get_default_parameter_object(registration_model='translation', resolutions=4, max_iterations=1024, write_result_image=True, save_path=None):
+def get_default_parameter_map(parameter_object, registration_model='translation', resolutions=4, max_iterations=1024, metric='AdvancedMattesMutualInformation', no_samples=4096,
+                      write_result_image=True, log_mode=False):
+
+    parameter_map = parameter_object.GetDefaultParameterMap(registration_model, resolutions)
+    parameter_map['AutomaticTransformInitialization'] = ['true']
+    parameter_map['AutomaticTransformInitializationMethod'] = ['CenterOfGravity']
+    parameter_map['HowToCombineTransforms'] = ['Compose']
+
+    # Write result image
+    if write_result_image:
+        parameter_map['WriteResultImage'] = ['true']
+    else:
+        parameter_map['WriteResultImage'] = ['false']
+
+    # Logging
+    if log_mode:
+        parameter_map["WriteIterationInfo"] = ["true"]
+        parameter_map["WriteTransformParametersEachIteration"] = ["true"]
+        parameter_map["LogToFile"] = ["true"]
+
+    # Loss metric
+    parameter_map['Metric'] = [str(metric)]
+
+    # Number of samples
+    parameter_map['NumberOfSpatialSamples'] = [str(no_samples)]
+    parameter_map['NewSamplesEveryIteration'] = ['true']  # Default
+
+    # Max iterations
+    parameter_map['MaximumNumberOfIterations'] = (str(max_iterations),)
+
+    return parameter_map
+
+
+def get_default_parameter_object(registration_model='translation', resolutions=4, max_iterations=1024, metric='AdvancedMattesMutualInformation', no_registration_samples=4096, write_result_image=True, save_path=None, log_mode=False):
 
     """
 
@@ -30,21 +63,11 @@ def get_default_parameter_object(registration_model='translation', resolutions=4
 
     # The Elastix manual is here: https://courses.compute.dtu.dk/02502/docs/elastix-5.2.0-manual.pdf
     parameter_object = itk.ParameterObject.New()
-    parameter_map = parameter_object.GetDefaultParameterMap(registration_model, resolutions)
-    parameter_map['AutomaticTransformInitialization'] = ['true']
-    parameter_map['AutomaticTransformInitializationMethod'] = ['CenterOfGravity']
-    parameter_map['HowToCombineTransforms'] = ['Compose']
-    if write_result_image:
-        parameter_map['WriteResultImage'] = ['true']
-    else:
-        parameter_map['WriteResultImage'] = ['false']
 
-    #parameter_map["WriteResultImage"] = ["false"]
-    #parameter_map["WriteIterationInfo"] = ["true"]
-    #parameter_map["WriteTransformParametersEachIteration"] = ["true"]
-    #parameter_map["LogToFile"] = ["true"]
+    # Get default parameter map for the model and resolution
+    parameter_map = get_default_parameter_map(parameter_object, registration_model, resolutions, max_iterations, metric, no_registration_samples, write_result_image, log_mode)
 
-    parameter_map['MaximumNumberOfIterations'] = str(max_iterations)
+    # Add the parameter map
     parameter_object.AddParameterMap(parameter_map)
 
     if save_path is not None:
@@ -54,7 +77,7 @@ def get_default_parameter_object(registration_model='translation', resolutions=4
     return parameter_object, parameter_map
 
 
-def get_default_parameter_object_list(registration_models, resolution_list, max_iteration_list, save_path=None):
+def get_default_parameter_object_list(registration_models, resolution_list, max_iteration_list, metric_list, no_registration_samples_list, write_result_image_list, save_path=None):
 
     """
 
@@ -63,6 +86,8 @@ def get_default_parameter_object_list(registration_models, resolution_list, max_
     :param max_iterations:
     :return:
     """
+    if no_registration_samples_list is None:
+        no_registration_samples_list = [4096] * len(registration_models)
 
     # The Elastix manual is here: https://courses.compute.dtu.dk/02502/docs/elastix-5.2.0-manual.pdf
     parameter_object = itk.ParameterObject.New()
@@ -71,10 +96,15 @@ def get_default_parameter_object_list(registration_models, resolution_list, max_
         registration_model = registration_models[i]
         resolutions = resolution_list[i]
         max_iterations = max_iteration_list[i]
+        metric = metric_list[i]
+        no_registration_samples = no_registration_samples_list[i]
+        write_result_image = write_result_image_list[i]
 
-        # Get default parameter map for the current model and resolution
-        parameter_map = parameter_object.GetDefaultParameterMap(registration_model, resolutions)
-        parameter_map['MaximumNumberOfIterations'] = str(max_iterations)
+        parameter_map = get_default_parameter_map(parameter_object, registration_model, resolutions, max_iterations, metric, no_registration_samples, write_result_image, log_mode=False)
+
+        # # Get default parameter map for the current model and resolution
+        # parameter_map = parameter_object.GetDefaultParameterMap(registration_model, resolutions)
+        # parameter_map['MaximumNumberOfIterations'] = str(max_iterations)
 
         # Add the parameter map to the object
         parameter_object.AddParameterMap(parameter_map)
@@ -190,11 +220,13 @@ def get_spaced_coords_around_point(center_mm, grid_spacing_mm, grid_size, spacin
 
 
 
-def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, center_mm, grid_spacing_mm=(1, 1, 1), grid_size=(2, 2, 2), write_result_image=True, log_mode=None, visualize=False, fig_name=None):
+def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, center_mm, grid_spacing_mm=(1, 1, 1), grid_size=(2, 2, 2),
+                                      resolutions=4, max_iterations=1024, metric='AdvancedMattesMutualInformation', no_registration_samples=4096, write_result_image=True,
+                                      log_mode=None, visualize=False, fig_name=None):
 
     print("Running coarse registration")
 
-    parameter_object, parameter_map = get_default_parameter_object('translation', resolutions=4, write_result_image=write_result_image, save_path=None)
+    parameter_object, parameter_map = get_default_parameter_object('translation', resolutions, max_iterations, metric, no_registration_samples, write_result_image)
     elastix_object = get_elastix_registration_object(fixed_image_sparse, moving_image_sparse, parameter_object, log_mode=log_mode)
 
     if center_mm is None:  # defaults to aligning upper slices and center in x and y
@@ -245,11 +277,13 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
 
 
 
-def elastix_refined_registration(fixed_image_sparse, moving_image_sparse, coarse_transform_object, registration_models, resolution_list, max_iteration_list, log_mode=None, visualize=False, fig_name=None):
+def elastix_refined_registration(fixed_image_sparse, moving_image_sparse, coarse_transform_object, registration_models, resolution_list,
+                                 max_iteration_list, write_result_image_list, metric_list='AdvancedMattesMutualInformation',
+                                 no_registration_samples_list=None, log_mode=None, visualize=False, fig_name=None):
 
     print("Running refined registration with models: ", registration_models)
 
-    parameter_object, parameter_map = get_default_parameter_object_list(registration_models, resolution_list, max_iteration_list)
+    parameter_object, parameter_map = get_default_parameter_object_list(registration_models, resolution_list, max_iteration_list, metric_list, no_registration_samples_list, write_result_image_list)
 
     elastix_object = get_elastix_registration_object(fixed_image_sparse, moving_image_sparse, parameter_object, log_mode=log_mode)
 
