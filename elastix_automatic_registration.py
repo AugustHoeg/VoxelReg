@@ -106,6 +106,7 @@ if __name__ == "__main__":
         fixed_image_sparse = itk.imread(fixed_path)
         if args.mask_path is not None:
             mask_image_sparse = itk.imread(mask_path)
+            mask_array_sparse = itk.array_from_image(mask_image_sparse)
 
     elif file_extension == "tiff" or file_extension == "tif":
         moving_array_sparse = load_tiff(moving_path)
