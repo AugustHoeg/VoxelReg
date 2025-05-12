@@ -1,7 +1,9 @@
 import os
+import itk
 import nibabel as nib
 import numpy as np
 import argparse
+from utils.utils_tiff import load_tiff
 
 def parse_arguments():
 
@@ -57,7 +59,22 @@ if __name__ == "__main__":
         print("Output name: ", out_name)
 
     print(f"Loading {scan_path}")
-    image = np.load(scan_path).astype(np.float32)
+
+    filename, file_extension = os.path.basename(scan_path).split('.', 1)
+
+    if file_extension == "nii" or file_extension == "nii.gz":
+        image = itk.imread(scan_path).astype(np.float32)
+
+    elif file_extension == "tiff" or file_extension == "tif":
+        image = load_tiff(scan_path).astype(np.float32)
+
+    elif file_extension == "npy":
+        image = np.load(scan_path).astype(np.float32)
+
+    else:
+        raise ValueError(f"Unsupported file extension: {file_extension}")
+
+    # image = np.load(scan_path).astype(np.float32)
     # If you must open large images, consider using memory-mapped arrays:
     # image = np.load("image.npy", mmap_mode='r')  # won't load entire array into RAM
 
