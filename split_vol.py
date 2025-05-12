@@ -63,7 +63,8 @@ if __name__ == "__main__":
     filename, file_extension = os.path.basename(scan_path).split('.', 1)
 
     if file_extension == "nii" or file_extension == "nii.gz":
-        image = itk.imread(scan_path).astype(np.float32)
+        # image = itk.imread(scan_path).astype(np.float32)
+        image = nib.load(scan_path).get_fdata().astype(np.float32)
 
     elif file_extension == "tiff" or file_extension == "tif":
         image = load_tiff(scan_path).astype(np.float32)
