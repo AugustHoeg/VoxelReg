@@ -9,7 +9,7 @@ from ome_zarr.io import parse_url
 import dask.array as da
 from numcodecs import Zstd, Blosc, LZ4
 
-def read_nifti_pyramid(image_pyramid_paths, label_pyramid_paths):
+def read_nifti_pyramid(image_pyramid_paths, label_pyramid_paths=None):
     """
     Read the image and label pyramid.
 
@@ -25,10 +25,11 @@ def read_nifti_pyramid(image_pyramid_paths, label_pyramid_paths):
         image_pyramid.append(image)
 
     # Read label pyramid
-    label_pyramid = []
-    for path in label_pyramid_paths:
-        label = nib.load(path).get_fdata()
-        label_pyramid.append(label)
+    if label_pyramid_paths is not None:
+        label_pyramid = []
+        for path in label_pyramid_paths:
+            label = nib.load(path).get_fdata()
+            label_pyramid.append(label)
 
     return image_pyramid, label_pyramid
 
@@ -43,6 +44,7 @@ def parse_arguments():
     parser.add_argument("--out_path", type=str, required=False, help="Path to the output file.")
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the registered output image.")
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
+    parser.add_argument("--registered_image_paths", type=str, nargs='*', default=None, required=False, help="Path to registered images." )
 
     args = parser.parse_args()
     return args
@@ -110,12 +112,17 @@ if __name__ == "__main__":
         storage_options=storage_opts
     )
 
-    include_lowres = True
-    if include_lowres:
-        image_group = root.create_group("lowres")
+    if args.registered_image_paths is not None:
+        registered_image_paths = [os.path.join(sample_path, path) for path in args.registred_image_paths]
+        print("registered image paths: ", registered_image_paths)
+
+        registered_pyramid, _ = read_nifti_pyramid(registered_image_paths)
+
+        registered_image_group = root.create_group("lowres")
+
         write_multiscale(
-            image_pyramid,
-            group=image_group,
+            registered_pyramid,
+            group=registered_image_group,
             axes=["z", "y", "x"],
             storage_options=storage_opts
         )
