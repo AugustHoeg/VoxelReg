@@ -89,6 +89,7 @@ if __name__ == "__main__":
     os.makedirs(out_path, exist_ok=True)
 
     # Save as tiff
+    print("Saving merged volume to tiff format...")
     write_tiff(merged_volume, os.path.join(out_path, f"{out_name}_merged.tiff"))
 
 
