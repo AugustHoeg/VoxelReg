@@ -120,6 +120,10 @@ if __name__ == "__main__":
 
         registered_image_group = root.create_group("lowres")
 
+        storage_opts = [
+            {"chunks": (162, 162, 162), "compressor": Zstd(level=1)}
+        ]
+
         write_multiscale(
             registered_pyramid,
             group=registered_image_group,

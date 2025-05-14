@@ -1,8 +1,9 @@
 import os
+import itk
 import nibabel as nib
 import numpy as np
 import argparse
-from utils.utils_tiff import write_tiff
+from utils.utils_tiff import write_tiff, load_tiff
 def parse_arguments():
 
     # Set up argument parser
@@ -28,6 +29,24 @@ def merge_volume(vol1, vol2, merge_axis):
 
     # Concatenate along the specified axis
     return np.concatenate((vol1, vol2), axis=merge_axis)
+
+def load_image(image_path):
+
+    filename, file_extension = os.path.basename(image_path).split('.', 1)
+
+    if file_extension == "nii" or file_extension == "nii.gz":
+        image = nib.load(image_path).get_fdata().astype(np.float32)
+
+    elif file_extension == "tiff" or file_extension == "tif":
+        image = load_tiff(image_path, dtype=np.float32)
+
+    elif file_extension == "npy":
+        image = np.load(image_path).astype(np.float32)
+
+    else:
+        raise ValueError(f"Unsupported file extension: {file_extension}")
+
+    return image
 
 
 if __name__ == "__main__":
@@ -57,10 +76,12 @@ if __name__ == "__main__":
         print("Output name: ", out_name)
 
     print(f"Loading {vol1_path}")
-    vol1 = np.load(vol1_path).astype(np.float32)
+    vol1 = load_image(vol1_path)
+    #vol1 = np.load(vol1_path).astype(np.float32)
 
     print(f"Loading {vol2_path}")
-    vol2 = np.load(vol2_path).astype(np.float32)
+    vol2 = load_image(vol2_path)
+    #vol2 = np.load(vol2_path).astype(np.float32)
 
     merged_volume = merge_volume(vol1, vol2, args.merge_axis)
 
