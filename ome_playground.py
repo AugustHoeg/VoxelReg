@@ -3,11 +3,11 @@ import nibabel as nib
 import numpy as np
 import argparse
 import zarr
-from ome_zarr.writer import write_multiscale, write_multiscale_labels
+from ome_zarr.writer import write_image, write_multiscale, write_multiscale_labels
+from ome_zarr.scale import Scaler
 from ome_zarr.io import parse_url
 import dask.array as da
 from numcodecs import Zstd, Blosc, LZ4
-from utils.utils_zarr import write_ome_pyramid
 
 def read_nifti_pyramid(image_pyramid_paths, label_pyramid_paths=None):
     """
@@ -76,19 +76,41 @@ if __name__ == "__main__":
         out_name = args.out_name  # os.path.join(sample_path, args.out_name)
         print("Output name: ", out_name)
 
+
     # Read image and label pyramid
     image_pyramid, label_pyramid = read_nifti_pyramid(image_paths, label_paths)
 
+    # Storage options for each level
+    storage_opts = [
+        {"chunks": (648, 648, 648), "compressor": Zstd(level=5)},
+        {"chunks": (324, 324, 324), "compressor": Zstd(level=3)},
+        {"chunks": (162, 162, 162), "compressor": Zstd(level=1)},
+    ]
+
     # Open target Zarr group
-    zarr_path = os.path.join(out_path, out_name)
-    store = parse_url(zarr_path, mode="w").store
+    store = parse_url("ome_test.zarr", mode="w").store
     root = zarr.group(store=store)
 
     # Step 1: Create a multiscale image group
     image_group = root.create_group("HR")
 
     # Step 2: Write multiscale data to the image group with per-scale storage options
-    write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648, 648, 648))
+    write_multiscale(
+        image_pyramid,
+        group=image_group,
+        axes=["z", "y", "x"],
+        storage_options=storage_opts
+    )
+
+    # Step 3: Write the multiscale labels into a subpath under the image group
+    # Now write the label pyramid under /volume/labels/mask/
+    write_multiscale_labels(
+        label_pyramid,
+        group=image_group,
+        name="mask",
+        axes=["z", "y", "x"],
+        storage_options=storage_opts
+    )
 
     if args.registered_image_paths is not None:
         registered_image_paths = [os.path.join(sample_path, path) for path in args.registred_image_paths]
@@ -99,7 +121,7 @@ if __name__ == "__main__":
         registered_image_group = root.create_group("LR")
 
         storage_opts = [
-            {"chunks": (162, 162, 162), "compressor": Blosc(cname='lz4', clevel=3, shuffle=Blosc.BITSHUFFLE)}
+            {"chunks": (162, 162, 162), "compressor": Zstd(level=1)}
         ]
 
         write_multiscale(
