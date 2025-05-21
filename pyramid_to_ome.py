@@ -21,6 +21,7 @@ def read_nifti_pyramid(image_pyramid_paths, label_pyramid_paths=None):
     # Read image pyramid
     image_pyramid = []
     for path in image_pyramid_paths:
+        print(f"Reading image: {path}")
         image = nib.load(path).get_fdata()
         image_pyramid.append(image)
 
@@ -28,6 +29,7 @@ def read_nifti_pyramid(image_pyramid_paths, label_pyramid_paths=None):
     if label_pyramid_paths is not None:
         label_pyramid = []
         for path in label_pyramid_paths:
+            print(f"Reading label: {path}")
             label = nib.load(path).get_fdata()
             label_pyramid.append(label)
 
