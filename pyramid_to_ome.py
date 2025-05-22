@@ -68,11 +68,11 @@ if __name__ == "__main__":
         sample_path = os.path.join(project_path, args.sample_path)
         print("Sample path: ", sample_path)
     if args.image_paths is not None:
-        image_paths = [os.path.join(sample_path, path) for path in args.image_paths]
-        print("image paths: ", image_paths)
+        args.image_paths = [os.path.join(sample_path, path) for path in args.image_paths]
+        print("image paths: ", args.image_paths)
     if args.label_paths is not None:
-        label_paths = [os.path.join(sample_path, path) for path in args.label_paths]
-        print("image paths: ", label_paths)
+        args.label_paths = [os.path.join(sample_path, path) for path in args.label_paths]
+        print("image paths: ", args.label_paths)
     if args.out_path is not None:
         out_path = os.path.join(sample_path, args.out_path)  # os.path.join(sample_path, args.out_name)
         print("Output path: ", out_path)
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         print("Output name: ", out_name)
 
     # Read image and label pyramid
-    image_pyramid, label_pyramid = read_nifti_pyramid(image_paths, label_paths)
+    image_pyramid, label_pyramid = read_nifti_pyramid(args.image_paths, args.label_paths)
 
     # Open target Zarr group
     zarr_path = os.path.join(out_path, out_name)
