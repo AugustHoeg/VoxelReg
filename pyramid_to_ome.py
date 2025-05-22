@@ -32,6 +32,8 @@ def read_nifti_pyramid(image_pyramid_paths, label_pyramid_paths=None):
             print(f"Reading label: {path}")
             label = nib.load(path).get_fdata()
             label_pyramid.append(label)
+    else:
+        label_pyramid = None
 
     return image_pyramid, label_pyramid
 
@@ -41,8 +43,8 @@ def parse_arguments():
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Read image/label pyramid and save as OME-Zarr.")
     parser.add_argument("--sample_path", type=str, required=False, help="Path to the sample directory.")
-    parser.add_argument("--image_paths", type=str, nargs='*', required=False, help="Path to images.")
-    parser.add_argument("--label_paths", type=str, nargs='*', required=False, help="Path to labels.")
+    parser.add_argument("--image_paths", type=str, nargs='*', required=False, default=None, help="Path to images.")
+    parser.add_argument("--label_paths", type=str, nargs='*', required=False, default=None, help="Path to labels.")
     parser.add_argument("--out_path", type=str, required=False, help="Path to the output file.")
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the registered output image.")
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
