@@ -49,7 +49,7 @@ def parallel_crop_tiff(tiff_path, start_row, end_row, start_col, end_col, start_
 
 def load_tiff(input_path, dtype=np.float32):
     print(f"Reading input file: {input_path}")
-    image = tifffile.imread(input_path, dtype=dtype)
+    image = tifffile.imread(input_path).astype(dtype)
     print(f"tiff shape: {image.shape}")
     return image
 
