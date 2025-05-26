@@ -151,7 +151,8 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
 
 def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), dtype=np.float32):
 
-    filename, file_extension = os.path.splitext(os.path.basename(scan_path))
+    #filename, file_extension = os.path.splitext(os.path.basename(scan_path))
+    filename, file_extension = os.path.basename(scan_path).split('.', 1)
 
     if file_extension == ".tiff" or file_extension == ".tif":
         image = load_tiff(scan_path, dtype=dtype)
