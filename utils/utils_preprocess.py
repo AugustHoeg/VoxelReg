@@ -149,12 +149,12 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
     return pyramid, pyramid_affines
 
 
-def get_image_and_affine(scan_path, custom_origin=(0, 0, 0)):
+def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), dtype=np.float32):
 
     filename, file_extension = os.path.splitext(os.path.basename(scan_path))
 
     if file_extension == ".tiff" or file_extension == ".tif":
-        image = load_tiff(scan_path)
+        image = load_tiff(scan_path, dtype=dtype)
         nifti_affine = np.eye(4)  # Identity matrix for TIFF
         nifti_affine[:3, 3] = np.array(custom_origin)  # Set custom origin
     elif file_extension == ".txm":
