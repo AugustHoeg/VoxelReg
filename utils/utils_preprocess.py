@@ -156,11 +156,11 @@ def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), dtype=np.float32):
     print("file name: ", filename)
     print("file extension: ", file_extension)
 
-    if file_extension == ".tiff" or file_extension == ".tif":
+    if file_extension == "tiff" or file_extension == "tif":
         image = load_tiff(scan_path, dtype=dtype)
         nifti_affine = np.eye(4)  # Identity matrix for TIFF
         nifti_affine[:3, 3] = np.array(custom_origin)  # Set custom origin
-    elif file_extension == ".txm":
+    elif file_extension == "txm":
         image, metadata = load_txm(scan_path)
         print("######### TXM metadata ########## \n", metadata)
         nifti_affine = get_affine_txm(metadata, custom_origin=custom_origin)
