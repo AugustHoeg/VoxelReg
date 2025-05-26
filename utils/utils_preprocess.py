@@ -157,7 +157,8 @@ def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), dtype=np.float32):
     print("file extension: ", file_extension)
 
     if file_extension == "tiff" or file_extension == "tif":
-        image = load_tiff(scan_path, dtype=dtype)
+        # If path has glob wildcards, parse flag to load all files
+        image = load_tiff(scan_path, dtype=dtype, image_sequence=True if '*' in scan_path else False)
         nifti_affine = np.eye(4)  # Identity matrix for TIFF
         nifti_affine[:3, 3] = np.array(custom_origin)  # Set custom origin
     elif file_extension == "txm":

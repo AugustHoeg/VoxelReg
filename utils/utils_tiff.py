@@ -4,7 +4,8 @@ from scipy.ndimage import zoom
 import argparse
 import os
 from multiprocessing.pool import ThreadPool, Pool
-
+from natsort import natsorted
+import glob
 
 def crop_tiff_slice(tiff_slice, start_row, end_row, start_col, end_col):
 
@@ -47,9 +48,14 @@ def parallel_crop_tiff(tiff_path, start_row, end_row, start_col, end_col, start_
                 # Save cropped slice
 
 
-def load_tiff(input_path, dtype=np.float32):
+def load_tiff(input_path, dtype=np.float32, image_sequence=False):
     print(f"Reading input file: {input_path}")
-    image = tifffile.imread(input_path).astype(dtype)
+    if image_sequence:
+        file_list = glob.glob(input_path)
+        file_list = natsorted(file_list)
+        image = tifffile.imread(file_list).astype(dtype)
+    else:
+        image = tifffile.imread(input_path, dtype=dtype)
     print(f"tiff shape: {image.shape}")
     return image
 
