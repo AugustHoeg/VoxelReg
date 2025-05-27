@@ -173,10 +173,10 @@ def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), dtype=np.float32):
     return image, nifti_affine
 
 
-def define_image_space(image, nifti_affine, f, margin_percent, divis_factor, min_size, max_size):
+def define_image_space(image, nifti_affine, f, margin_percent, divis_factor, min_size, max_size, top_index="last"):
 
     roi = define_roi(image.shape, f, margin_percent, divis_factor, minimum_size=min_size, maximum_size=max_size)
-    image, crop_start, crop_end = top_center_crop(image, roi)
+    image, crop_start, crop_end = top_center_crop(image, roi, top_index)
     print(f"crop start: {crop_start}, crop end: {crop_end}, crop shape: {image.shape}")
 
     nifti_affine = compute_affine_crop(nifti_affine, crop_start)  # Compute new affine based on crop roi

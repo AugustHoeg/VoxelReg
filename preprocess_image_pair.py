@@ -46,6 +46,8 @@ def parse_arguments():
     parser.add_argument("--moving_mask_threshold", default=None, help="Threshold for binary mask image, default is None.")
     parser.add_argument("--fixed_mask_threshold", default="otsu", help="Threshold for binary mask image, default is None.")
 
+    parser.add_argument("--top_index", type=str, default="last", help="Index for the top slice of the image, default is 'last'")
+
     args = parser.parse_args()
     return args
 
@@ -87,7 +89,8 @@ if __name__ == "__main__":
                                                                                    min_size=args.moving_min_size,
                                                                                    max_size=args.moving_max_size,
                                                                                    margin_percent=args.margin_percent,
-                                                                                   divis_factor=4)
+                                                                                   divis_factor=4,
+                                                                                   top_index=args.top_index)
 
     # Get & save moving image pyramid
     pyramid, mask_pyramid, affines = get_image_pyramid(moving, moving_affine, args.moving_pyramid_depth, args.moving_mask_threshold)
@@ -111,7 +114,8 @@ if __name__ == "__main__":
                                                                                min_size=args.fixed_min_size,
                                                                                max_size=args.fixed_max_size,
                                                                                margin_percent=0.0,
-                                                                               divis_factor=4)
+                                                                               divis_factor=4,
+                                                                               top_index=args.top_index)
 
     # Set fixed origin to moving image top slice, centered in H, W
     p1 = [moving.shape[0], moving.shape[1] / 2, moving.shape[2] / 2]
