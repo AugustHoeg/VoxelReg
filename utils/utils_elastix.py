@@ -268,8 +268,7 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
         if visualize:
             # Visualize the results
             #dim = result_array.shape[0]
-            dim = fixed_image_sparse.shape[0]
-            off = int(dim * 0.05)  # offset for visualization
+            off = int(min(fixed_image_sparse.shape[0], best_result.shape[0]) * 0.05)  # offset for visualization
             diff = fixed_image_sparse[:] - best_result[:]
             viz_multiple_images([fixed_image_sparse, best_result, diff], [dim-i*off-5 for i in range(3)], savefig=True, title=fig_name + "_coarse", axis=2)
             #viz_registration(fixed_image_sparse, best_result, [dim-i*off-1 for i in range(3)])
