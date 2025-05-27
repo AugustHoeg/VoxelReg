@@ -36,6 +36,9 @@ def parse_arguments():
     parser.add_argument("--fixed_min_size", type=int, nargs=3, default=(0, 1944, 1944), help="Minimum size for cropping.")
     parser.add_argument("--fixed_max_size", type=int, nargs=3, default=(9999, 1944, 1944), help="Maximum size for cropping.")
 
+    parser.add_argument("--moving_pixel_size", type=float, nargs=3, default=(1.0, 1.0, 1.0), help="Pixel size in mm for moving image.")
+    parser.add_argument("--fixed_pixel_size", type=float, nargs=3, default=(1.0, 1.0, 1.0), help="Pixel size in mm for fixed image.")
+
     parser.add_argument("--margin_percent", type=float, default=0.5, help="Margin percentage for cropping.")
 
     parser.add_argument("--moving_pyramid_depth", type=int, default=3, help="Depth of saved image pyramid.")
@@ -82,7 +85,7 @@ if __name__ == "__main__":
     ##################### MOVING IMAGE ######################
 
     # Load moving image
-    moving, moving_affine = get_image_and_affine(moving_path, custom_origin=(0, 0, 0))
+    moving, moving_affine = get_image_and_affine(moving_path, custom_origin=(0, 0, 0), pixel_size_mm=args.moving_pixel_size)
 
     # Define moving image space
     moving, moving_affine, moving_crop_start, moving_crop_end = define_image_space(moving, moving_affine, f=args.f,
@@ -107,7 +110,7 @@ if __name__ == "__main__":
     ##################### FIXED IMAGE ######################
 
     # Load fixed image
-    fixed, fixed_affine = get_image_and_affine(fixed_path, custom_origin=(0, 0, 0))
+    fixed, fixed_affine = get_image_and_affine(fixed_path, custom_origin=(0, 0, 0), pixel_size_mm=args.fixed_pixel_size)
 
     # Define fixed image space
     fixed, fixed_affine, fixed_crop_start, fixed_crop_end = define_image_space(fixed, fixed_affine, f=1,
