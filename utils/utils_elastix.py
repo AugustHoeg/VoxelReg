@@ -298,11 +298,12 @@ def elastix_refined_registration(fixed_image_sparse, moving_image_sparse, coarse
 
     if visualize:
         # Visualize the results
-        dim = result_image_small_refined.shape[0]
+        axis = 2
+        dim = min(fixed_image_sparse.shape[axis], result_image_small_refined.shape[axis])
         off = int(dim * 0.05)  # offset for visualization
         diff = fixed_image_sparse[:] - result_image_small_refined[:]
-        viz_multiple_images([fixed_image_sparse, result_image_small_refined, diff], [dim-i*off-5 for i in range(3)], axis=2, savefig=True, title=fig_name + "_refined")
-        viz_registration(fixed_image_sparse, result_image_small_refined, [dim-i*off-5 for i in range(3)], axis=2, savefig=True, title=fig_name + "_eval")
+        viz_multiple_images([fixed_image_sparse, result_image_small_refined, diff], [dim-i*off-5 for i in range(3)], axis=axis, savefig=True, title=fig_name + "_refined")
+        viz_registration(fixed_image_sparse, result_image_small_refined, [dim-i*off-5 for i in range(3)], axis=axis, savefig=True, title=fig_name + "_eval")
 
     return result_image_small_refined, result_transform_parameters
 
