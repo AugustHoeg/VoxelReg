@@ -149,7 +149,7 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
     return pyramid, pyramid_affines
 
 
-def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), pixel_size_mm=None, dtype=np.float32):
+def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), pixel_size_mm=(None, None, None), dtype=np.float32):
 
     #filename, file_extension = os.path.splitext(os.path.basename(scan_path))
     filename, file_extension = os.path.basename(scan_path).split('.', 1)
@@ -159,7 +159,7 @@ def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), pixel_size_mm=None,
     if file_extension == "tiff" or file_extension == "tif":
         # If path has glob wildcards, parse flag to load all files
         image = load_tiff(scan_path, dtype=dtype, image_sequence=True if '*' in scan_path else False)
-        if pixel_size_mm is not None:
+        if None in pixel_size_mm or pixel_size_mm == (None, None, None):
             nifti_affine = np.diag([pixel_size_mm[0], pixel_size_mm[1], pixel_size_mm[2], 1])  # set pixel size in mm
         else:
             nifti_affine = np.eye(4)  # Identity matrix for TIFF

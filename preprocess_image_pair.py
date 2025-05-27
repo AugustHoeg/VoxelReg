@@ -36,8 +36,8 @@ def parse_arguments():
     parser.add_argument("--fixed_min_size", type=int, nargs=3, default=(0, 1944, 1944), help="Minimum size for cropping.")
     parser.add_argument("--fixed_max_size", type=int, nargs=3, default=(9999, 1944, 1944), help="Maximum size for cropping.")
 
-    parser.add_argument("--moving_pixel_size", type=float, nargs=3, default=(1.0, 1.0, 1.0), help="Pixel size in mm for moving image.")
-    parser.add_argument("--fixed_pixel_size", type=float, nargs=3, default=(1.0, 1.0, 1.0), help="Pixel size in mm for fixed image.")
+    parser.add_argument("--moving_pixel_size", type=float, nargs=3, default=(None, None, None), help="Pixel size in mm for moving image.")
+    parser.add_argument("--fixed_pixel_size", type=float, nargs=3, default=(None, None, None), help="Pixel size in mm for fixed image.")
 
     parser.add_argument("--margin_percent", type=float, default=0.5, help="Margin percentage for cropping.")
 
