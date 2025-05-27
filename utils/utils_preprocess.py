@@ -160,9 +160,9 @@ def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), pixel_size_mm=(None
         # If path has glob wildcards, parse flag to load all files
         image = load_tiff(scan_path, dtype=dtype, image_sequence=True if '*' in scan_path else False)
         if None in pixel_size_mm or pixel_size_mm == (None, None, None):
-            nifti_affine = np.diag([pixel_size_mm[0], pixel_size_mm[1], pixel_size_mm[2], 1])  # set pixel size in mm
-        else:
             nifti_affine = np.eye(4)  # Identity matrix for TIFF
+        else:
+            nifti_affine = np.diag([pixel_size_mm[0], pixel_size_mm[1], pixel_size_mm[2], 1])  # set pixel size in mm
         nifti_affine[:3, 3] = np.array(custom_origin)  # Set custom origin
     elif file_extension == "txm":
         image, metadata = load_txm(scan_path)
