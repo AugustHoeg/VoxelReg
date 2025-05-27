@@ -24,7 +24,7 @@ def load_image(image_path, dtype=np.float32, dataset_name='/exchange/data'):
 
     elif file_extension == "h5":
         data = h5py.File(image_path, 'r')[dataset_name]
-        d, h, w = data[dataset_name].shape
+        d, h, w = data.shape
         print(f"HDF5 shape: (D={d}, H={h}, W={w})")
         image = da.from_array(data, chunks=(1, h, w))
 
