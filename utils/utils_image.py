@@ -1,35 +1,42 @@
 import os
+import glob
 import numpy as np
 import nibabel as nib
 from utils.utils_tiff import load_tiff
 import zarr
 import h5py
 import dask.array as da
+import monai.transforms
 
 def load_image(image_path, dtype=np.float32, dataset_name='/exchange/data'):
 
-    filename, file_extension = os.path.basename(image_path).split('.', 1)
-
-    if file_extension == "nii" or file_extension == "nii.gz":
-        image = nib.load(image_path).get_fdata().astype(dtype)
-
-    elif file_extension == "tiff" or file_extension == "tif":
-        image = load_tiff(image_path, dtype=dtype)
-
-    elif file_extension == "npy":
-        image = np.load(image_path).astype(dtype)
-
-    elif file_extension == "zarr":
-        image = zarr.open(image_path, mode='r').astype(dtype)
-
-    elif file_extension == "h5":
-        data = h5py.File(image_path, 'r')[dataset_name]
-        d, h, w = data.shape
-        print(f"HDF5 shape: (D={d}, H={h}, W={w})")
-        image = da.from_array(data, chunks=(1, h, w))
-
+    if '.' not in os.path.basename(image_path):
+        if glob.glob(os.path.join(image_path, '*.dcm')):
+            reader = monai.transforms.LoadImage(dtype=dtype, image_only=True)
+            image = reader(image_path).numpy()
     else:
-        raise ValueError(f"Unsupported file extension: {file_extension}")
+        filename, file_extension = os.path.basename(image_path).split('.', 1)
+
+        if file_extension == "nii" or file_extension == "nii.gz":
+            image = nib.load(image_path).get_fdata().astype(dtype)
+
+        elif file_extension == "tiff" or file_extension == "tif":
+            image = load_tiff(image_path, dtype=dtype)
+
+        elif file_extension == "npy":
+            image = np.load(image_path).astype(dtype)
+
+        elif file_extension == "zarr":
+            image = zarr.open(image_path, mode='r').astype(dtype)
+
+        elif file_extension == "h5":
+            data = h5py.File(image_path, 'r')[dataset_name]
+            d, h, w = data.shape
+            print(f"HDF5 shape: (D={d}, H={h}, W={w})")
+            image = da.from_array(data, chunks=(1, h, w))
+
+        else:
+            raise ValueError(f"Unsupported file extension: {file_extension}")
 
     return image
 
@@ -39,3 +46,23 @@ def normalize(volume, global_min=0.0, global_max=1.0, dtype=np.float16):
     normalized = normalized.astype(dtype)
 
     return normalized
+
+def normalize_std(img, standard_deviations=3, mode='rescale'):
+
+    """
+    Normalize image using N standard deviations and clip to range [0; 1]
+    :param img:
+    :param standard_deviations:
+    :return:
+    """
+
+    mean = np.mean(img)
+    std = np.std(img)
+    vmin = mean - standard_deviations * std
+    vmax = mean + standard_deviations * std
+    norm_img = (img - vmin) / (vmax - vmin)
+    if mode == 'clip':
+        norm_img = np.clip(norm_img, 0, 1)
+    elif mode == 'rescale':
+        norm_img = (norm_img - np.min(norm_img)) / (np.max(norm_img) - np.min(norm_img))
+    return norm_img
