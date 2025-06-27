@@ -2,6 +2,7 @@ import os
 import argparse
 import numpy as np
 from utils.utils_tiff import write_tiff
+from utils.utils_image import load_image
 
 
 def parse_arguments():
@@ -35,7 +36,7 @@ if __name__ == "__main__":
         out_name = args.out_name  # out_name = os.path.join(sample_path, args.out_name)
 
     print(f"Loading {image_path}")
-    image = np.load(image_path).astype(np.float32)
+    image = load_image(image_path, dtype=np.float32)
 
     print(f"Loading {image_path}")
     write_tiff(image, os.path.join(sample_path, out_name))
