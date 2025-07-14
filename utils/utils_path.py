@@ -126,6 +126,7 @@ def write_image_categories(image_categories, name_format, save_dir, chunk_size, 
 
             print(f"Processing scan {os.path.basename(image_path)} with shape {image.shape}")
             image = image[:, :, :min_slices]
+            print(f"After cropping, scan shape is {image.shape}")
 
             image = normalize_std(image, standard_deviations=3, mode='rescale')
 
@@ -166,7 +167,7 @@ if __name__ == "__main__":
 
     chunk_size = (128, 128, 80)
 
-    splits = np.array([160 + i*chunk_size[-1] for i in range(15)])  # Customizable
+    splits = np.array([160 + i*chunk_size[-1] for i in range(15)])  # Customizable slice count splits
     #root = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/"
 
     dataset_dir = "../../Vedrana_master_project/3D_datasets/datasets/LIDC_IDRI/train/"
