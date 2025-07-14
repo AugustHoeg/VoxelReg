@@ -4,6 +4,7 @@ import numpy as np
 import argparse
 
 from utils.utils_image import load_image
+from utils.utils_nifti import write_nifti, load_nifti
 
 def parse_arguments():
 
@@ -49,7 +50,7 @@ if __name__ == "__main__":
         print("Mask path: ", mask_path)
 
     print(f"Loading {scan_path}")
-    image = load_image(scan_path, dtype=np.float32)  # Assuming load_image is defined elsewhere
+    image, nifti_data = load_image(scan_path, dtype=np.float32, return_metadata=True)  # Assuming load_image is defined elsewhere
     # image = np.load(scan_path).astype(np.float32)
     # If you must open large images, consider using memory-mapped arrays:
     # image = np.load("image.npy", mmap_mode='r')  # won't load entire array into RAM
@@ -64,6 +65,7 @@ if __name__ == "__main__":
     mask_volume(image, mask)
 
     # Save / process the chunk
-    np.save(os.path.join(out_path, f"{out_name}_masked.nii.gz"), image)
+    # np.save(os.path.join(out_path, f"{out_name}_masked.npy"), image)
+    write_nifti(image, image.affine, f"{out_name}_masked.nii.gz")
 
 

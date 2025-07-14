@@ -8,7 +8,7 @@ import h5py
 import dask.array as da
 import monai.transforms
 
-def load_image(image_path, dtype=np.float32, dataset_name='/exchange/data'):
+def load_image(image_path, dtype=np.float32, dataset_name='/exchange/data', return_metadata=False):
 
     if '.' not in os.path.basename(image_path):
         if glob.glob(os.path.join(image_path, '*.dcm')):
@@ -17,8 +17,11 @@ def load_image(image_path, dtype=np.float32, dataset_name='/exchange/data'):
     else:
         filename, file_extension = os.path.basename(image_path).split('.', 1)
 
+        metadata = None
         if file_extension == "nii" or file_extension == "nii.gz":
-            image = nib.load(image_path).get_fdata().astype(dtype)
+            nifti_data = nib.load(image_path)
+            image = nifti_data.get_fdata().astype(dtype)
+            metadata = nifti_data
 
         elif file_extension == "tiff" or file_extension == "tif":
             image = load_tiff(image_path, dtype=dtype)
@@ -38,7 +41,10 @@ def load_image(image_path, dtype=np.float32, dataset_name='/exchange/data'):
         else:
             raise ValueError(f"Unsupported file extension: {file_extension}")
 
-    return image
+    if return_metadata:
+        return image, metadata
+    else:
+        return image
 
 def normalize(volume, global_min=0.0, global_max=1.0, dtype=np.float16):
 
