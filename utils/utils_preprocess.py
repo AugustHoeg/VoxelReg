@@ -176,26 +176,70 @@ def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), pixel_size_mm=(None
     return image, nifti_affine
 
 
+def image_crop_pad(image, roi, top_index="last"):
+    """
+    Pads or crops an N-dimensional image to match the specified ROI size.
+
+    Parameters:
+    - image: np.ndarray, the input N-dimensional image.
+    - roi: tuple or list of ints, the desired output shape for each dimension.
+
+    Returns:
+    - np.ndarray: The cropped or padded image.
+    """
+
+    start_coords = [0] * image.ndim
+    end_coords = [image.shape[i] for i in range(image.ndim)]
+
+    for i in range(len(roi)):
+        diff = roi[i] - image.shape[i]
+
+        if diff > 0:
+            pad_before = diff // 2
+            pad_after = diff - pad_before
+            pad_width = [(0, 0)] * image.ndim
+            pad_width[i] = (pad_before, pad_after)
+            image = np.pad(image, pad_width, mode='constant', constant_values=0)
+
+            start_coords[i] = -pad_before  # Set the start coordinate for this dimension
+            end_coords[i] = image.shape[i] + pad_after  # Set the end coordinate for this dimension
+
+        elif diff < 0:
+            if i == 0:  # For the first dimension, crop from the top or bottom
+                if top_index == "first":
+                    crop_before = 0
+                    crop_after = np.abs(diff)
+                else:
+                    crop_before = np.abs(diff)
+                    crop_after = 0
+            else:
+                crop_before = np.abs(diff) // 2
+                crop_after = np.abs(diff) - crop_before
+
+            slices = [slice(None)] * image.ndim
+            slices[i] = slice(crop_before, image.shape[i] - crop_after)
+            image = image[tuple(slices)]
+
+            start_coords[i] = crop_before  # Set the start coordinate for this dimension
+            end_coords[i] = image.shape[i] - crop_after
+
+    return image, start_coords, end_coords
+
+
 def define_image_space(image, nifti_affine, f, margin_percent, divis_factor, min_size, max_size, top_index="last"):
 
     roi = define_roi(image.shape, f, margin_percent, divis_factor, minimum_size=min_size, maximum_size=max_size)
 
-    # if roi is larger than image, perform padding of border on each side
-    if np.any(roi > image.shape):
-        pad_D = (np.ceil(max(0, (roi[0] - image.shape[0])) / 2), np.floor(max(0, (roi[0] - image.shape[0])) / 2))
-        pad_H = (np.ceil(max(0, (roi[1] - image.shape[1])) / 2), np.floor(max(0, (roi[1] - image.shape[1])) / 2))
-        pad_W = (np.ceil(max(0, (roi[2] - image.shape[2])) / 2), np.floor(max(0, (roi[2] - image.shape[2])) / 2))
-        image = np.pad(image, (pad_D, pad_H, pad_W), mode='constant', constant_values=0)
-        print(f"ROI is larger than image, center padding to shape: {image.shape}")
-        crop_start = (-pad_D[0], -pad_H[0], -pad_W[0])  # New origin after padding
+    if True:
+        image, start_coords, end_coords = image_crop_pad(image, roi, top_index)
     else:
-        image, crop_start, crop_end = top_center_crop(image, roi, top_index)
-        print(f"crop start: {crop_start}, crop end: {crop_end}, crop shape: {image.shape}")
+        image, start_coords, end_coords = top_center_crop(image, roi, top_index)
+        print(f"start coords: {start_coords}, end coords: {end_coords}, new shape: {image.shape}")
 
-    nifti_affine = compute_affine_crop(nifti_affine, crop_start)  # Compute new affine based on crop roi
+    nifti_affine = compute_affine_crop(nifti_affine, start_coords)  # Compute new affine based on crop roi
     print("Nifti affine after crop/pad: \n", nifti_affine)
 
-    return image, nifti_affine, crop_start, crop_end
+    return image, nifti_affine, start_coords, end_coords
 
 
 def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_threshold=None):
