@@ -179,11 +179,21 @@ def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), pixel_size_mm=(None
 def define_image_space(image, nifti_affine, f, margin_percent, divis_factor, min_size, max_size, top_index="last"):
 
     roi = define_roi(image.shape, f, margin_percent, divis_factor, minimum_size=min_size, maximum_size=max_size)
-    image, crop_start, crop_end = top_center_crop(image, roi, top_index)
-    print(f"crop start: {crop_start}, crop end: {crop_end}, crop shape: {image.shape}")
+
+    # if roi is larger than image, perform padding of border on each side
+    if np.any(roi > image.shape):
+        pad_D = (np.ceil(max(0, (roi[0] - image.shape[0])) / 2), np.floor(max(0, (roi[0] - image.shape[0])) / 2))
+        pad_H = (np.ceil(max(0, (roi[1] - image.shape[1])) / 2), np.floor(max(0, (roi[1] - image.shape[1])) / 2))
+        pad_W = (np.ceil(max(0, (roi[2] - image.shape[2])) / 2), np.floor(max(0, (roi[2] - image.shape[2])) / 2))
+        image = np.pad(image, (pad_D, pad_H, pad_W), mode='constant', constant_values=0)
+        print(f"ROI is larger than image, center padding to shape: {image.shape}")
+        crop_start = (-pad_D[0], -pad_H[0], -pad_W[0])  # New origin after padding
+    else:
+        image, crop_start, crop_end = top_center_crop(image, roi, top_index)
+        print(f"crop start: {crop_start}, crop end: {crop_end}, crop shape: {image.shape}")
 
     nifti_affine = compute_affine_crop(nifti_affine, crop_start)  # Compute new affine based on crop roi
-    print("Nifti affine after crop: \n", nifti_affine)
+    print("Nifti affine after crop/pad: \n", nifti_affine)
 
     return image, nifti_affine, crop_start, crop_end
 
