@@ -66,6 +66,6 @@ if __name__ == "__main__":
 
     # Save / process the chunk
     # np.save(os.path.join(out_path, f"{out_name}_masked.npy"), image)
-    write_nifti(image, image.affine, f"{out_name}_masked.nii.gz")
+    write_nifti(image, nifti_data.affine, f"{out_name}_masked.nii.gz")
 
 
