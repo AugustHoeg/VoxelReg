@@ -162,7 +162,7 @@ if __name__ == "__main__":
         fixed_image_sparse,
         moving_image_sparse,
         center_mm=center,
-        initial_rotation_angles=args.rotation_angles,
+        initial_rotation_angles=args.rotation_angles_deg,
         grid_spacing_mm=spacing,
         grid_size=size,
         resolutions=4,
