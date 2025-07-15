@@ -262,6 +262,8 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
 
     translation_coords = get_positional_grid(center_mm, grid_spacing_mm, grid_size)
     print("translation_coords", translation_coords)
+    fixed_image_center = voxel2world(fixed_image_sparse, np.array(fixed_image_sparse.shape) / 2)
+    print("rot_center", fixed_image_center)
 
     best_metric = -1
 
@@ -274,8 +276,7 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
 
         # Get elastix registration object
         #transform = get_itk_translation_transform(translation, save_path=None)
-        fixed_image_center = voxel2world(fixed_image_sparse, np.array(fixed_image_sparse.shape) / 2)
-        transform = get_itk_rigid_transform(initial_rotation_angles, translation, rot_center=fixed_image_center, save_path=None)
+        transform = get_itk_rigid_transform(initial_rotation_angles, translation, rot_center=fixed_image_center, order="ZXY")
         elastix_object.SetInitialTransform(transform)
 
         # Run the registration

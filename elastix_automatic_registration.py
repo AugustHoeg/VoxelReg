@@ -64,8 +64,8 @@ def parse_arguments():
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the registered output image.")
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
 
-    parser.add_argument("--center", type=float, nargs=3, default=(0.0, 0.0, 0.0), help="Initial guess for coarse registration, formatted as [D, H, W]")
-    parser.add_argument("--rotation_angles_deg", type=float, nargs=3, default=(0.0, 0.0, 0.0), help="Initial guess for coarse registration rotation angles in degrees")
+    parser.add_argument("--center", type=float, nargs=3, default=(20, 31, 20), help="Initial guess for coarse registration, formatted as [D, H, W]")
+    parser.add_argument("--rotation_angles_deg", type=float, nargs=3, default=(55, 145, -54), help="Initial guess for coarse registration rotation angles in degrees")
     parser.add_argument("--size", type=int, nargs=3, default=(1, 1, 1), help="Number of coords around initial guess in (x,y,z) to apply coarse registration")
     parser.add_argument("--spacing", type=float, nargs=3, default=(0.25, 0.25, 0.25), help="Voxel spacing in (x,y,z) between coarse registration coords")
 
@@ -167,23 +167,23 @@ if __name__ == "__main__":
         grid_spacing_mm=spacing,
         grid_size=size,
         resolutions=4,
-        max_iterations=256,
-        metric='AdvancedNormalizedCorrelation',
-        no_registration_samples=2048,
-        log_mode="console",  # None
+        max_iterations=512,  # 256, 512, 1024
+        metric='AdvancedMattesMutualInformation',  # 'AdvancedNormalizedCorrelation', 'AdvancedMattesMutualInformation'
+        no_registration_samples=4096,  # 2048, 4096
+        log_mode=None,  # None, "console"
         visualize=True,
         fig_name=out_name
     )
 
     # Refined registration parameters
-    registration_models = ['rigid', 'affine', 'bspline']
+    registration_models = ['rigid', 'affine']
     resolution_list = [4, 4, 4]
     max_iteration_list = [512, 512, 512]
     metric_list = ['AdvancedMattesMutualInformation',
                    'AdvancedMattesMutualInformation',
                    'AdvancedMattesMutualInformation']
     no_registration_samples_list = [4096, 4096, 4096]
-    write_result_image_list = [False, False, True]
+    write_result_image_list = [False, True, True]
 
     # Refine registration
     result_image, refined_trans_obj = elastix_refined_registration(
@@ -196,7 +196,7 @@ if __name__ == "__main__":
         write_result_image_list,
         metric_list,
         no_registration_samples_list,
-        log_mode=None,
+        log_mode="console",  # None, "console"
         visualize=True,
         fig_name=out_name
     )
