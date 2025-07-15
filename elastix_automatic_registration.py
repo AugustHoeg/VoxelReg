@@ -169,7 +169,7 @@ if __name__ == "__main__":
         max_iterations=256,
         metric='AdvancedNormalizedCorrelation',
         no_registration_samples=2048,
-        log_mode=None,
+        log_mode="console",  # None
         visualize=True,
         fig_name=out_name
     )
