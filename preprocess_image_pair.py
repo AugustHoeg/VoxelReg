@@ -6,13 +6,13 @@ from utils.utils_preprocess import crop_to_roi, preprocess, get_image_and_affine
 from utils.utils_nifti import voxel2world, set_origin
 
 # Define paths
-project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/"
+project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/2022_QIM_52_Bone/"
 
 # Define paths
-sample_path = project_path + "Elm_A_bin1x1/"
-moving_path = sample_path + "Elm_A_LFOV_stitch_scale_1.nii.gz"
-fixed_path = sample_path + "Elm_A_4x_stitch_scale_4.nii.gz"
-out_name = "Elm_A_LFOV_registered"  # Name of the output file
+sample_path = project_path + "femur_001/"
+moving_path = sample_path + "clinical/volume/f_001.nii"
+fixed_path = sample_path + "micro/volume/f_001.nii"
+out_name = "f_001_prepropress"  # Name of the output file
 
 
 def parse_arguments():

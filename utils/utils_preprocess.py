@@ -8,6 +8,7 @@ from utils.utils_plot import viz_slices, viz_multiple_images
 from utils.utils_tiff import load_tiff, write_tiff, center_crop, top_center_crop
 from utils.utils_nifti import write_nifti, get_crop_origin, set_origin, set_affine_scale, compute_affine_scale, compute_affine_crop
 from utils.utils_txm import load_txm, get_affine_txm
+from utils.utils_image import load_image
 
 
 def norm(image):
@@ -156,20 +157,28 @@ def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), pixel_size_mm=(None
     print("file name: ", filename)
     print("file extension: ", file_extension)
 
+    nifti_affine = None
     if file_extension == "tiff" or file_extension == "tif":
         # If path has glob wildcards, parse flag to load all files
         image = load_tiff(scan_path, dtype=dtype, image_sequence=True if '*' in scan_path else False)
+    elif file_extension == "txm":
+        image, metadata = load_txm(scan_path)
+        print("######### TXM metadata ########## \n", metadata)
+        nifti_affine = get_affine_txm(metadata)
+    elif file_extension == "nii" or file_extension == "nii.gz":
+        image, nifti_data = load_image(scan_path, dtype=dtype, return_metadata=True)
+        nifti_affine = nifti_data.affine
+    elif file_extension == "npy":
+        image = load_image(scan_path, dtype=dtype)
+    else:
+        assert False, "Unsupported file format."
+
+    if nifti_affine is None:
         if None in pixel_size_mm or pixel_size_mm == (None, None, None):
             nifti_affine = np.eye(4)  # Identity matrix for TIFF
         else:
             nifti_affine = np.diag([pixel_size_mm[0], pixel_size_mm[1], pixel_size_mm[2], 1])  # set pixel size in mm
-        nifti_affine[:3, 3] = np.array(custom_origin)  # Set custom origin
-    elif file_extension == "txm":
-        image, metadata = load_txm(scan_path)
-        print("######### TXM metadata ########## \n", metadata)
-        nifti_affine = get_affine_txm(metadata, custom_origin=custom_origin)
-    else:
-        assert False, "Unsupported file format."
+    nifti_affine[:3, 3] = np.array(custom_origin)  # Set custom origin
 
     print("Image shape: ", image.shape)
     print("Nifti affine: \n", nifti_affine)
@@ -202,7 +211,7 @@ def image_crop_pad(image, roi, top_index="last"):
             image = np.pad(image, pad_width, mode='constant', constant_values=0)
 
             start_coords[i] = -pad_before  # Set the start coordinate for this dimension
-            end_coords[i] = image.shape[i] + pad_after  # Set the end coordinate for this dimension
+            end_coords[i] = image.shape[i]  # Set end coords to the padded image shape
 
         elif diff < 0:
             if i == 0:  # For the first dimension, crop from the top or bottom
@@ -221,7 +230,7 @@ def image_crop_pad(image, roi, top_index="last"):
             image = image[tuple(slices)]
 
             start_coords[i] = crop_before  # Set the start coordinate for this dimension
-            end_coords[i] = image.shape[i] - crop_after
+            end_coords[i] = image.shape[i]  # Set end coords to the cropped image shape
 
     return image, start_coords, end_coords
 
