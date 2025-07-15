@@ -9,7 +9,7 @@ from utils.utils_preprocess import norm, masked_norm
 
 
 # Define paths
-project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/"
+project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/2022_QIM_52_Bone/"
 sample_path = project_path + "Larch_A_bin1x1/processed/"
 #moving_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"
 #fixed_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"
@@ -24,9 +24,10 @@ sample_path = project_path + "unregistered/"
 #moving_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"
 #fixed_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"
 
-moving_path = sample_path + "moving_scale_1.nii.gz"
-fixed_path = sample_path + "fixed_scale_4.nii.gz"
-out_name = "Bamboo_A_registered"  # Name of the output file
+moving_path = project_path + "moving_scale_1.nii.gz"
+fixed_path = project_path + "fixed_scale_4.nii.gz"
+mask_path = project_path + "fixed_scale_4_mask.nii.gz"
+out_name = "Femur_01_registered"  # Name of the output file
 
 
 # Load downsampled images
@@ -63,7 +64,7 @@ def parse_arguments():
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the registered output image.")
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
 
-    parser.add_argument("--center", type=float, nargs=3, default=(0.9, 0.0, 0.0), help="Initial guess for coarse registration, formatted as [D, H, W]")
+    parser.add_argument("--center", type=float, nargs=3, default=(0.0, 0.0, 0.0), help="Initial guess for coarse registration, formatted as [D, H, W]")
     parser.add_argument("--rotation_angles_deg", type=float, nargs=3, default=(0.0, 0.0, 0.0), help="Initial guess for coarse registration rotation angles in degrees")
     parser.add_argument("--size", type=int, nargs=3, default=(1, 1, 1), help="Number of coords around initial guess in (x,y,z) to apply coarse registration")
     parser.add_argument("--spacing", type=float, nargs=3, default=(0.25, 0.25, 0.25), help="Voxel spacing in (x,y,z) between coarse registration coords")

@@ -4,6 +4,7 @@ import SimpleITK as sitk
 import numpy as np
 from tqdm import tqdm
 from utils.utils_plot import viz_multiple_images, viz_registration
+from utils.utils_itk import voxel2world
 
 
 # Class reference for ElastixRegistrationMethod:
@@ -19,7 +20,7 @@ def get_itk_translation_transform(translation_vec=[0.0, 0.0, 0.0], save_path=Non
     return transform
 
 
-def get_itk_rigid_transform(rotation_angles_deg=[0.0, 0.0, 0.0], translation_vec=[0.0, 0.0, 0.0], save_path=None):
+def get_itk_rigid_transform(rotation_angles_deg=[0.0, 0.0, 0.0], translation_vec=[0.0, 0.0, 0.0], rot_center=[0.0, 0.0, 0.0], order="ZXY", save_path=None):
 
     # Convert angles from degrees to radians
     rotation_angles_rad = [math.radians(a) for a in rotation_angles_deg]
@@ -28,6 +29,12 @@ def get_itk_rigid_transform(rotation_angles_deg=[0.0, 0.0, 0.0], translation_vec
     transform = itk.Euler3DTransform[itk.D].New()
     transform.SetRotation(*rotation_angles_rad)
     transform.SetTranslation(translation_vec)
+    if order == "ZYX":
+        transform.SetComputeZYX(True)
+    elif order == "ZXY":
+        transform.SetComputeZYX(False)
+
+    transform.SetCenter(rot_center)
 
     if save_path is not None:
         itk.transformwrite(transform, save_path)
@@ -267,7 +274,8 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
 
         # Get elastix registration object
         #transform = get_itk_translation_transform(translation, save_path=None)
-        transform = get_itk_rigid_transform(rotation_angles_deg=initial_rotation_angles, translation_vec=translation, save_path=None)
+        fixed_image_center = voxel2world(fixed_image_sparse, np.array(fixed_image_sparse.shape) / 2)
+        transform = get_itk_rigid_transform(initial_rotation_angles, translation, rot_center=fixed_image_center, save_path=None)
         elastix_object.SetInitialTransform(transform)
 
         # Run the registration
