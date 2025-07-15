@@ -20,8 +20,15 @@ def get_itk_translation_transform(translation_vec=[0.0, 0.0, 0.0], save_path=Non
 
 def get_itk_rigid_transform(rotation_angles=[0.0, 0.0, 0.0], translation_vec=[0.0, 0.0, 0.0], save_path=None):
     transform = itk.Euler3DTransform[itk.D].New()
-    parameters = rotation_angles + translation_vec  # [rx, ry, rz, tx, ty, tz]
+
+    # Combine and convert parameters into ITK OptimizerParameters
+    parameters_list = rotation_angles + translation_vec  # [rx, ry, rz, tx, ty, tz]
+    parameters = itk.OptimizerParameters[itk.D](len(parameters_list))
+    for i, val in enumerate(parameters_list):
+        parameters.SetElement(i, val)
+
     transform.SetParameters(parameters)
+
     if save_path is not None:
         itk.transformwrite(transform, save_path)
 
