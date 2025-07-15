@@ -18,6 +18,16 @@ def get_itk_translation_transform(translation_vec=[0.0, 0.0, 0.0], save_path=Non
     return transform
 
 
+def get_itk_rigid_transform(rotation_angles=[0.0, 0.0, 0.0], translation_vec=[0.0, 0.0, 0.0], save_path=None):
+
+    transform = itk.Euler3DTransform[itk.D, 3].New()
+    transform.SetParameters(rotation_angles + translation_vec)  # Concatenate rotation angles and translation offsets
+    if save_path is not None:
+        itk.transformwrite(transform, save_path)
+
+    return transform
+
+
 def get_default_parameter_map(parameter_object, registration_model='translation', resolutions=4, max_iterations=1024, metric='AdvancedMattesMutualInformation', no_samples=4096,
                       write_result_image=True, log_mode=False):
 
@@ -220,7 +230,7 @@ def get_spaced_coords_around_point(center_mm, grid_spacing_mm, grid_size, spacin
 
 
 
-def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, center_mm, grid_spacing_mm=(1, 1, 1), grid_size=(2, 2, 2),
+def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, center_mm, initial_rotation_angles=(0.0, 0.0, 0.0), grid_spacing_mm=(1, 1, 1), grid_size=(2, 2, 2),
                                       resolutions=4, max_iterations=1024, metric='AdvancedMattesMutualInformation', no_registration_samples=4096, write_result_image=True,
                                       log_mode=None, visualize=False, fig_name=None):
 
@@ -247,7 +257,8 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
         progress_bar.set_postfix({'Translation': translation, 'Best Metric': best_metric})
 
         # Get elastix registration object
-        transform = get_itk_translation_transform(translation, save_path=None)
+        #transform = get_itk_translation_transform(translation, save_path=None)
+        transform = get_itk_rigid_transform(rotation_angles=initial_rotation_angles, translation_vec=translation, save_path=None)
         elastix_object.SetInitialTransform(transform)
 
         # Run the registration
