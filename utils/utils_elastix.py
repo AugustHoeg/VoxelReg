@@ -1,3 +1,4 @@
+import math
 import itk
 import SimpleITK as sitk
 import numpy as np
@@ -18,16 +19,15 @@ def get_itk_translation_transform(translation_vec=[0.0, 0.0, 0.0], save_path=Non
     return transform
 
 
-def get_itk_rigid_transform(rotation_angles=[0.0, 0.0, 0.0], translation_vec=[0.0, 0.0, 0.0], save_path=None):
+def get_itk_rigid_transform(rotation_angles_deg=[0.0, 0.0, 0.0], translation_vec=[0.0, 0.0, 0.0], save_path=None):
+
+    # Convert angles from degrees to radians
+    rotation_angles_rad = [math.radians(a) for a in rotation_angles_deg]
+
+    # Create the Euler 3D Transform
     transform = itk.Euler3DTransform[itk.D].New()
-
-    # Combine and convert parameters into ITK OptimizerParameters
-    parameters_list = rotation_angles + translation_vec  # [rx, ry, rz, tx, ty, tz]
-    parameters = itk.OptimizerParameters[itk.D](len(parameters_list))
-    for i, val in enumerate(parameters_list):
-        parameters.SetElement(i, val)
-
-    transform.SetParameters(parameters)
+    transform.SetRotation(*rotation_angles_rad)
+    transform.SetTranslation(translation_vec)
 
     if save_path is not None:
         itk.transformwrite(transform, save_path)
@@ -133,7 +133,7 @@ def get_default_parameter_object_list(registration_models, resolution_list, max_
     return parameter_object, parameter_map
 
 
-def get_elastix_registration_object(fixed_image, moving_image, parameter_object, log_mode="console"):
+def get_elastix_registration_object(fixed_image, moving_image, parameter_object, num_threads=4, log_mode="console"):
 
     # Define the elastix registration object and set the parameter object
     elastix_object = itk.ElastixRegistrationMethod.New(fixed_image, moving_image)
@@ -146,6 +146,8 @@ def get_elastix_registration_object(fixed_image, moving_image, parameter_object,
         elastix_object.SetLogToConsole(True)
     else:
         elastix_object.SetLogToConsole(False)
+
+    elastix_object.SetNumberOfThreads(num_threads)
 
     return elastix_object
 
