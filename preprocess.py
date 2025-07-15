@@ -64,16 +64,9 @@ if __name__ == "__main__":
     if args.moving_path is not None:
         moving_path = os.path.join(sample_path, args.moving_path)
         print("Moving path: ", moving_path)
-    if args.fixed_path is not None:
-        fixed_path = os.path.join(sample_path, args.fixed_path)
-        print("Fixed path: ", fixed_path)
     if args.moving_out_path is not None:
         moving_out_path = os.path.join(sample_path, args.moving_out_path)  # os.path.join(sample_path, args.out_name)
         print("Moving output path: ", moving_out_path)
-    if args.fixed_out_path is not None:
-        fixed_out_path = os.path.join(sample_path, args.fixed_out_path)  # os.path.join(sample_path, args.out_name)
-        print("Fixed output path: ", fixed_out_path)
-
 
     ##################### MOVING IMAGE ######################
 
