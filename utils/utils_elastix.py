@@ -267,7 +267,7 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
 
         # Get elastix registration object
         #transform = get_itk_translation_transform(translation, save_path=None)
-        transform = get_itk_rigid_transform(rotation_angles=initial_rotation_angles, translation_vec=translation, save_path=None)
+        transform = get_itk_rigid_transform(rotation_angles_deg=initial_rotation_angles, translation_vec=translation, save_path=None)
         elastix_object.SetInitialTransform(transform)
 
         # Run the registration
