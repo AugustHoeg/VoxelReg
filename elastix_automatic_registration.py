@@ -176,7 +176,7 @@ if __name__ == "__main__":
     )
 
     # Refined registration parameters
-    registration_models = ['rigid', 'affine']
+    registration_models = ['rigid', 'affine']  # 'bspline'
     resolution_list = [4, 4, 4]
     max_iteration_list = [512, 512, 512]
     metric_list = ['AdvancedMattesMutualInformation',
