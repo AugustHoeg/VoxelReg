@@ -55,7 +55,7 @@ def load_tiff(input_path, dtype=np.float32, image_sequence=False):
         file_list = natsorted(file_list)
         image = tifffile.imread(file_list).astype(dtype)
     else:
-        image = tifffile.imread(input_path, dtype=dtype)
+        image = tifffile.imread(input_path).astype(dtype)
     print(f"tiff shape: {image.shape}")
     return image
 
