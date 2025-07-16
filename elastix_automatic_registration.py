@@ -176,7 +176,7 @@ if __name__ == "__main__":
         max_iterations=512,  # 256, 512, 1024
         metric='AdvancedMattesMutualInformation',  # 'AdvancedNormalizedCorrelation', 'AdvancedMattesMutualInformation'
         no_registration_samples=4096,  # 2048, 4096
-        log_mode="console",  # None, "console"
+        log_mode=None,  # None, "console"
         visualize=True,
         fig_name=out_name
     )
@@ -202,7 +202,7 @@ if __name__ == "__main__":
         write_result_image_list,
         metric_list,
         no_registration_samples_list,
-        log_mode="console",  # None, "console"
+        log_mode=None,  # None, "console"
         visualize=True,
         fig_name=out_name
     )
