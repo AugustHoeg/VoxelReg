@@ -68,6 +68,9 @@ def parse_arguments():
     parser.add_argument("--rotation_angles_deg", type=float, nargs=3, default=(55, 145, -54), help="Initial guess for coarse registration rotation angles in degrees")
     parser.add_argument("--scale", type=float, default=1.0, help="Initial guess for coarse registration scale factor.")
 
+    parser.add_argument("--coarse_resolutions", type=int, default=4, help="Resolutions for coarse registration.")
+    parser.add_argument("--fine_resolutions", type=int, default=4, help="Resolutions for fine registration.")
+
     parser.add_argument("--size", type=int, nargs=3, default=(1, 1, 1), help="Number of coords around initial guess in (x,y,z) to apply coarse registration")
     parser.add_argument("--spacing", type=float, nargs=3, default=(0.25, 0.25, 0.25), help="Voxel spacing in (x,y,z) between coarse registration coords")
 
@@ -169,7 +172,7 @@ if __name__ == "__main__":
         initial_scale=args.scale,
         grid_spacing_mm=spacing,
         grid_size=size,
-        resolutions=4,
+        resolutions=args.coarse_resolutions,
         max_iterations=512,  # 256, 512, 1024
         metric='AdvancedMattesMutualInformation',  # 'AdvancedNormalizedCorrelation', 'AdvancedMattesMutualInformation'
         no_registration_samples=4096,  # 2048, 4096
@@ -180,7 +183,7 @@ if __name__ == "__main__":
 
     # Refined registration parameters
     registration_models = ['rigid', 'affine']  # 'bspline'
-    resolution_list = [4, 4, 4]
+    resolution_list = [args.fine_resolutions] * len(registration_models)
     max_iteration_list = [512, 512, 512]
     metric_list = ['AdvancedMattesMutualInformation',
                    'AdvancedMattesMutualInformation',
