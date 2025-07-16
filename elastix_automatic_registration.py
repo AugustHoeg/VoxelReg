@@ -64,8 +64,8 @@ def parse_arguments():
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the registered output image.")
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
 
-    parser.add_argument("--center", type=float, nargs=3, default=(20, 31, 20), help="Initial guess for coarse registration, formatted as [D, H, W]")
-    parser.add_argument("--rotation_angles_deg", type=float, nargs=3, default=(55, 145, -54), help="Initial guess for coarse registration rotation angles in degrees")
+    parser.add_argument("--center", type=float, nargs=3, default=(0.0, 0.0, 0.0), help="Initial guess for coarse registration, formatted as [D, H, W]")
+    parser.add_argument("--rotation_angles_deg", type=float, nargs=3, default=(0.0, 0.0, 0.0), help="Initial guess for coarse registration rotation angles in degrees")
     parser.add_argument("--scale", type=float, default=1.0, help="Initial guess for coarse registration scale factor.")
 
     parser.add_argument("--coarse_resolutions", type=int, default=4, help="Resolutions for coarse registration.")
