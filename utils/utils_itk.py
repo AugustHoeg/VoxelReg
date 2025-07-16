@@ -147,3 +147,19 @@ def voxel2world(image, point):
     world_point = origin + direction @ (spacing * [x, y, z])
 
     return world_point
+
+
+def extract_points(filename, field_name):
+    result = []
+    with open(filename, 'r') as file:
+        for line in file:
+            key = f"{field_name} = ["
+            start = line.find(key)
+            if start != -1:
+                start += len(key)
+                end = line.find("]", start)
+                numbers_str = line[start:end].strip()
+                numbers = [float(n) for n in numbers_str.split()]
+                result.append(numbers)
+    return result
+

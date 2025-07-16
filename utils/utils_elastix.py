@@ -41,6 +41,35 @@ def get_itk_rigid_transform(rotation_angles_deg=[0.0, 0.0, 0.0], translation_vec
 
     return transform
 
+def get_itk_similarity_transform(rotation_angles_deg=[0.0, 0.0, 0.0], translation_vec=[0.0, 0.0, 0.0], rot_center=[0.0, 0.0, 0.0], scale=1.0, order="ZXY", save_path=None):
+
+    # Convert angles from degrees to radians
+    rotation_angles_rad = [math.radians(a) for a in rotation_angles_deg]
+
+    # Create an Euler transform for the rotation part
+    euler = itk.Euler3DTransform[itk.D].New()
+    euler.SetRotation(*rotation_angles_rad)
+    if order == "ZYX":
+        euler.SetComputeZYX(True)
+    elif order == "ZXY":
+        euler.SetComputeZYX(False)
+    euler.SetCenter(rot_center)
+
+    # Extract the rotation matrix from the Euler transform
+    rotation_matrix = euler.GetMatrix()
+
+    # Create the similarity transform
+    transform = itk.Similarity3DTransform[itk.D].New()
+    transform.SetScale(scale)
+    transform.SetMatrix(rotation_matrix)
+    transform.SetTranslation(translation_vec)
+    transform.SetCenter(rot_center)
+
+    if save_path is not None:
+        itk.transformwrite(transform, save_path)
+
+    return transform
+
 
 def get_default_parameter_map(parameter_object, registration_model='translation', resolutions=4, max_iterations=1024, metric='AdvancedMattesMutualInformation', no_samples=4096,
                       write_result_image=True, log_mode=False):
@@ -246,7 +275,7 @@ def get_spaced_coords_around_point(center_mm, grid_spacing_mm, grid_size, spacin
 
 
 
-def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, center_mm, initial_rotation_angles=(0.0, 0.0, 0.0), grid_spacing_mm=(1, 1, 1), grid_size=(2, 2, 2),
+def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, center_mm, initial_rotation_angles=(0.0, 0.0, 0.0), initial_scale=1.0, grid_spacing_mm=(1, 1, 1), grid_size=(2, 2, 2),
                                       resolutions=4, max_iterations=1024, metric='AdvancedMattesMutualInformation', no_registration_samples=4096, write_result_image=True,
                                       log_mode=None, visualize=False, fig_name=None):
 
@@ -262,8 +291,8 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
 
     translation_coords = get_positional_grid(center_mm, grid_spacing_mm, grid_size)
     print("translation_coords", translation_coords)
-    fixed_image_center = voxel2world(fixed_image_sparse, np.array(fixed_image_sparse.shape) / 2)
-    print("rot_center", fixed_image_center)
+    rot_center = voxel2world(fixed_image_sparse, np.array(fixed_image_sparse.shape) / 2)
+    print("rot_center", rot_center)
 
     best_metric = -1
 
@@ -276,7 +305,8 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
 
         # Get elastix registration object
         #transform = get_itk_translation_transform(translation, save_path=None)
-        transform = get_itk_rigid_transform(initial_rotation_angles, translation, rot_center=fixed_image_center, order="ZXY")
+        #transform = get_itk_rigid_transform(initial_rotation_angles, translation, rot_center=fixed_image_center, order="ZXY")
+        transform = get_itk_similarity_transform(initial_rotation_angles, translation, rot_center, initial_scale, order="ZXY")
         elastix_object.SetInitialTransform(transform)
 
         # Run the registration
@@ -325,7 +355,7 @@ def elastix_refined_registration(fixed_image_sparse, moving_image_sparse, coarse
     result_image_small_refined = elastix_object.GetOutput()
     result_transform_parameters = elastix_object.GetTransformParameterObject()
 
-    if visualize:
+    if visualize and write_result_image_list[-1]:
         # Visualize the results
         axis = 2
         dim = min(fixed_image_sparse.shape[axis], result_image_small_refined.shape[axis])

@@ -29,5 +29,6 @@ results/**
 *.tiff
 
 *.log
+*.txt
 
 !*.gitkeep
