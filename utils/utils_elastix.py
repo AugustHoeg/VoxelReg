@@ -57,19 +57,45 @@ def get_itk_similarity_transform(rotation_angles_deg=[0.0, 0.0, 0.0], translatio
 
     # Extract the rotation matrix from the Euler transform
     rotation_matrix = euler.GetMatrix()
+    print(rotation_matrix)
 
     # Create the similarity transform
     transform = itk.Similarity3DTransform[itk.D].New()
+    transform.SetCenter(rot_center)
     transform.SetMatrix(rotation_matrix)
     transform.SetScale(scale)
     transform.SetTranslation(translation_vec)
-    transform.SetCenter(rot_center)
+
 
     if save_path is not None:
         itk.transformwrite(transform, save_path)
 
     return transform
 
+def get_itk_affine_transform(affine_matrix, translation_vec=[0.0, 0.0, 0.0], rot_center=[0.0, 0.0, 0.0], scale=1.0, order="ZXY", save_path=None):
+
+    # Create an affine transform
+    transform = itk.AffineTransform[itk.D, 3].New()
+
+    params = transform.GetParameters()
+
+    affine = affine_matrix[:3, :3]
+
+    for idx, val in enumerate(affine.flat):
+        params[idx] = val
+
+    for idx in range(3):
+        params[3 * 3 + idx] = affine_matrix[idx, 3]
+
+    transform.SetParameters(params)
+
+    transform.Compose(ras_to_lps)
+
+
+    if save_path is not None:
+        itk.transformwrite(transform, save_path)
+
+    return transform
 
 def get_default_parameter_map(parameter_object, registration_model='translation', resolutions=4, max_iterations=1024, metric='AdvancedMattesMutualInformation', no_samples=4096,
                       write_result_image=True, log_mode=False):

@@ -20,7 +20,7 @@ def load_image(image_path, dtype=np.float32, dataset_name='/exchange/data', retu
         metadata = None
         if file_extension == "nii" or file_extension == "nii.gz":
             nifti_data = nib.load(image_path)
-            image = nifti_data.get_fdata().astype(dtype)
+            image = nifti_data.get_fdata(dtype=dtype)
             metadata = nifti_data
 
         elif file_extension == "tiff" or file_extension == "tif":
