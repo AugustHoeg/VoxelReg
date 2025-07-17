@@ -47,7 +47,7 @@ def parse_arguments():
     parser.add_argument("--f", type=int, default=4, help="LR resolution factor.")
 
     parser.add_argument("--moving_mask_threshold", default=None, help="Threshold for binary mask image, default is None.")
-    parser.add_argument("--fixed_mask_threshold", default="otsu", help="Threshold for binary mask image, default is None.")
+    parser.add_argument("--fixed_mask_threshold", default=None, help="Threshold for binary mask image, default is None.")
 
     parser.add_argument("--top_index", type=str, default="last", help="Index for the top slice of the image, default is 'last'")
 
