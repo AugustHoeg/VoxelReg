@@ -58,12 +58,10 @@ def get_itk_similarity_transform(rotation_angles_deg=[0.0, 0.0, 0.0], translatio
     # Extract the rotation matrix from the Euler transform
     rotation_matrix = euler.GetMatrix()
 
-    scale_itk = 1.0 / scale  # Invert the scale for the itk transform
-
     # Create the similarity transform
     transform = itk.Similarity3DTransform[itk.D].New()
-    transform.SetScale(scale_itk)
     transform.SetMatrix(rotation_matrix)
+    transform.SetScale(scale)
     transform.SetTranslation(translation_vec)
     transform.SetCenter(rot_center)
 
