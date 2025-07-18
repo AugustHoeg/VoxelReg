@@ -2,7 +2,7 @@ import os
 import argparse
 import itk
 import numpy as np
-from utils.utils_elastix import elastix_coarse_registration_sweep, elastix_refined_registration
+from utils.utils_elastix import elastix_coarse_registration, elastix_refined_registration
 from utils.utils_itk import create_itk_view, scale_spacing_and_origin
 from utils.utils_tiff import load_tiff, write_tiff
 from utils.utils_preprocess import norm, masked_norm
@@ -68,13 +68,10 @@ def parse_arguments():
     parser.add_argument("--center", type=float, nargs=3, default=(0.0, 0.0, 0.0), help="Initial guess for coarse registration, formatted as [D, H, W]")
     parser.add_argument("--rotation_angles_deg", type=float, nargs=3, default=(0.0, 0.0, 0.0), help="Initial guess for coarse registration rotation angles in degrees")
     parser.add_argument("--scale", type=float, default=1.0, help="Initial guess for coarse registration scale factor.")
-    parser.add_argument("--affine_transform_file", type=str, default=None, help="Path to an affine transform file (txt file).")
+    parser.add_argument("--affine_transform_file", type=str, default="transform.txt", help="Path to an affine transform file (txt file).")
 
     parser.add_argument("--coarse_resolutions", type=int, default=4, help="Resolutions for coarse registration.")
     parser.add_argument("--fine_resolutions", type=int, default=4, help="Resolutions for fine registration.")
-
-    parser.add_argument("--size", type=int, nargs=3, default=(1, 1, 1), help="Number of coords around initial guess in (x,y,z) to apply coarse registration")
-    parser.add_argument("--spacing", type=float, nargs=3, default=(0.25, 0.25, 0.25), help="Voxel spacing in (x,y,z) between coarse registration coords")
 
     parser.add_argument("--mask_path", type=str, required=False, default=None, help="Path to the mask image.")
 
@@ -161,23 +158,19 @@ if __name__ == "__main__":
     #spacing = (25, 20, 20)
     #size = (1, 1, 1)
     center = args.center
-    spacing = args.spacing
-    size = args.size
 
     #ImageTypeOut = itk.Image[itk.F, 3]  # e.g., float32, 3D
     #moving_image_sparse = itk.cast_image_filter(moving_image_sparse, ttype=[type(moving_image_sparse), ImageTypeOut])
     #fixed_image_sparse = itk.cast_image_filter(fixed_image_sparse, ttype=[type(fixed_image_sparse), ImageTypeOut])
 
     # Run coarse registration via sweep
-    result_coarse, coarse_trans_obj, metric = elastix_coarse_registration_sweep(
+    result_coarse, coarse_trans_obj, metric = elastix_coarse_registration(
         fixed_image_sparse,
         moving_image_sparse,
         center_mm=center,
         initial_rotation_angles=args.rotation_angles_deg,
         initial_scale=args.scale,
         affine_transform_file=args.affine_transform_file,
-        grid_spacing_mm=spacing,
-        grid_size=size,
         resolutions=args.coarse_resolutions,
         max_iterations=512,  # 256, 512, 1024
         metric='AdvancedMattesMutualInformation',  # 'AdvancedNormalizedCorrelation', 'AdvancedMattesMutualInformation'

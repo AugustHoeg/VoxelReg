@@ -1,3 +1,4 @@
+import os
 import math
 import itk
 import SimpleITK as sitk
@@ -72,25 +73,58 @@ def get_itk_similarity_transform(rotation_angles_deg=[0.0, 0.0, 0.0], translatio
 
     return transform
 
-def get_itk_affine_transform(affine_matrix, translation_vec=[0.0, 0.0, 0.0], rot_center=[0.0, 0.0, 0.0], scale=1.0, order="ZXY", save_path=None):
+def get_itk_affine_transform(affine_matrix, save_path=None):
 
     # Create an affine transform
     transform = itk.AffineTransform[itk.D, 3].New()
 
     params = transform.GetParameters()
 
-    affine = affine_matrix[:3, :3]
+    if len(affine_matrix) == 12:
+        for idx, val in enumerate(affine_matrix):
+            params[idx] = val
+    else:
+        matrix = affine_matrix[:3, :3]
+        for idx, val in enumerate(matrix.flat):
+            params[idx] = val
 
-    for idx, val in enumerate(affine.flat):
-        params[idx] = val
-
-    for idx in range(3):
-        params[3 * 3 + idx] = affine_matrix[idx, 3]
+        for idx in range(3):
+            params[3 * 3 + idx] = affine_matrix[idx, 3]
 
     transform.SetParameters(params)
 
-    transform.Compose(ras_to_lps)
+    #transform.Compose(ras_to_lps)
 
+    if save_path is not None:
+        itk.transformwrite(transform, save_path)
+
+    return transform
+
+
+def get_itk_affine_from_file(transform_file_name, save_path=None):
+    # Read using SimpleITK, as itk does not support reading affine transforms directly
+    tx = sitk.ReadTransform(transform_file_name)
+    affine_matrix = tx.GetParameters()  # returns tuple of 12 values
+
+    # Create an affine transform
+    transform = itk.AffineTransform[itk.D, 3].New()
+
+    params = transform.GetParameters()
+
+    if len(affine_matrix) == 12:
+        for idx, val in enumerate(affine_matrix):
+            params[idx] = val
+    else:
+        matrix = affine_matrix[:3, :3]
+        for idx, val in enumerate(matrix.flat):
+            params[idx] = val
+
+        for idx in range(3):
+            params[3 * 3 + idx] = affine_matrix[idx, 3]
+
+    transform.SetParameters(params)
+
+    #transform.Compose(ras_to_lps)
 
     if save_path is not None:
         itk.transformwrite(transform, save_path)
@@ -300,8 +334,57 @@ def get_spaced_coords_around_point(center_mm, grid_spacing_mm, grid_size, spacin
     return coords
 
 
+def elastix_coarse_registration(fixed_image_sparse, moving_image_sparse, center_mm=None, initial_rotation_angles=(0.0, 0.0, 0.0), initial_scale=1.0, affine_transform_file=None,
+                                      resolutions=4, max_iterations=1024, metric='AdvancedMattesMutualInformation', no_registration_samples=4096, write_result_image=True,
+                                      log_mode=None, visualize=False, fig_name=None):
 
-def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, center_mm, initial_rotation_angles=(0.0, 0.0, 0.0), initial_scale=1.0, grid_spacing_mm=(1, 1, 1), grid_size=(2, 2, 2),
+    print("Running coarse registration")
+
+    parameter_object, parameter_map = get_default_parameter_object('translation', resolutions, max_iterations, metric, no_registration_samples, write_result_image)
+    elastix_object = get_elastix_registration_object(fixed_image_sparse, moving_image_sparse, parameter_object, log_mode=log_mode)
+
+    if center_mm is None:  # defaults to aligning upper slices and center in x and y
+        center_mm = (0.0, 0.0, 0.0)
+    else:
+        center_mm = tuple(0.0 if center_val is None else center_val for center_val in center_mm)  # ensure all are not None
+
+    translation = center_mm
+    print("translation_coords", translation)
+    rot_center = voxel2world(fixed_image_sparse, np.array(moving_image_sparse.shape) / 2)
+    print("rot_center", rot_center)
+
+    if affine_transform_file is not None:  # Use affine transform if provided
+        print("Using initial affine transformation from file:", os.path.basename(affine_transform_file))
+        transform = get_itk_affine_from_file(affine_transform_file)  # Load affine transform from file
+    else:  # Otherwise, use specified rotation angles, translation and scale
+        transform = get_itk_similarity_transform(initial_rotation_angles, translation, rot_center, initial_scale, order="ZXY")
+    elastix_object.SetInitialTransform(transform)
+
+    # Run the registration
+    elastix_object.UpdateLargestPossibleRegion()  # Update filter object (required)
+    result_image = elastix_object.GetOutput()
+    result_transform_object = elastix_object.GetTransformParameterObject()
+
+    result_array = itk.array_view_from_image(result_image)
+    fixed_array = itk.array_view_from_image(fixed_image_sparse)
+
+    metric = np.corrcoef(fixed_array.reshape(-1), result_array.reshape(-1))[0, 1]
+    result = itk.ImageDuplicator(result_image)  # ensure deep copy
+    transform_object = result_transform_object
+
+    if visualize:
+        # Visualize the results
+        axis = 2
+        dim = min(fixed_image_sparse.shape[axis], result.shape[axis])
+        off = int(dim * 0.05)  # offset for visualization
+        diff = fixed_image_sparse[:] - result[:]
+        viz_multiple_images([fixed_image_sparse, result, diff], [dim-i*off-5 for i in range(3)], savefig=True, title=fig_name + "_coarse", axis=axis)
+        #viz_registration(fixed_image_sparse, result, [dim-i*off-1 for i in range(3)])
+
+    return result, transform_object, metric
+
+
+def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, center_mm, initial_rotation_angles=(0.0, 0.0, 0.0), initial_scale=1.0, affine_transform_file=None, grid_spacing_mm=(1, 1, 1), grid_size=(2, 2, 2),
                                       resolutions=4, max_iterations=1024, metric='AdvancedMattesMutualInformation', no_registration_samples=4096, write_result_image=True,
                                       log_mode=None, visualize=False, fig_name=None):
 
@@ -317,7 +400,7 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
 
     translation_coords = get_positional_grid(center_mm, grid_spacing_mm, grid_size)
     print("translation_coords", translation_coords)
-    rot_center = voxel2world(fixed_image_sparse, np.array(fixed_image_sparse.shape) / 2)
+    rot_center = voxel2world(fixed_image_sparse, np.array(moving_image_sparse.shape) / 2)
     print("rot_center", rot_center)
 
     best_metric = -1
@@ -332,7 +415,12 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
         # Get elastix registration object
         #transform = get_itk_translation_transform(translation, save_path=None)
         #transform = get_itk_rigid_transform(initial_rotation_angles, translation, rot_center=fixed_image_center, order="ZXY")
-        transform = get_itk_similarity_transform(initial_rotation_angles, translation, rot_center, initial_scale, order="ZXY")
+
+        if affine_transform_file is not None:  # Use affine transform if provided
+            print("Using initial affine transformation from file:", os.path.basename(affine_transform_file))
+            transform = get_itk_affine_from_file(affine_transform_file)  # Load affine transform from file
+        else:  # Otherwise, use specified rotation angles, translation and scale
+            transform = get_itk_similarity_transform(initial_rotation_angles, translation, rot_center, initial_scale, order="ZXY")
         elastix_object.SetInitialTransform(transform)
 
         # Run the registration
