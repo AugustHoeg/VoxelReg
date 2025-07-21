@@ -98,7 +98,7 @@ def create_cylinder_mask(shape, cylinder_radius):
 
     # For every slice, any voxels outside the pixel radius will be set to 0
     slice_center = (H / 2, W / 2)
-    mask = np.zeroes((D, H, W), dtype=np.uint8)
+    mask = np.zeros((D, H, W), dtype=np.uint8)
 
     for slice_idx in range(D):
         Y, X = np.ogrid[:H, :W]
