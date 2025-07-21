@@ -1,13 +1,13 @@
 import nibabel as nib
 import numpy as np
 
-def write_nifti(image, affine=np.eye(4), output_path="", ret=False):
+def write_nifti(image, affine=np.eye(4), output_path="", dtype=np.float32, ret=False):
     """
     Write a numpy array to a NIfTI file.
     """
 
     # Create a NIfTI image
-    nifti_image = nib.Nifti1Image(image, affine=affine)
+    nifti_image = nib.Nifti1Image(image, affine=affine, dtype=dtype)
 
     # Save the NIfTI image
     nib.save(nifti_image, output_path)
