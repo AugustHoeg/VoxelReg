@@ -103,6 +103,6 @@ def create_cylinder_mask(shape, cylinder_radius):
     for slice_idx in range(D):
         Y, X = np.ogrid[:H, :W]
         distance_from_center = np.sqrt((Y - slice_center[0])**2 + (X - slice_center[1])**2)
-        mask[D] = distance_from_center <= cylinder_radius
+        mask[slice_idx, :, :] = distance_from_center <= cylinder_radius
 
     return mask
