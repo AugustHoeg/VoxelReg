@@ -8,7 +8,7 @@ from utils.utils_plot import viz_slices, viz_multiple_images
 from utils.utils_tiff import load_tiff, write_tiff, center_crop, top_center_crop
 from utils.utils_nifti import write_nifti, get_crop_origin, set_origin, set_affine_scale, compute_affine_scale, compute_affine_crop
 from utils.utils_txm import load_txm, get_affine_txm
-from utils.utils_image import load_image
+from utils.utils_image import load_image, create_cylinder_mask, mask_cylinder
 
 
 def norm(image):
@@ -251,7 +251,7 @@ def define_image_space(image, nifti_affine, f, margin_percent, divis_factor, min
     return image, nifti_affine, start_coords, end_coords
 
 
-def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_threshold=None):
+def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='threshold', mask_threshold=None, cylinder_radius=None):
 
     # convert to float
     image = image.astype(np.float32)
@@ -271,9 +271,9 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_threshold=None)
 
     for i in range(len(image_pyramid)):
 
-        if mask_threshold is not None:
+        if mask_method == 'threshold':
             mask_image = image_pyramid[i]
-            if mask_threshold == "otsu":
+            if mask_threshold is None:  # Use Otsu's method for thresholding if threshold not specified
                 mask_threshold = threshold_otsu(mask_image)
                 print("Otsu threshold: ", mask_threshold)
             else:
@@ -282,6 +282,13 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_threshold=None)
             mask = np.zeros_like(mask_image)
             mask[mask_image > mask_threshold] = 1
             mask = mask.astype(np.uint8)
+            mask_pyramid.append(mask)
+
+        elif mask_method == 'cylinder':
+            if cylinder_radius is None:
+                raise ValueError("Pixel radius must be specified for cylindrical mask method.")
+            # Create a cylindrical mask based on the image shape
+            mask = create_cylinder_mask(image_pyramid[i].shape, cylinder_radius=cylinder_radius)  # Example radius
             mask_pyramid.append(mask)
 
             # Normalize the image based on the mask

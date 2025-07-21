@@ -72,3 +72,37 @@ def normalize_std(img, standard_deviations=3, mode='rescale'):
     elif mode == 'rescale':
         norm_img = (norm_img - np.min(norm_img)) / (np.max(norm_img) - np.min(norm_img))
     return norm_img
+
+
+def mask_cylinder(img, cylinder_radius):
+
+    D, H, W = img.shape
+
+    # For every slice, any voxels outside the pixel radius will be set to 0
+
+    slice_center = (H / 2, W / 2)
+
+    for slice_idx in range(D):
+        Y, X = np.ogrid[:H, :W]
+        distance_from_center = np.sqrt((Y - slice_center[0])**2 + (X - slice_center[1])**2)
+        mask = distance_from_center <= cylinder_radius
+
+        img[slice_idx, :, :] *= mask
+
+    return img
+
+
+def create_cylinder_mask(shape, cylinder_radius):
+
+    D, H, W = shape
+
+    # For every slice, any voxels outside the pixel radius will be set to 0
+    slice_center = (H / 2, W / 2)
+    mask = np.zeroes((D, H, W), dtype=np.uint8)
+
+    for slice_idx in range(D):
+        Y, X = np.ogrid[:H, :W]
+        distance_from_center = np.sqrt((Y - slice_center[0])**2 + (X - slice_center[1])**2)
+        mask[D] = distance_from_center <= cylinder_radius
+
+    return mask

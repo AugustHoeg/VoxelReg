@@ -6,6 +6,7 @@ from scipy.signal import find_peaks
 from utils.utils_image import load_image, normalize_std
 from utils.utils_plot import viz_slices, viz_multiple_images
 from utils.utils_nifti import write_nifti
+from utils.utils_image import create_cylinder_mask, mask_cylinder
 
 def make_diamond_3d(radius):
     size = 2 * radius + 1
@@ -17,39 +18,6 @@ def make_diamond_3d(radius):
     )
     manhattan_distance = np.abs(X) + np.abs(Y) + np.abs(Z)
     return manhattan_distance <= radius
-
-def mask_cylinder(img, pixel_radius):
-
-    D, H, W = img.shape
-
-    # For every slice, any voxels outside the pixel radius will be set to 0
-
-    slice_center = (H / 2, W / 2)
-
-    for slice_idx in range(D):
-        Y, X = np.ogrid[:H, :W]
-        distance_from_center = np.sqrt((Y - slice_center[0])**2 + (X - slice_center[1])**2)
-        mask = distance_from_center <= pixel_radius
-
-        img[slice_idx, :, :] *= mask
-
-    return img
-
-
-def create_cylinder_mask(shape, pixel_radius):
-
-    D, H, W = shape
-
-    # For every slice, any voxels outside the pixel radius will be set to 0
-    slice_center = (H / 2, W / 2)
-    mask = np.zeroes((D, H, W), dtype=np.uint8)
-
-    for slice_idx in range(D):
-        Y, X = np.ogrid[:H, :W]
-        distance_from_center = np.sqrt((Y - slice_center[0])**2 + (X - slice_center[1])**2)
-        mask[D] = distance_from_center <= pixel_radius
-
-    return mask
 
 
 def create_mask(img, closing_ite=10, dilation_ite=3):
@@ -147,9 +115,8 @@ if __name__ == "__main__":
     img, nifti_data = load_image(file_path, dtype=np.float32, return_metadata=True)
     viz_slices(img, slices, savefig=False)
 
-    # img = mask_cylinder(img, pixel_radius=230)
-    mask = create_cylinder_mask(img.shape, pixel_radius=230*4)
-
+    # img = mask_cylinder(img, cylinder_radius=230)
+    mask = create_cylinder_mask(img.shape, cylinder_radius=230*4)
     #mask = create_mask(img, closing_ite=10, dilation_ite=3)
 
     out_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Vertebrae_A/mask_scale_1.nii.gz"
