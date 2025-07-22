@@ -49,11 +49,13 @@ def parse_arguments():
     parser.add_argument("--moving_mask_method", default=None, help="Method for creating moving mask, default is None.")
     parser.add_argument("--moving_mask_threshold", default=None, help="Threshold for binary mask image, default is None.")
     parser.add_argument("--moving_cylinder_radius", type=int, default=None, help="Radius of the cylinder for moving mask in voxels.")
+    parser.add_argument("--moving_cylinder_center_offset", type=int, nargs=2, default=(0, 0), help="Offset for the center of the cylinder mask in voxels, default is 0 (centered in H, W).")
     parser.add_argument("--apply_moving_mask", type=bool, default=False, help="Apply moving mask to the image.")
 
     parser.add_argument("--fixed_mask_method", default=None, help="Method for creating fixed mask, default is None.")
     parser.add_argument("--fixed_mask_threshold", default=None, help="Threshold for binary mask image, default is None.")
     parser.add_argument("--fixed_cylinder_radius", type=int, default=None, help="Radius of the cylinder for fixed mask in voxels.")
+    parser.add_argument("--fixed_cylinder_center_offset", type=int, nargs=2, default=(0, 0), help="Offset for the center of the cylinder mask in voxels, default is 0 (centered in H, W).")
     parser.add_argument("--apply_fixed_mask", type=bool, default=False, help="Apply fixed mask to the image.")
 
     parser.add_argument("--top_index", type=str, default="last", help="Index for the top slice of the image, default is 'last'")
@@ -108,6 +110,7 @@ if __name__ == "__main__":
                                                        args.moving_mask_method,
                                                        args.moving_mask_threshold,
                                                        args.moving_cylinder_radius,
+                                                       args.moving_cylinder_center_offset,
                                                        args.apply_moving_mask)
 
     save_image_pyramid(pyramid, mask_pyramid, affines, moving_path, moving_out_path, args.moving_out_name)
@@ -146,6 +149,7 @@ if __name__ == "__main__":
                                                        args.fixed_mask_method,
                                                        args.fixed_mask_threshold,
                                                        args.fixed_cylinder_radius,
+                                                       args.fixed_cylinder_center_offset,
                                                        args.apply_fixed_mask)
 
     save_image_pyramid(pyramid, mask_pyramid, affines, fixed_path, fixed_out_path, args.fixed_out_name)

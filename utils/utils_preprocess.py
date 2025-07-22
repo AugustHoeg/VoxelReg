@@ -252,7 +252,7 @@ def define_image_space(image, nifti_affine, f, margin_percent, divis_factor, min
     return image, nifti_affine, start_coords, end_coords
 
 
-def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='threshold', mask_threshold=None, cylinder_radius=None, apply_mask=False):
+def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
 
     # convert to float
     image = image.astype(np.float32)
@@ -291,7 +291,7 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='thresho
             if cylinder_radius is None:
                 raise ValueError("Pixel radius must be specified for cylindrical mask method.")
             # Create a cylindrical mask based on the image shape
-            mask = create_cylinder_mask(image_pyramid[i].shape, cylinder_radius=cylinder_radius / 2**i)  # Example radius
+            mask = create_cylinder_mask(image_pyramid[i].shape, cylinder_radius / 2**i, cylinder_offset)  # Example radius
             mask_pyramid.append(mask)
 
             # Normalize the image based on the mask

@@ -92,12 +92,12 @@ def mask_cylinder(img, cylinder_radius):
     return img
 
 
-def create_cylinder_mask(shape, cylinder_radius):
+def create_cylinder_mask(shape, cylinder_radius, cylinder_offset):
 
     D, H, W = shape
 
     # For every slice, any voxels outside the pixel radius will be set to 0
-    slice_center = (H / 2, W / 2)
+    slice_center = (H / 2 + cylinder_offset[0], W / 2 + cylinder_offset[1])  # Center of slice in voxels with added offset
     mask = np.zeros((D, H, W), dtype=np.uint8)
 
     for slice_idx in range(D):
