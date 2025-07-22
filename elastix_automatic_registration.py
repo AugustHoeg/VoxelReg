@@ -36,24 +36,6 @@ f = 4  # Resolution factor between the two images
 d = 2  # Downsampling factor
 tdf = f * d  # Total downsampling factor
 
-#moving_array_sparse = np.load(sample_path + "Larch_A_LFOV_crop_full_height.npy")
-#fixed_array_sparse = np.load(sample_path + "Larch_A_4x_pos1_down_4.npy")
-
-# even newer, now works better
-#moving_array_sparse = load_tiff(sample_path + "Larch_A_LFOV_crop_full_height.tiff")
-#fixed_array_sparse = load_tiff(sample_path + "Larch_A_4x_pos1_down_4.tiff")
-
-# Newer, also works, but slightly different alignment
-#moving_array_sparse = load_tiff(sample_path + "test2/" + "Larch_A_LFOV_crop.tiff")
-#fixed_array_sparse = load_tiff(sample_path + "test2/" + "Larch_A_4x_crop_pos1.tiff")
-#fixed_array_sparse = fixed_array_sparse[:, 50:-50, 50:-50]
-#fixed_array_sparse = fixed_array_sparse
-
-# Old, works
-#moving_array_sparse = load_tiff(sample_path + "Larch_A_LFOV_crop.tiff")
-#fixed_array_sparse = load_tiff(sample_path + "Larch_A_4x_crop_pos1.tiff")
-#fixed_array_sparse = fixed_array_sparse[:, 25:-25, 25:-25]
-
 def parse_arguments():
 
     # Set up argument parser
@@ -214,6 +196,11 @@ if __name__ == "__main__":
         visualize=True,
         fig_name=out_name
     )
+
+    # Save custom parameter map
+    output_transform_parameter_file = "refined_transform_parameters.txt"
+    itk.WriteParameterFile(refined_trans_obj, os.path.join(sample_path, output_transform_parameter_file))
+    #parameter_object.WriteParameterFile(parameter_map_custom, 'exampleoutput/parameters_custom.txt')
 
     print(f"Registration completed successfully. \n")
 
