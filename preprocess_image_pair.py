@@ -46,12 +46,12 @@ def parse_arguments():
 
     parser.add_argument("--f", type=int, default=4, help="LR resolution factor.")
 
-    parser.add_argument("--moving_mask_method", type=str, default="threshold", help="Method for creating moving mask, default is 'threshold'.")
+    parser.add_argument("--moving_mask_method", default=None, help="Method for creating moving mask, default is None.")
     parser.add_argument("--moving_mask_threshold", default=None, help="Threshold for binary mask image, default is None.")
     parser.add_argument("--moving_cylinder_radius", type=int, default=None, help="Radius of the cylinder for moving mask in voxels.")
     parser.add_argument("--apply_moving_mask", type=bool, default=False, help="Apply moving mask to the image.")
 
-    parser.add_argument("--fixed_mask_method", type=str, default="threshold", help="Method for creating fixed mask, default is 'threshold'.")
+    parser.add_argument("--fixed_mask_method", default=None, help="Method for creating fixed mask, default is None.")
     parser.add_argument("--fixed_mask_threshold", default=None, help="Threshold for binary mask image, default is None.")
     parser.add_argument("--fixed_cylinder_radius", type=int, default=None, help="Radius of the cylinder for fixed mask in voxels.")
     parser.add_argument("--apply_fixed_mask", type=bool, default=False, help="Apply fixed mask to the image.")
