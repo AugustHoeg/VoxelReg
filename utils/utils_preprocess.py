@@ -19,7 +19,7 @@ def norm(image):
     image /= (image_max - image_min)
 
 
-def masked_norm(image, mask):
+def masked_norm(image, mask, apply_mask=True):
     # Get the min and max of the masked image
     masked_image = image[mask > 0]
     masked_image_min = np.min(masked_image)
@@ -30,7 +30,8 @@ def masked_norm(image, mask):
     masked_image /= (masked_image_max - masked_image_min)
 
     # Set values outside mask to zero
-    image[mask == 0] = 0
+    if apply_mask:
+        image[mask == 0] = 0
 
     # Set values inside mask to normalized values
     image[mask > 0] = masked_image
@@ -251,7 +252,7 @@ def define_image_space(image, nifti_affine, f, margin_percent, divis_factor, min
     return image, nifti_affine, start_coords, end_coords
 
 
-def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='threshold', mask_threshold=None, cylinder_radius=None):
+def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='threshold', mask_threshold=None, cylinder_radius=None, apply_mask=False):
 
     # convert to float
     image = image.astype(np.float32)
@@ -284,15 +285,17 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='thresho
             mask = mask.astype(np.uint8)
             mask_pyramid.append(mask)
 
+            # Normalize the image based on the mask
+            masked_norm(image_pyramid[i], mask, apply_mask)  # Ensure range is between [0, 1]
         elif mask_method == 'cylinder':
             if cylinder_radius is None:
                 raise ValueError("Pixel radius must be specified for cylindrical mask method.")
             # Create a cylindrical mask based on the image shape
-            mask = create_cylinder_mask(image_pyramid[i].shape, cylinder_radius=cylinder_radius)  # Example radius
+            mask = create_cylinder_mask(image_pyramid[i].shape, cylinder_radius=cylinder_radius / 2**i)  # Example radius
             mask_pyramid.append(mask)
 
             # Normalize the image based on the mask
-            masked_norm(image_pyramid[i], mask)  # Ensure range is between [0, 1]
+            masked_norm(image_pyramid[i], mask, apply_mask)  # Ensure range is between [0, 1]
         else:
             # Normalize the whole image
             norm(image_pyramid[i])

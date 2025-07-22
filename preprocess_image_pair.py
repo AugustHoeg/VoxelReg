@@ -49,10 +49,12 @@ def parse_arguments():
     parser.add_argument("--moving_mask_method", type=str, default="threshold", help="Method for creating moving mask, default is 'threshold'.")
     parser.add_argument("--moving_mask_threshold", default=None, help="Threshold for binary mask image, default is None.")
     parser.add_argument("--moving_cylinder_radius", type=int, default=None, help="Radius of the cylinder for moving mask in voxels.")
+    parser.add_argument("--apply_moving_mask", type=bool, default=False, help="Apply moving mask to the image.")
 
     parser.add_argument("--fixed_mask_method", type=str, default="threshold", help="Method for creating fixed mask, default is 'threshold'.")
     parser.add_argument("--fixed_mask_threshold", default=None, help="Threshold for binary mask image, default is None.")
     parser.add_argument("--fixed_cylinder_radius", type=int, default=None, help="Radius of the cylinder for fixed mask in voxels.")
+    parser.add_argument("--apply_fixed_mask", type=bool, default=False, help="Apply fixed mask to the image.")
 
     parser.add_argument("--top_index", type=str, default="last", help="Index for the top slice of the image, default is 'last'")
 
@@ -101,7 +103,13 @@ if __name__ == "__main__":
                                                                                    top_index=args.top_index)
 
     # Get & save moving image pyramid
-    pyramid, mask_pyramid, affines = get_image_pyramid(moving, moving_affine, args.moving_pyramid_depth, args.moving_mask_method, args.moving_mask_threshold, args.moving_cylinder_radius)
+    pyramid, mask_pyramid, affines = get_image_pyramid(moving, moving_affine,
+                                                       args.moving_pyramid_depth,
+                                                       args.moving_mask_method,
+                                                       args.moving_mask_threshold,
+                                                       args.moving_cylinder_radius,
+                                                       args.apply_moving_mask)
+
     save_image_pyramid(pyramid, mask_pyramid, affines, moving_path, moving_out_path, args.moving_out_name)
 
     # Visualize
@@ -133,7 +141,13 @@ if __name__ == "__main__":
     print("nifti affine after set pos\n", fixed_affine)
 
     # Get & save moving image pyramid
-    pyramid, mask_pyramid, affines = get_image_pyramid(fixed, fixed_affine, args.fixed_pyramid_depth, args.fixed_mask_method, args.fixed_mask_threshold, args.fixed_cylinder_radius)
+    pyramid, mask_pyramid, affines = get_image_pyramid(fixed, fixed_affine,
+                                                       args.fixed_pyramid_depth,
+                                                       args.fixed_mask_method,
+                                                       args.fixed_mask_threshold,
+                                                       args.fixed_cylinder_radius,
+                                                       args.apply_fixed_mask)
+
     save_image_pyramid(pyramid, mask_pyramid, affines, fixed_path, fixed_out_path, args.fixed_out_name)
 
     # Visualize
