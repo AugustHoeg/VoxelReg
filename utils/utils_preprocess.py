@@ -171,12 +171,12 @@ def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), pixel_size_mm=(None
         nifti_affine = nifti_data.affine
     elif file_extension == "npy":
         image = load_image(scan_path, dtype=dtype)
-    elif file_extension == ".h5":
+    elif file_extension == "h5":
         image = load_image(scan_path, dtype=dtype, dataset_name='/exchange/data')
         print("Loading HDF5 dataset: /exchange/data")
         image = np.array(image)
     else:
-        assert False, "Unsupported file format."
+        assert False, f"Unsupported file format: {file_extension}"
 
     if nifti_affine is None:
         if None in pixel_size_mm or pixel_size_mm == (None, None, None):
