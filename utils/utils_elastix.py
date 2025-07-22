@@ -229,7 +229,7 @@ def get_default_parameter_object_list(registration_models, resolution_list, max_
     return parameter_object, parameter_map
 
 
-def get_elastix_registration_object(fixed_image, moving_image, parameter_object, num_threads=4, log_mode="console"):
+def get_elastix_registration_object(fixed_image, moving_image, parameter_object, num_threads=32, log_mode="console"):
 
     # Define the elastix registration object and set the parameter object
     elastix_object = itk.ElastixRegistrationMethod.New(fixed_image, moving_image)
