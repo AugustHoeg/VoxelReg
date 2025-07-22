@@ -94,6 +94,17 @@ def mask_cylinder(img, cylinder_radius):
 
 def create_cylinder_mask(shape, cylinder_radius, cylinder_offset):
 
+    """
+
+    cylinder_offset[0] is down
+    cylinder_offset[1] is right
+
+    :param shape:
+    :param cylinder_radius:
+    :param cylinder_offset:
+    :return:
+    """
+
     D, H, W = shape
 
     # For every slice, any voxels outside the pixel radius will be set to 0

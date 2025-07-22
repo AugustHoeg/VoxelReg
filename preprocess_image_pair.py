@@ -14,6 +14,10 @@ moving_path = sample_path + "clinical/volume/f_001.nii"
 fixed_path = sample_path + "micro/volume/f_001.nii"
 out_name = "f_001_prepropress"  # Name of the output file
 
+# args.moving_mask_method = "cylinder"
+# args.moving_cylinder_radius = 400
+# args.moving_cylinder_center_offset = (50, 200)
+# args.apply_moving_mask = True
 
 def parse_arguments():
 
