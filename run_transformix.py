@@ -1,4 +1,5 @@
 import os
+import glob
 import argparse
 import itk
 import numpy as np
@@ -6,6 +7,7 @@ from utils.utils_elastix import elastix_coarse_registration_sweep, elastix_refin
 from utils.utils_itk import create_itk_view, scale_spacing_and_origin, apply_registration_transform
 from utils.utils_tiff import load_tiff, write_tiff
 from utils.utils_preprocess import norm, masked_norm
+from utils.utils_plot import viz_slices, viz_multiple_images
 
 
 # Define paths
@@ -23,6 +25,7 @@ sample_path = project_path + "unregistered/"
 
 sample_path = project_path + "Femur_74/"
 moving_path = sample_path + "moving_scale_1.nii.gz"
+fixed_path = sample_path + "fixed_scale_4.nii.gz"
 mask_path = sample_path + "fixed_scale_4_mask.nii.gz"
 out_name = "Femur_74_registered"  # Name of the output file
 
@@ -37,12 +40,14 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Preprocess 3D image data for registration.")
     parser.add_argument("--sample_path", type=str, required=False, help="Path to the sample directory.")
     parser.add_argument("--moving_path", type=str, required=False, help="Path to moving image.")
+    parser.add_argument("--fixed_path", type=str, required=False, help="Path to fixed image. Used to infer size of output image.")
     parser.add_argument("--out_path", type=str, required=False, help="Path to the output file.")
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the registered output image.")
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
 
-    parser.add_argument("--transform_parameter_file", type=str, required=True, default="refined_transform_parameters.txt")
+    parser.add_argument("--transform_parameter_map_name", type=str, required=False, default="refined_parameters")
     parser.add_argument("--mask_path", type=str, required=False, default=None, help="Path to the mask image.")
+    parser.add_argument("--moving_image_is_binary", default=False, help="Flag to indicate if the moving image is binary.")
 
     args = parser.parse_args()
     return args
@@ -62,6 +67,8 @@ if __name__ == "__main__":
         sample_path = os.path.join(project_path, args.sample_path)
     if args.moving_path is not None:
         moving_path = os.path.join(sample_path, args.moving_path)
+    if args.fixed_path is not None:
+        fixed_path = os.path.join(sample_path, args.fixed_path)
     if args.out_path is not None:
         out_path = os.path.join(sample_path, args.out_path)  # os.path.join(sample_path, args.out_name)
         print("Output path: ", out_path)
@@ -76,6 +83,8 @@ if __name__ == "__main__":
 
     if file_extension == "nii" or file_extension == "nii.gz":
         moving_image = itk.imread(moving_path)
+        if args.fixed_path is not None:
+            fixed_image = itk.imread(fixed_path)
         if args.mask_path is not None:
             mask_image = itk.imread(mask_path)
             mask_array = itk.array_from_image(mask_image)
@@ -86,6 +95,11 @@ if __name__ == "__main__":
         # Convert to ITK images and set spacing and origin
         moving_image = create_itk_view(moving_array)
         scale_spacing_and_origin(moving_image, 1.0)
+
+        if args.fixed_path is not None:
+            fixed_array = load_tiff(fixed_path)
+            fixed_image = create_itk_view(fixed_array)
+            scale_spacing_and_origin(fixed_image, 1.0)
 
         if args.mask_path is not None:
             mask_array = load_tiff(mask_path)
@@ -99,6 +113,11 @@ if __name__ == "__main__":
         moving_image = create_itk_view(moving_array)
         scale_spacing_and_origin(moving_image, 1.0)
 
+        if args.fixed_path is not None:
+            fixed_array = np.load(fixed_path)
+            fixed_image = create_itk_view(fixed_array)
+            scale_spacing_and_origin(fixed_image, 1.0)
+
         if args.mask_path is not None:
             mask_array = np.load(mask_path)
             mask_image = create_itk_view(mask_array)
@@ -108,10 +127,35 @@ if __name__ == "__main__":
 
 
     # Read custom parameter map
-    refined_trans_obj = itk.ReadParameterFile(os.path.join(sample_path, args.transform_parameter_file))
+    refined_trans_obj = itk.ParameterObject().New()
+
+    # Load parameter maps
+    output_transform_parameter_files = glob.glob(os.path.join(sample_path, "parameter_maps", f"{args.transform_parameter_map_name}*.txt"))
+    refined_trans_obj.ReadParameterFiles(output_transform_parameter_files)
+
+    # Adjust parameter file with spacing and size of moving image (may be larger!).
+    if args.moving_image_is_binary:
+        refined_trans_obj.SetParameter('FinalBSplineInterpolationOrder', '0')  # Set if transforming a binary image
+
+    if args.fixed_path is not None:  # If fixed image is provided, use its size for transformation output
+        refined_trans_obj.SetParameter("Size", [f'{val}' for val in list(itk.size(fixed_image))])
+    else:
+        refined_trans_obj.SetParameter("Size", [f'{val}' for val in list(itk.size(moving_image))])
+
+    refined_trans_obj.SetParameter("Spacing", [f'{val}' for val in list(moving_image.GetSpacing())])
 
     # Apply registration transform to moving image
     result_image = apply_registration_transform(moving_image, refined_trans_obj)
+
+    if args.fixed_path is not None:
+        # Visualize the results
+        axis = 1
+        dim = min(fixed_image.shape[axis], result_image.shape[axis])
+        off = int(dim * 0.05)  # offset for visualization
+        diff = fixed_image[:] - result_image[:]
+        viz_multiple_images([fixed_image, result_image, diff],
+                            [dim - i * off - 5 for i in range(3)],
+                            axis=axis, savefig=True, title=out_name + "_transformed")
 
     # Extract metadata
     origin = result_image.GetOrigin()

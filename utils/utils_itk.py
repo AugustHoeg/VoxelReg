@@ -168,7 +168,7 @@ def apply_registration_transform(moving_image, transform_parameter_object):
     transformix_object = itk.TransformixFilter.New(moving_image)  # Load Transformix Object
     transformix_object.SetTransformParameterObject(transform_parameter_object)  # set the transform parameter object
     transformix_object.UpdateLargestPossibleRegion()  # Update object (required)
-    result_image_large = transformix_object.GetOutput()  # Results of Transformation
+    result_image = transformix_object.GetOutput()  # Results of Transformation
 
-    return result_image_large
+    return result_image
 

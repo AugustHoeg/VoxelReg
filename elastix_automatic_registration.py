@@ -25,9 +25,9 @@ sample_path = project_path + "unregistered/"
 #fixed_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"
 
 sample_path = project_path + "Femur_74/"
-moving_path = sample_path + "moving_scale_1.nii.gz"
-fixed_path = sample_path + "fixed_scale_4.nii.gz"
-mask_path = sample_path + "fixed_scale_4_mask.nii.gz"
+moving_path = sample_path + "moving_scale_2.nii.gz"
+fixed_path = sample_path + "fixed_scale_8.nii.gz"
+mask_path = sample_path + "fixed_scale_8_mask.nii.gz"
 out_name = "Femur_74_registered"  # Name of the output file
 
 
@@ -197,12 +197,18 @@ if __name__ == "__main__":
         fig_name=out_name
     )
 
-    # Save custom parameter map
-    output_transform_parameter_file = "refined_transform_parameters.txt"
-    itk.WriteParameterFile(refined_trans_obj, os.path.join(sample_path, output_transform_parameter_file))
-    #parameter_object.WriteParameterFile(parameter_map_custom, 'exampleoutput/parameters_custom.txt')
-
     print(f"Registration completed successfully. \n")
+
+    # Save custom parameter map
+    os.makedirs(os.path.join(sample_path, "parameter_maps"), exist_ok=True)
+    output_parameter_file_name = "refined_parameters"
+    output_transform_parameter_files = []
+    for i in range(refined_trans_obj.GetNumberOfParameterMaps()):
+        parameter_map_path = os.path.join(sample_path, "parameter_maps", f"{output_parameter_file_name}_{i}.txt")
+        output_transform_parameter_files.append(parameter_map_path)
+
+    refined_trans_obj.WriteParameterFile(refined_trans_obj, output_transform_parameter_files)
+    print(f"Refined transform parameter maps saved to: {output_transform_parameter_files}")
 
     # Extract metadata
     origin = result_image.GetOrigin()
