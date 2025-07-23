@@ -132,6 +132,7 @@ if __name__ == "__main__":
     # Load parameter maps
     output_transform_parameter_files = glob.glob(os.path.join(sample_path, "parameter_maps", f"{args.transform_parameter_map_name}*.txt"))
     refined_trans_obj.ReadParameterFiles(output_transform_parameter_files)
+    print(f"Loaded parameter files: {output_transform_parameter_files}")
 
     # Adjust parameter file with spacing and size of moving image (may be larger!).
     if args.moving_image_is_binary:
@@ -145,17 +146,18 @@ if __name__ == "__main__":
     refined_trans_obj.SetParameter("Spacing", [f'{val}' for val in list(moving_image.GetSpacing())])
 
     # Apply registration transform to moving image
+    print("Applying registration transform to moving image...")
     result_image = apply_registration_transform(moving_image, refined_trans_obj)
 
     if args.fixed_path is not None:
         # Visualize the results
-        axis = 1
-        dim = min(fixed_image.shape[axis], result_image.shape[axis])
-        off = int(dim * 0.05)  # offset for visualization
-        diff = fixed_image[:] - result_image[:]
-        viz_multiple_images([fixed_image, result_image, diff],
-                            [dim - i * off - 5 for i in range(3)],
-                            axis=axis, savefig=True, title=out_name + "_transformed")
+        for axis in range(3):
+            dim = min(fixed_image.shape[axis], result_image.shape[axis])
+            off = int(dim * 0.05)  # offset for visualization
+            diff = fixed_image[:] - result_image[:]
+            viz_multiple_images([fixed_image, result_image, diff],
+                                [dim - i * off - 5 for i in range(3)],
+                                axis=axis, savefig=True, title=out_name + f"_transformed_axis_{axis}")
 
     # Extract metadata
     origin = result_image.GetOrigin()
