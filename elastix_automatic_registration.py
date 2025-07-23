@@ -179,7 +179,8 @@ if __name__ == "__main__":
                    'AdvancedMattesMutualInformation',
                    'AdvancedMattesMutualInformation']
     no_registration_samples_list = [4096, 4096, 4096]
-    write_result_image_list = [False, True, True]
+    write_result_image_list = [False] * len(registration_models)  # Do not write intermediate results
+    write_result_image_list[-1] = True  # Write the final result image
 
     # Refine registration
     result_image, refined_trans_obj = elastix_refined_registration(
