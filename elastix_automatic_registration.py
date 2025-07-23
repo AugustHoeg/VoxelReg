@@ -55,7 +55,7 @@ def parse_arguments():
     parser.add_argument("--coarse_resolutions", type=int, default=4, help="Resolutions for coarse registration.")
     parser.add_argument("--fine_resolutions", type=int, default=4, help="Resolutions for fine registration.")
 
-    parser.add_argument("--fine_registration_models", type=str, nargs='*', default=['rigid', 'affine'], help="Models for fine registration. Default is ['rigid', 'affine']")
+    parser.add_argument("--fine_registration_models", type=str, nargs='*', default=['rigid', 'affine', 'bspline'], help="Models for fine registration. Default is ['rigid', 'affine']")
 
     parser.add_argument("--size", type=int, nargs=3, default=(1, 1, 1), help="Number of coords around initial guess in (x,y,z) to apply coarse registration")
     parser.add_argument("--spacing", type=float, nargs=3, default=(0.25, 0.25, 0.25), help="Voxel spacing in (x,y,z) between coarse registration coords")
