@@ -319,7 +319,7 @@ if __name__ == "__main__":
 
     #root = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/"
 
-    datasets = ["LIDC-IDRI"]  # "HCP_1200", "IXI", "LITS", "CTSpine1K", "LIDC-IDRI"
+    datasets = ["HCP_1200", "IXI", "LITS", "CTSpine1K", "LIDC-IDRI"]  # "HCP_1200", "IXI", "LITS", "CTSpine1K", "LIDC-IDRI"
 
     for dataset_name in datasets:
         print(f"Writing OME-Zarr dataset for {dataset_name}...")
