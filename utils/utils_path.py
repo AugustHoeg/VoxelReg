@@ -229,7 +229,7 @@ def write_ome_dataset(dataset_name):
         set_slice_count = 256
         axis = 2
         orient_transform = mt.Compose([
-            mt.Orientation(axcodes="RAS"),
+            mt.Orientation(axcodes="LPS"),
             mt.Transpose(indices=(2, 0, 1))
         ])  # Transform is axcode "RAS" -> transpose (2,0,1)
 
