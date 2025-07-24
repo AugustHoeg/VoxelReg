@@ -17,7 +17,7 @@ CUDA_VERSION=12.1      # CUDA version (default: 11.6)
 #BSUB -W 8:00
 # request 40GB of system-memory rusage=40
 ###BSUB -R "select[gpu40gb]"
-#BSUB -R "rusage[mem=8GB]"
+#BSUB -R "rusage[mem=24GB]"
 #BSUB -u "august.hoeg@gmail.com"
 #BSUB -B
 #BSUB -N
@@ -53,9 +53,13 @@ source "${VENV_DIR}/${VENV_NAME}/bin/activate"
 
 echo "About to run scripts"
 
-SAMPLE_PATH="stitched"
-IMAGE_PATH="Elm_A_4x_stitch_scale_4.npy"
-OUT_NAME="Elm_A_4x_stitch_scale_4.tiff"
+#SAMPLE_PATH="stitched/processed/Bamboo_A_bin1x1/npy/"
+#IMAGE_PATH="Bamboo_A_4x_stitch_scale_1.npy"
+#OUT_NAME="Bamboo_A_4x_stitch_scale_1.tiff"
+
+SAMPLE_PATH="/work3/s173944/Python/venv_srgan/3D_datasets/datasets/CirrMRI600+/Healthy_subjects/T1_W_Healthy/T1_masks/"
+IMAGE_PATH="1.nii.gz"
+OUT_NAME="1.tiff"
 
 python -u convert_tiff.py --sample_path "$SAMPLE_PATH" --image_path "$IMAGE_PATH" --out_name "$OUT_NAME" --run_type "DTU_HPC"
 
