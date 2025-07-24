@@ -17,14 +17,24 @@ from utils.utils_image import load_image, normalize_std
 from utils.utils_plot import viz_slices
 from utils.utils_preprocess import image_crop_pad
 
+
 def get_orient_transform(axcodes="RAS", transpose_indices=(0, 1, 2)):
 
-    orient_transform = mt.Compose([
-        mt.Orientation(axcodes=axcodes),
+    if axcodes == "" or axcodes is None:
+        orient_transform = mt.Identity()
+    else:
+        orient_transform = mt.Orientation(axcodes=axcodes)
+
+    if transpose_indices is None or len(transpose_indices) != 3:
+        transpose_indices = (0, 1, 2)
+
+    transform = mt.Compose([
+        orient_transform,
         mt.Transpose(indices=transpose_indices)
     ])
 
-    return orient_transform
+    return transform
+
 
 def get_dicom_slice_count(directory: str) -> int:
     """
@@ -34,6 +44,7 @@ def get_dicom_slice_count(directory: str) -> int:
         f for f in os.listdir(directory)
         if f.lower().endswith(".dcm") and os.path.isfile(os.path.join(directory, f))
     ])
+
 
 def get_tiff_slice_count(directory: str, axis=0) -> int:
     """
@@ -47,7 +58,6 @@ def get_tiff_slice_count(directory: str, axis=0) -> int:
     else:
         img = tifffile.imread(directory)  # If the directory is a single TIFF file, read it to get the number of slices
         return img.shape[axis]  # Assuming the first dimension is the number of slices
-
 
 
 def get_nifti_slice_count(file_path: str, axis=0) -> int:
