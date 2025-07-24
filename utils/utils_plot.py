@@ -27,6 +27,35 @@ def viz_slices(array, slice_indices, title="output", axis=0, savefig=True, save_
     else:
         plt.show()
 
+def viz_orthogonal_slices(array, slice_indices, title="output", savefig=True, save_dir="figures"):
+
+    # if slice_indices is int, convert to list
+    if isinstance(slice_indices, int):
+        slice_indices = [slice_indices]
+
+    plt.figure(figsize=(8 * len(slice_indices), 8*3))
+
+    plot_count = 1
+    for axis in range(3):
+        for slice in slice_indices:
+            plt.subplot(3, len(slice_indices), plot_count)
+            if axis == 1:
+                plt.imshow(array[:, slice, :], vmin=0)
+            elif axis == 2:
+                plt.imshow(array[:, :, slice], vmin=0)
+            else:
+                # Default to axis 0
+                plt.imshow(array[slice, :, :], vmin=0)
+            plt.title(slice)
+
+            plot_count += 1
+
+    if savefig:
+        plt.savefig(os.path.join(save_dir, title + "_orthogonal.png"), dpi=300, bbox_inches='tight')
+        print(f"Saved figure as {title}.png")
+    else:
+        plt.show()
+
 
 def viz_multiple_images(image_list, slice_indices, title=None, axis=0, savefig=True, save_dir="figures"):
 

@@ -3,6 +3,8 @@ import numpy as np
 import glob
 import argparse
 from utils.utils_path import write_image_categories, categorize_image_directories, get_orient_transform
+from utils.utils_plot import viz_orthogonal_slices
+from utils.utils_image import load_image
 
 def parse_arguments():
 
@@ -48,14 +50,14 @@ if __name__ == "__main__":
 
     slice_splits = np.array(args.slice_splits) if args.slice_splits is not None else None
 
-    base_dirs = glob.glob(os.path.join(dataset_path, args.scan_prefix))
-    if len(base_dirs) == 0:
+    image_dirs = glob.glob(os.path.join(dataset_path, args.scan_prefix))
+    if len(image_dirs) == 0:
         raise ValueError(f"No directories found matching prefix '{args.scan_prefix}' in '{dataset_path}'. Please check the path and prefix.")
 
     categories = []
     for slice_axis in range(3):
         print(f"Images slice categories along axis {slice_axis}...")
-        image_categories = categorize_image_directories(base_dirs, slice_splits, slice_axis)
+        image_categories = categorize_image_directories(image_dirs, slice_splits, slice_axis)
         categories.append(image_categories)
 
         # Print summary
@@ -70,6 +72,17 @@ if __name__ == "__main__":
     print(f"Final categorization of image directories, slice axis: {args.slice_axis}")
     image_categories = categories[args.slice_axis]
 
+    # Define orientation transformation
+    orient_transform = get_orient_transform(axcodes=args.orient_axcodes, transpose_indices=args.orient_transpose_axes)
+
+    # Visualize first image
+    image = load_image(image_dirs[0], dtype=np.float32)
+    slices = [min(image.shape) // 2, min(image.shape) // 3, min(image.shape) // 4]
+    viz_orthogonal_slices(image, slices, savefig=True, title=os.path.join(os.path.basename(dataset_path), "_slices"))
+
+    orient_image = orient_transform(image)
+    viz_orthogonal_slices(image, slices, savefig=True, title=os.path.join(os.path.basename(dataset_path), "_slices_orient"))
+
     # Remove first category
     if args.remove_first_category:
         print(f"Removing first category: {slice_splits[0]}")
@@ -78,9 +91,6 @@ if __name__ == "__main__":
     if args.print_summary_only:
         print("Summary printed. Exiting without writing OME-Zarr data samples.")
         exit(0)
-
-    # Define orientation transformation
-    orient_transform = get_orient_transform(axcodes=args.orient_axcodes, transpose_indices=args.orient_transpose_axes)
 
     write_image_categories(image_categories,
                            args.slice_shape,
