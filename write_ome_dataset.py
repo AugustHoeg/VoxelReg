@@ -54,6 +54,7 @@ if __name__ == "__main__":
     image_dirs = glob.glob(os.path.join(dataset_path, args.scan_prefix))
     if len(image_dirs) == 0:
         raise ValueError(f"No directories found matching prefix '{args.scan_prefix}' in '{dataset_path}'. Please check the path and prefix.")
+    print(f"Found {len(image_dirs)} image directories matching prefix '{args.scan_prefix}'.")
 
     categories = []
     for slice_axis in range(3):
