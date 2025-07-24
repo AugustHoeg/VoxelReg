@@ -49,6 +49,9 @@ if __name__ == "__main__":
     slice_splits = np.array(args.slice_splits) if args.slice_splits is not None else None
 
     base_dirs = glob.glob(os.path.join(dataset_path, args.scan_prefix))
+    if len(base_dirs) == 0:
+        raise ValueError(f"No directories found matching prefix '{args.scan_prefix}' in '{dataset_path}'. Please check the path and prefix.")
+
     image_categories = categorize_image_directories(base_dirs, slice_splits, args.slice_axis)
 
     # Print summary
