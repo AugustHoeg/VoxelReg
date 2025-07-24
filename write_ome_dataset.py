@@ -78,10 +78,10 @@ if __name__ == "__main__":
     # Visualize first image
     image = load_image(image_dirs[0], dtype=np.float32)
     slices = [min(image.shape) // 2, min(image.shape) // 3, min(image.shape) // 4]
-    viz_orthogonal_slices(image, slices, savefig=True, title=os.path.join(os.path.basename(dataset_path), "_slices"))
+    viz_orthogonal_slices(image, slices, savefig=True, title=os.path.basename(dataset_path) + "_slices")
 
     orient_image = orient_transform(image)
-    viz_orthogonal_slices(orient_image, slices, savefig=True, title=os.path.join(os.path.basename(dataset_path), "_slices_orient"))
+    viz_orthogonal_slices(orient_image, slices, savefig=True, title=os.path.basename(dataset_path) + "_slices_orient")
 
     # Remove first category
     if args.remove_first_category:
