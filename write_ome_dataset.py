@@ -7,7 +7,7 @@ def parse_arguments():
 
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Write OME-Zarr dataset from categorized image directories.")
-    parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
+    parser.add_argument("--base_path", type=str, required=True, help="Path to the base directory. Other paths will be relative to this path.")
     parser.add_argument("--dataset_path", type=str, required=False, help="Path to the dataset directory.")
     parser.add_argument("--out_path", type=str, required=False, help="Path to write the output files.")
     parser.add_argument("--scan_prefix", type=str, required=False, help="Prefix for the scan files.")
@@ -37,17 +37,12 @@ if __name__ == "__main__":
 
     args = parse_arguments()
 
-    if args.run_type == "HOME PC":
-        project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/"
-    elif args.run_type == "DTU_HPC":
-        project_path = "/work3/s173944/Python/venv_srgan/3D_datasets/datasets/"
-
     # Assign paths
     if args.dataset_path is not None:
-        dataset_path = os.path.join(project_path, args.dataset_path)
+        dataset_path = os.path.join(args.base_path, args.dataset_path)
         print("dataset path: ", dataset_path)
     if args.out_path is not None:
-        out_path = os.path.join(project_path, args.out_name)
+        out_path = os.path.join(args.base_path, args.out_name)
         print("Output name: ", out_path)
 
     base_dirs = glob.glob(os.path.join(dataset_path, args.scan_prefix))
