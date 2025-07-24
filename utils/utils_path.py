@@ -7,6 +7,7 @@ import glob
 import numpy as np
 import zarr
 import matplotlib.pyplot as plt
+import monai.transforms as mt
 
 from utils.utils_zarr import write_ome_pyramid
 from zarr.storage import DirectoryStore
@@ -14,6 +15,16 @@ from skimage.transform import downscale_local_mean
 
 from utils.utils_image import load_image, normalize_std
 from utils.utils_plot import viz_slices
+from utils.utils_preprocess import image_crop_pad
+
+def get_orient_transform(axcodes="RAS", transpose_indices=(0, 1, 2)):
+
+    orient_transform = mt.Compose([
+        mt.Orientation(axcodes=axcodes),
+        mt.Transpose(indices=transpose_indices)
+    ])
+
+    return orient_transform
 
 def get_dicom_slice_count(directory: str) -> int:
     """
@@ -24,7 +35,7 @@ def get_dicom_slice_count(directory: str) -> int:
         if f.lower().endswith(".dcm") and os.path.isfile(os.path.join(directory, f))
     ])
 
-def get_tiff_slice_count(directory: str) -> int:
+def get_tiff_slice_count(directory: str, axis=0) -> int:
     """
     Counts the number of tiff files in a directory.
     """
@@ -35,26 +46,26 @@ def get_tiff_slice_count(directory: str) -> int:
         ])
     else:
         img = tifffile.imread(directory)  # If the directory is a single TIFF file, read it to get the number of slices
-        return img.shape[0]  # Assuming the first dimension is the number of slices
+        return img.shape[axis]  # Assuming the first dimension is the number of slices
 
 
 
-def get_nifti_slice_count(file_path: str) -> int:
+def get_nifti_slice_count(file_path: str, axis=0) -> int:
     """
-    Returns the number of slices (z-dimension) in a NIfTI file.
+    Returns the number of slices in a NIfTI file.
     """
     try:
         img = nib.load(file_path)
         shape = img.shape
         if len(shape) < 3:
             return 0
-        return shape[2]
+        return shape[axis]
     except Exception as e:
         print(f"Warning: Failed to load NIfTI file '{file_path}': {e}")
         return 0
 
 
-def get_path_and_slices(file_path):
+def get_path_and_slices(file_path, axis=0):
 
     # Determine extension of file types in directory
     try:
@@ -65,14 +76,14 @@ def get_path_and_slices(file_path):
             return file_path, get_dicom_slice_count(file_path)
 
         if glob.glob(os.path.join(file_path, "*.tiff")):
-            return file_path, get_tiff_slice_count(file_path)
+            return file_path, get_tiff_slice_count(file_path, axis)
 
     # Otherwise, check for extensions
     if file_extension == "nii" or file_extension == "nii.gz":
-        return file_path, get_nifti_slice_count(file_path)
+        return file_path, get_nifti_slice_count(file_path, axis)
 
 
-def categorize_image_directories(base_dirs, slice_splits) -> Dict[str, List[str]]:
+def categorize_image_directories(base_dirs, slice_splits, axis=0) -> Dict[str, List[str]]:
     """
     Walks through a base directory and categorizes DICOM and NIfTI scans
     into bins based on their number of slices.
@@ -83,14 +94,14 @@ def categorize_image_directories(base_dirs, slice_splits) -> Dict[str, List[str]
     bins = []
     bins.append(f"{slice_splits[0]}")
     for i in range(len(slice_splits) - 1):
-        bins.append(f"{slice_splits[i]}_{slice_splits[i+1]}")
-    bins.append(f"{slice_splits[-1]}")
+        bins.append(f"{slice_splits[i] + 1}_{slice_splits[i+1]}")
+    bins.append(f"{slice_splits[-1] + 1}")
     categorized_images = {label: [] for label in bins}
 
     for dir in base_dirs:
         # DICOM: check if directory contains .dcm files
 
-        scan_path, slice_count = get_path_and_slices(dir)
+        scan_path, slice_count = get_path_and_slices(dir, axis)
 
         if slice_count == 0:
             continue
@@ -109,7 +120,18 @@ def categorize_image_directories(base_dirs, slice_splits) -> Dict[str, List[str]
     return categorized_images
 
 
-def write_image_categories(image_categories, name_format, save_dir, chunk_size, pyramid_levels=3, cname='lz4', group_name='HR'):
+def write_image_categories(image_categories,
+                           slice_shape,
+                           orient_transform=mt.Identity(),
+                           set_slice_count=None,
+                           name_format="",
+                           name_prefix="",
+                           name_suffix="",
+                           save_dir=None,
+                           chunk_size=None,
+                           pyramid_levels=3,
+                           cname='lz4',
+                           group_name='HR'):
 
     for category in image_categories:
 
@@ -117,15 +139,24 @@ def write_image_categories(image_categories, name_format, save_dir, chunk_size, 
             continue
 
         # Crop each scan in each category to the minimum number of slices in that category
-        min_slices = int(category.split('_')[0])
+        if set_slice_count is not None:
+            min_slices = set_slice_count
+        else:
+            min_slices = int(category.split('_')[0])
         max_slices = int(category.split('_')[-1])
 
         for image_path in image_categories[category]:
-            image_name = re.compile(name_format).search(image_path).group(0)
+            image_name = f"{name_prefix}" + re.compile(name_format).search(image_path).group(0) + f"{name_suffix}"
             image = load_image(image_path, dtype=np.float32)
 
+            # Ensure image is oriented with slice dimension first.
+            image = orient_transform(image)
+
             print(f"Processing scan {os.path.basename(image_path)} with shape {image.shape}")
-            image = image[:, :, :min_slices]
+            if slice_shape is None:
+                image = image[:min_slices, :, :]
+            else:
+                image, start_coords, end_coords = image_crop_pad(image, roi=(min_slices, *slice_shape), top_index='first')
             print(f"After cropping, scan shape is {image.shape}")
 
             image = normalize_std(image, standard_deviations=3, mode='rescale')
@@ -162,39 +193,136 @@ def write_image_categories(image_categories, name_format, save_dir, chunk_size, 
             print("Done")
 
 
-# Example usage
-if __name__ == "__main__":
+def write_ome_dataset(dataset_name):
 
-    chunk_size = (128, 128, 80)
+    name_prefix = ""
+    name_suffix = ""
+    axis = 0
+    orient_transform = mt.Identity()
 
-    splits = np.array([160 + i*chunk_size[-1] for i in range(15)])  # Customizable slice count splits
-    #root = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/"
+    if dataset_name == "HCP_1200":
+        dataset_dir = "../../Vedrana_master_project/3D_datasets/datasets/HCP_1200/train/"
+        save_dir = "../../Vedrana_master_project/3D_datasets/datasets/HCP_1200/ome/train/"
+        scan_prefix = "*/T1w/T1w_acpc_dc.nii"
+        name_format = r"(\d{6})"  # look for six digit number in image path (regex format)
+        chunk_size = (128, 80, 128)
+        splits = np.array([260])
+        name_prefix = "volume_"
+        slice_shape = (320, 256)
+        set_slice_count = 256
+        axis = 2
+        orient_transform = mt.Compose([
+            mt.Orientation(axcodes="RAS"),
+            mt.Transpose(indices=(2, 0, 1))
+        ])  # Transform is axcode "RAS" -> transpose (2,0,1)
 
-    dataset_dir = "../../Vedrana_master_project/3D_datasets/datasets/LIDC_IDRI/train/"
-    save_dir = "../../Vedrana_master_project/3D_datasets/datasets/LIDC_IDRI/ome/train/"
-    scan_prefix = "*/*/*/"
-    name_format = "LIDC-IDRI-...."
+    elif dataset_name == "IXI":
+        dataset_dir = "../../Vedrana_master_project/3D_datasets/datasets/IXI/train/"
+        save_dir = "../../Vedrana_master_project/3D_datasets/datasets/IXI/ome/train/"
+        scan_prefix = "*T1.nii"
+        name_format = r"IXI(\d{3})"  # look for IXI path (regex format)
+        chunk_size = (128, 128, 72)
+        splits = np.array([139, 145, 149, 159])
+        slice_shape = (256, 256)
+        set_slice_count = 144  # set number of slices, ignoring slice categories.
+        axis = 1
+        orient_transform = mt.Compose([
+            mt.Orientation(axcodes="LPS"),
+            mt.Transpose(indices=(1, 2, 0))
+        ])  # Transform is axcode "LPS" -> transpose (1,2,0)
 
-    # dataset_dir = "../../Vedrana_master_project/3D_datasets/datasets/CTSpine1K/train/"
-    # save_dir = "../../Vedrana_master_project/3D_datasets/datasets/CTSpine1K/ome/train/"
-    # scan_prefix = "*/*/*/image*"
-    # name_format = "...._CT"
+    elif dataset_name == "LITS":
+        dataset_dir = "../../Vedrana_master_project/3D_datasets/datasets/LITS/train/"
+        save_dir = "../../Vedrana_master_project/3D_datasets/datasets/LITS/ome/train/"
+        scan_prefix = "volume*"
+        name_format = "volume-..."
+        slice_shape = (512, 512)
+        chunk_size = (128, 128, 80)
+        set_slice_count = None
+        splits = np.array([160 + i * chunk_size[-1] for i in range(15)])  # Customizable slice count splits
+        axis = 2
+        orient_transform = mt.Compose([
+            mt.Orientation(axcodes="RAS"),
+            mt.Transpose(indices=(2, 0, 1))
+        ])  # Transform is axcode "RAS" -> transpose (2,0,1)
 
-    # dataset_dir = "../../Vedrana_master_project/3D_datasets/datasets/LITS/train/"
-    # save_dir = "../../Vedrana_master_project/3D_datasets/datasets/LITS/ome/train/"
-    # scan_prefix = "volume*"
-    # name_format = "volume-..."
+    elif dataset_name == "CTSpine1K":
+        dataset_dir = "../../Vedrana_master_project/3D_datasets/datasets/CTSpine1K/train/"
+        save_dir = "../../Vedrana_master_project/3D_datasets/datasets/CTSpine1K/ome/train/"
+        scan_prefix = "*/*/*/image*"
+        name_format = "...._CT"
+        slice_shape = (512, 512)
+        chunk_size = (128, 128, 80)
+        set_slice_count = None
+        splits = np.array([160 + i * chunk_size[-1] for i in range(15)])  # Customizable slice count splits
+        axis = 2
+        orient_transform = mt.Compose([
+            mt.Orientation(axcodes="RAS"),
+            mt.Transpose(indices=(2, 0, 1))
+        ])  # Transform is axcode "RAS" -> transpose (2,0,1)
+
+    elif dataset_name == "LIDC-IDRI":
+        dataset_dir = "../../Vedrana_master_project/3D_datasets/datasets/LIDC_IDRI/train/"
+        save_dir = "../../Vedrana_master_project/3D_datasets/datasets/LIDC_IDRI/ome/train/"
+        scan_prefix = "*/*/*/"
+        name_format = "LIDC-IDRI-...."
+        slice_shape = (512, 512)
+        chunk_size = (128, 128, 80)
+        set_slice_count = None
+        splits = np.array([160 + i * chunk_size[-1] for i in range(15)])  # Customizable slice count splits
+        axis = 2
+        orient_transform = mt.Compose([
+            mt.Orientation(axcodes="RAS"),
+            mt.Transpose(indices=(2, 0, 1))
+        ])  # Transform is axcode "RAS" -> transpose (2,0,1)
+
+    else:
+        raise NotImplementedError('Dataset %s not implemented.' % dataset_name)
 
     base_dirs = glob.glob(os.path.join(dataset_dir, scan_prefix))
-    image_categories = categorize_image_directories(base_dirs, splits)
+    image_categories = categorize_image_directories(base_dirs, splits, axis)
 
     # Print summary
     for category, paths in image_categories.items():
         print(f"{category}: {len(paths)} scans")
 
     # Remove first category
-    del image_categories[str(splits[0])]
+    # del image_categories[str(splits[0])]
 
-    write_image_categories(image_categories, name_format, save_dir, chunk_size, pyramid_levels=3, cname='lz4', group_name='HR')
+    write_image_categories(image_categories,
+                           slice_shape,
+                           orient_transform,
+                           set_slice_count,
+                           name_format,
+                           name_prefix,
+                           name_suffix,
+                           save_dir,
+                           chunk_size,
+                           pyramid_levels=3,
+                           cname='lz4',
+                           group_name='HR')
+
+# Example usage
+if __name__ == "__main__":
+
+    #root = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/"
+
+    datasets = ["HCP_1200", "IXI", "LITS", "CTSpine1K", "LIDC-IDRI"]
+
+    for dataset_name in datasets:
+        print(f"Writing OME-Zarr dataset for {dataset_name}...")
+
+        write_ome_dataset(dataset_name)
 
     print("Done")
+
+
+
+# import monai.transforms as mt
+# import matplotlib.pyplot as plt
+# orientation_transform = mt.Orientation(axcodes="RAS")
+# image_trans = np.transpose(orientation_transform(image), (2,0,1))
+# plt.figure()
+# image = load_image(image_path, dtype=np.float32)
+# plt.imshow(image_trans[100, :, :])
+# plt.show()
