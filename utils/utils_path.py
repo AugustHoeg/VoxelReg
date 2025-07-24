@@ -127,7 +127,7 @@ def categorize_image_directories(base_dirs, slice_splits=None, axis=0) -> Dict[s
 def write_image_categories(image_categories,
                            slice_shape,
                            orient_transform=mt.Identity(),
-                           set_slice_count=None,
+                           set_slice_count=0,
                            name_format="",
                            name_prefix="",
                            name_suffix="",
@@ -143,7 +143,7 @@ def write_image_categories(image_categories,
             continue
 
         # Crop each scan in each category to the minimum number of slices in that category
-        if set_slice_count is not None:
+        if set_slice_count > 0:
             min_slices = set_slice_count
         else:
             min_slices = int(category.split('_')[0])
