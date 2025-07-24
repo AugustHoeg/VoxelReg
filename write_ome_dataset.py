@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from datetime import datetime
 import glob
 import argparse
 from utils.utils_path import write_image_categories, categorize_image_directories, get_orient_transform
@@ -78,10 +79,11 @@ if __name__ == "__main__":
     # Visualize first image
     image = load_image(image_dirs[0], dtype=np.float32)
     slices = [min(image.shape) // 2, min(image.shape) // 3, min(image.shape) // 4]
-    viz_orthogonal_slices(image, slices, savefig=True, title=os.path.basename(dataset_path) + "_slices")
+    time_stamp = datetime.now().strftime("%Y%m%d%H%M")
+    viz_orthogonal_slices(image, slices, savefig=True, title=f"scan_slices_orthogonal_{time_stamp}")
 
     orient_image = orient_transform(image)
-    viz_orthogonal_slices(orient_image, slices, savefig=True, title=os.path.basename(dataset_path) + "_slices_orient")
+    viz_orthogonal_slices(orient_image, slices, savefig=True, title=f"scan_slices_orient_orthogonal_{time_stamp}")
 
     # Remove first category
     if args.remove_first_category:

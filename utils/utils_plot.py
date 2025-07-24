@@ -53,7 +53,7 @@ def viz_orthogonal_slices(array, slice_indices, title="output", savefig=True, sa
             plot_count += 1
 
     if savefig:
-        plt.savefig(os.path.join(save_dir, title + "_orthogonal.png"), dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join(save_dir, title + ".png"), dpi=300, bbox_inches='tight')
         print(f"Saved figure as {title}.png")
     else:
         plt.show()
