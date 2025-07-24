@@ -23,7 +23,7 @@ def viz_slices(array, slice_indices, title="output", axis=0, savefig=True, save_
 
     if savefig:
         plt.savefig(os.path.join(save_dir, title + ".png"), dpi=300, bbox_inches='tight')
-        print(f"Saved figure as {title}.png")
+        print(f"Saved figure as {title}")
     else:
         plt.show()
 
@@ -55,7 +55,7 @@ def viz_orthogonal_slices(array, slice_indices, title="output", savefig=True, sa
     if savefig:
         path = os.path.join(save_dir, title + ".png")
         plt.savefig(path, dpi=300, bbox_inches='tight')
-        print(f"Saved figure {path}.png")
+        print(f"Saved figure {path}")
     else:
         plt.show()
 
@@ -81,7 +81,7 @@ def viz_multiple_images(image_list, slice_indices, title=None, axis=0, savefig=T
 
     if savefig:
         plt.savefig(os.path.join(save_dir, title + ".png"), dpi=300, bbox_inches='tight')
-        print(f"Saved figure as {title}.png")
+        print(f"Saved figure as {title}")
     else:
         plt.show()
 

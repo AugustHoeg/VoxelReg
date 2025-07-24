@@ -43,13 +43,7 @@ def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648
 
     print("Done writing multiscale data to OME-Zarr group")
 
-def write_ome_datasample(out_path,
-                         HR_paths,
-                         LR_paths,
-                         REG_paths,
-                         HR_chunks=(80, 80, 80),
-                         LR_chunks=(80, 80, 80),
-                         REG_chunks=(40, 40, 40)):
+def write_ome_datasample(out_path, HR_paths, LR_paths, REG_paths, HR_chunks, LR_chunks, REG_chunks):
 
     """
     We need these images:
@@ -67,6 +61,9 @@ def write_ome_datasample(out_path,
             - <sample_name>.nii.gz
             - <sample_name>_scale_2.nii.gz
     """
+
+    if HR_paths is None:
+        raise ValueError("HR image paths are required and cannot be empty.")
 
     # Create/open a Zarr array in write mode
     file_path = f"{out_path}.zarr"
@@ -86,19 +83,25 @@ def write_ome_datasample(out_path,
                     chunk_size=HR_chunks,
                     cname='lz4')
 
-    write_ome_group(root,
-                    group_name='LR',
-                    image_paths=LR_paths,
-                    mask_paths=None,
-                    chunk_size=LR_chunks,
-                    cname='lz4')
+    if LR_paths is None:
+        print("No LR image paths provided, skipping LR group.")
+    else:
+        write_ome_group(root,
+                        group_name='LR',
+                        image_paths=LR_paths,
+                        mask_paths=None,
+                        chunk_size=LR_chunks,
+                        cname='lz4')
 
-    write_ome_group(root,
-                    group_name='REG',
-                    image_paths=REG_paths,
-                    mask_paths=None,
-                    chunk_size=REG_chunks,
-                    cname='lz4')
+    if REG_paths is None:
+        print("No REG image paths provided, skipping REG group.")
+    else:
+        write_ome_group(root,
+                        group_name='REG',
+                        image_paths=REG_paths,
+                        mask_paths=None,
+                        chunk_size=REG_chunks,
+                        cname='lz4')
 
     print(f"Done writing OME-Zarr data sample to {file_path}")
 

@@ -44,6 +44,7 @@ def parse_arguments():
     parser.add_argument("--fixed_pixel_size", type=float, nargs=3, default=(None, None, None), help="Pixel size in mm for fixed image.")
 
     parser.add_argument("--margin_percent", type=float, default=0.5, help="Margin percentage for cropping.")
+    parser.add_argument("--divis_factor", type=int, default=4, help="Divisibility factor for cropping highest resolution image.")
 
     parser.add_argument("--moving_pyramid_depth", type=int, default=3, help="Depth of saved image pyramid.")
     parser.add_argument("--fixed_pyramid_depth", type=int, default=4, help="Depth of saved image pyramid.")
@@ -105,7 +106,7 @@ if __name__ == "__main__":
                                                                                    min_size=args.moving_min_size,
                                                                                    max_size=args.moving_max_size,
                                                                                    margin_percent=args.margin_percent,
-                                                                                   divis_factor=4,
+                                                                                   divis_factor=args.divis_factor,
                                                                                    top_index=args.top_index)
 
     # Get & save moving image pyramid
