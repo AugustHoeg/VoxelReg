@@ -52,9 +52,11 @@ if __name__ == "__main__":
     if len(base_dirs) == 0:
         raise ValueError(f"No directories found matching prefix '{args.scan_prefix}' in '{dataset_path}'. Please check the path and prefix.")
 
+    categories = []
     for slice_axis in range(3):
         print(f"Images slice categories along axis {slice_axis}...")
         image_categories = categorize_image_directories(base_dirs, slice_splits, slice_axis)
+        categories.append(image_categories)
 
         # Print summary
         for i, (category, paths) in enumerate(image_categories.items()):
@@ -65,8 +67,8 @@ if __name__ == "__main__":
             else:
                 print(f"{category}: {len(paths)} scans")
 
-    print(f"Final categorization of image directories, slice axis: {slice_axis}")
-    image_categories = categorize_image_directories(base_dirs, slice_splits, args.slice_axis)
+    print(f"Final categorization of image directories, slice axis: {args.slice_axis}")
+    image_categories = categories[args.slice_axis]
 
     # Remove first category
     if args.remove_first_category:
