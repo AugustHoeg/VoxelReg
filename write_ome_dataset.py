@@ -81,7 +81,7 @@ if __name__ == "__main__":
     viz_orthogonal_slices(image, slices, savefig=True, title=os.path.join(os.path.basename(dataset_path), "_slices"))
 
     orient_image = orient_transform(image)
-    viz_orthogonal_slices(image, slices, savefig=True, title=os.path.join(os.path.basename(dataset_path), "_slices_orient"))
+    viz_orthogonal_slices(orient_image, slices, savefig=True, title=os.path.join(os.path.basename(dataset_path), "_slices_orient"))
 
     # Remove first category
     if args.remove_first_category:
