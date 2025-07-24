@@ -83,19 +83,23 @@ def get_path_and_slices(file_path, axis=0):
         return file_path, get_nifti_slice_count(file_path, axis)
 
 
-def categorize_image_directories(base_dirs, slice_splits, axis=0) -> Dict[str, List[str]]:
+def categorize_image_directories(base_dirs, slice_splits=None, axis=0) -> Dict[str, List[str]]:
     """
     Walks through a base directory and categorizes DICOM and NIfTI scans
     into bins based on their number of slices.
 
     Returns a dictionary mapping each bin to a list of scan paths.
     """
+    if slice_splits is None:
+        # If no splits are provided, categorize all scans into one bin
+        slice_splits = [np.inf]
+
     # Define bin labels
     bins = []
-    bins.append(f"{slice_splits[0]}")
+    bins.append(f"{slice_splits[0] - 1}")
     for i in range(len(slice_splits) - 1):
-        bins.append(f"{slice_splits[i] + 1}_{slice_splits[i+1]}")
-    bins.append(f"{slice_splits[-1] + 1}")
+        bins.append(f"{slice_splits[i]}_{slice_splits[i+1] - 1}")
+    bins.append(f"{slice_splits[-1]}")
     categorized_images = {label: [] for label in bins}
 
     for dir in base_dirs:
@@ -107,13 +111,13 @@ def categorize_image_directories(base_dirs, slice_splits, axis=0) -> Dict[str, L
             continue
 
         # Assign to bin
-        if slice_count <= slice_splits[0]:
+        if slice_count < slice_splits[0]:
             categorized_images[bins[0]].append(scan_path)
-        elif slice_count > slice_splits[-1]:
+        elif slice_count >= slice_splits[-1]:
             categorized_images[bins[-1]].append(scan_path)
         else:
             for i in range(len(slice_splits) - 1):
-                if slice_splits[i] < slice_count <= slice_splits[i+1]:
+                if slice_splits[i] <= slice_count < slice_splits[i+1]:
                     categorized_images[bins[i+1]].append(scan_path)
                     break
 
@@ -150,7 +154,7 @@ def write_image_categories(image_categories,
             image = load_image(image_path, dtype=np.float32)
 
             # Ensure image is oriented with slice dimension first.
-            image = orient_transform(image)
+            image = orient_transform(image).numpy()
 
             print(f"Processing scan {os.path.basename(image_path)} with shape {image.shape}")
             if slice_shape is None:
@@ -161,11 +165,14 @@ def write_image_categories(image_categories,
 
             image = normalize_std(image, standard_deviations=3, mode='rescale')
 
-            slices = [image.shape[2] // 2, image.shape[2] // 3, image.shape[2] // 4]
-            viz_slices(image, slice_indices=slices, savefig=False)
+            slices = [image.shape[0] // 2, image.shape[0] // 3, image.shape[0] // 4]
+            viz_slices(image, slice_indices=slices, savefig=False, title=os.path.join(os.path.dirname(image_path), f"{image_name}_slices"))
 
             # Convert to C-order
             image = np.ascontiguousarray(image)
+
+            # from utils.utils_nifti import write_nifti
+            # write_nifti(image, output_path="test.nii")
 
             # Create image pyramid using downscale_local_mean
             image_pyramid = [image]
@@ -205,10 +212,10 @@ def write_ome_dataset(dataset_name):
         save_dir = "../../Vedrana_master_project/3D_datasets/datasets/HCP_1200/ome/train/"
         scan_prefix = "*/T1w/T1w_acpc_dc.nii"
         name_format = r"(\d{6})"  # look for six digit number in image path (regex format)
-        chunk_size = (128, 80, 128)
+        chunk_size = (128, 128, 160)
         splits = np.array([260])
         name_prefix = "volume_"
-        slice_shape = (320, 256)
+        slice_shape = (256, 320)
         set_slice_count = 256
         axis = 2
         orient_transform = mt.Compose([
@@ -221,10 +228,10 @@ def write_ome_dataset(dataset_name):
         save_dir = "../../Vedrana_master_project/3D_datasets/datasets/IXI/ome/train/"
         scan_prefix = "*T1.nii"
         name_format = r"IXI(\d{3})"  # look for IXI path (regex format)
-        chunk_size = (128, 128, 72)
-        splits = np.array([139, 145, 149, 159])
-        slice_shape = (256, 256)
-        set_slice_count = 144  # set number of slices, ignoring slice categories.
+        chunk_size = (128, 72, 128)
+        splits = np.array([256])
+        slice_shape = (144, 256)
+        set_slice_count = 256  # set number of slices, ignoring slice categories.
         axis = 1
         orient_transform = mt.Compose([
             mt.Orientation(axcodes="LPS"),
@@ -237,9 +244,9 @@ def write_ome_dataset(dataset_name):
         scan_prefix = "volume*"
         name_format = "volume-..."
         slice_shape = (512, 512)
-        chunk_size = (128, 128, 80)
+        chunk_size = (80, 128, 128)
         set_slice_count = None
-        splits = np.array([160 + i * chunk_size[-1] for i in range(15)])  # Customizable slice count splits
+        splits = np.array([80 + i * chunk_size[0] for i in range(15)])  # Customizable slice count splits
         axis = 2
         orient_transform = mt.Compose([
             mt.Orientation(axcodes="RAS"),
@@ -252,9 +259,9 @@ def write_ome_dataset(dataset_name):
         scan_prefix = "*/*/*/image*"
         name_format = "...._CT"
         slice_shape = (512, 512)
-        chunk_size = (128, 128, 80)
+        chunk_size = (80, 128, 128)
         set_slice_count = None
-        splits = np.array([160 + i * chunk_size[-1] for i in range(15)])  # Customizable slice count splits
+        splits = np.array([80 + i * chunk_size[0] for i in range(15)])  # Customizable slice count splits
         axis = 2
         orient_transform = mt.Compose([
             mt.Orientation(axcodes="RAS"),
@@ -267,9 +274,9 @@ def write_ome_dataset(dataset_name):
         scan_prefix = "*/*/*/"
         name_format = "LIDC-IDRI-...."
         slice_shape = (512, 512)
-        chunk_size = (128, 128, 80)
+        chunk_size = (80, 128, 128)
         set_slice_count = None
-        splits = np.array([160 + i * chunk_size[-1] for i in range(15)])  # Customizable slice count splits
+        splits = np.array([80 + i * chunk_size[0] for i in range(15)])  # Customizable slice count splits
         axis = 2
         orient_transform = mt.Compose([
             mt.Orientation(axcodes="RAS"),
@@ -283,8 +290,13 @@ def write_ome_dataset(dataset_name):
     image_categories = categorize_image_directories(base_dirs, splits, axis)
 
     # Print summary
-    for category, paths in image_categories.items():
-        print(f"{category}: {len(paths)} scans")
+    for i, (category, paths) in enumerate(image_categories.items()):
+        if i == 0:
+            print(f"1_{category}: {len(paths)} scans")
+        elif i == len(image_categories) - 1:
+            print(f"{category}_inf: {len(paths)} scans")
+        else:
+            print(f"{category}: {len(paths)} scans")
 
     # Remove first category
     # del image_categories[str(splits[0])]
@@ -307,7 +319,7 @@ if __name__ == "__main__":
 
     #root = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/"
 
-    datasets = ["HCP_1200", "IXI", "LITS", "CTSpine1K", "LIDC-IDRI"]
+    datasets = ["LIDC-IDRI"]  # "HCP_1200", "IXI", "LITS", "CTSpine1K", "LIDC-IDRI"
 
     for dataset_name in datasets:
         print(f"Writing OME-Zarr dataset for {dataset_name}...")

@@ -6,12 +6,14 @@ from utils.utils_path import write_image_categories, categorize_image_directorie
 def parse_arguments():
 
     # Set up argument parser
-    parser = argparse.ArgumentParser(description="Apply mask to volume and save")
+    parser = argparse.ArgumentParser(description="Write OME-Zarr dataset from categorized image directories.")
+    parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
     parser.add_argument("--dataset_path", type=str, required=False, help="Path to the dataset directory.")
     parser.add_argument("--out_path", type=str, required=False, help="Path to write the output files.")
     parser.add_argument("--scan_prefix", type=str, required=False, help="Prefix for the scan files.")
-    parser.add_argument("--scan_suffix", type=str, required=False, help="Suffix for the scan files.")
     parser.add_argument("--name_format", type=str, required=False, help="Format for the output names.")
+    parser.add_argument("--name_prefix", type=str, required=False, help="Prefix for the output files.")
+    parser.add_argument("--name_suffix", type=str, required=False, help="Suffix for the output files.")
     parser.add_argument("--slice_axis", type=int, default=0, help="Axis along which to count volume slices (0, 1, or 2).")
     parser.add_argument("--chunk_size", type=int, nargs=3, default=(160, 160, 160), help="Size of each ome-zarr chunk (D, H, W).")
     parser.add_argument("--slice_splits", type=int, nargs='*', default=None, help="List of splits to categorize scans into based on number of slices. If None, all scans will be in one category.")
@@ -21,7 +23,9 @@ def parse_arguments():
     parser.add_argument("--orient_transpose_axes", type=int, nargs=3, default=(0, 1, 2), help="Transpose axes for orientation (e.g., (0, 1, 2)).")
     parser.add_argument("--pyramid_levels", type=int, default=3, help="Number of ome pyramid levels to create.")
 
+    parser.add_argument("--remove_first_category", default=False, help="If set, remove the first category from the image categories.")
     parser.add_argument("--print_summary_only", default=False, help="If set, only print the summary of image categories without writing to OME-Zarr.")
+
 
     args = parser.parse_args()
     return args
@@ -54,7 +58,9 @@ if __name__ == "__main__":
         print(f"{category}: {len(paths)} scans")
 
     # Remove first category
-    del image_categories[str(args.splits[0])]
+    if args.remove_first_category:
+        print(f"Removing first category: {args.splits[0]}")
+        del image_categories[str(args.splits[0])]
 
     if args.print_summary_only:
         print("Summary printed. Exiting without writing OME-Zarr data samples.")
@@ -68,8 +74,8 @@ if __name__ == "__main__":
                            orient_transform,
                            args.set_slice_count,
                            args.name_format,
-                           args.scan_prefix,
-                           args.scan_suffix,
+                           args.name_prefix,
+                           args.name_suffix,
                            out_path,
                            args.chunk_size,
                            pyramid_levels=args.pyramid_levels,
