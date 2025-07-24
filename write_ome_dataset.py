@@ -80,10 +80,10 @@ if __name__ == "__main__":
     image = load_image(image_dirs[0], dtype=np.float32)
     slices = [min(image.shape) // 2, min(image.shape) // 3, min(image.shape) // 4]
     time_stamp = datetime.now().strftime("%Y%m%d%H%M")
-    viz_orthogonal_slices(image, slices, savefig=True, title=f"scan_slices_orthogonal_{time_stamp}")
+    viz_orthogonal_slices(image, slices, savefig=True, save_dir="figures", title=f"scan_slices_orthogonal_{time_stamp}")
 
     orient_image = orient_transform(image)
-    viz_orthogonal_slices(orient_image, slices, savefig=True, title=f"scan_slices_orient_orthogonal_{time_stamp}")
+    viz_orthogonal_slices(orient_image, slices, savefig=True, save_dir="figures", title=f"scan_slices_orient_orthogonal_{time_stamp}")
 
     # Remove first category
     if args.remove_first_category:
