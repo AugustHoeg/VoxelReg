@@ -52,8 +52,13 @@ if __name__ == "__main__":
     image_categories = categorize_image_directories(base_dirs, slice_splits, args.slice_axis)
 
     # Print summary
-    for category, paths in image_categories.items():
-        print(f"{category}: {len(paths)} scans")
+    for i, (category, paths) in enumerate(image_categories.items()):
+        if i == 0:
+            print(f"1_{category}: {len(paths)} scans")
+        elif i == len(image_categories) - 1:
+            print(f"{category}_inf: {len(paths)} scans")
+        else:
+            print(f"{category}: {len(paths)} scans")
 
     # Remove first category
     if args.remove_first_category:
