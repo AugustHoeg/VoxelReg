@@ -53,17 +53,17 @@ def parse_arguments():
 
     parser.add_argument("--f", type=int, default=4, help="LR resolution factor.")
 
-    parser.add_argument("--moving_mask_method", default=None, help="Method for creating moving mask, default is None.")
-    parser.add_argument("--moving_mask_threshold", default=None, help="Threshold for binary mask image, default is None.")
+    parser.add_argument("--moving_mask_method", default=None, help="Method for creating moving mask. Currently supports 'threshold' and 'cylinder'. Default is None, which skips mask creation.")
+    parser.add_argument("--moving_mask_threshold", default=None, help="Threshold for binary mask image. If unspecified, otsu thresholding will be used. default is None.")
     parser.add_argument("--moving_cylinder_radius", type=int, default=None, help="Radius of the cylinder for moving mask in voxels.")
     parser.add_argument("--moving_cylinder_center_offset", type=int, nargs=2, default=(0, 0), help="Offset for the center of the cylinder mask in voxels, default is 0 (centered in H, W).")
-    parser.add_argument("--apply_moving_mask", type=bool, default=False, help="Apply moving mask to the image.")
+    parser.add_argument("--apply_moving_mask", action="store_true", help="Apply moving mask to the image.")
 
-    parser.add_argument("--fixed_mask_method", default=None, help="Method for creating fixed mask, default is None.")
+    parser.add_argument("--fixed_mask_method", default=None, help="Method for creating fixed mask. Currently supports 'threshold' and 'cylinder'. Default is None, which skips mask creation.")
     parser.add_argument("--fixed_mask_threshold", default=None, help="Threshold for binary mask image, default is None.")
     parser.add_argument("--fixed_cylinder_radius", type=int, default=None, help="Radius of the cylinder for fixed mask in voxels.")
     parser.add_argument("--fixed_cylinder_center_offset", type=int, nargs=2, default=(0, 0), help="Offset for the center of the cylinder mask in voxels, default is 0 (centered in H, W).")
-    parser.add_argument("--apply_fixed_mask", type=bool, default=False, help="Apply fixed mask to the image.")
+    parser.add_argument("--apply_fixed_mask", action="store_true", help="Apply fixed mask to the image.")
 
     parser.add_argument("--top_index", type=str, default="last", help="Index for the top slice of the image, default is 'last'")
 
