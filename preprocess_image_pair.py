@@ -48,7 +48,7 @@ def parse_arguments():
     parser.add_argument("--moving_divis_factor", type=int, default=8, help="Divisibility factor for cropping highest resolution moving image.")
     parser.add_argument("--fixed_divis_factor", type=int, default=8, help="Divisibility factor for cropping highest resolution fixed image.")
 
-    parser.add_argument("--moving_pyramid_depth", type=int, default=3, help="Depth of saved image pyramid.")
+    parser.add_argument("--moving_pyramid_depth", type=int, default=4, help="Depth of saved image pyramid.")
     parser.add_argument("--fixed_pyramid_depth", type=int, default=4, help="Depth of saved image pyramid.")
 
     parser.add_argument("--f", type=int, default=4, help="LR resolution factor.")
