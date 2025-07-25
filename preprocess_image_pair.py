@@ -120,6 +120,7 @@ if __name__ == "__main__":
                                                        args.moving_cylinder_center_offset,
                                                        args.apply_moving_mask)
 
+    print("Preparing to write moving image pyramid...")
     save_image_pyramid(pyramid, mask_pyramid, affines, moving_path, moving_out_path, args.moving_out_name)
 
     # Visualize
@@ -159,6 +160,7 @@ if __name__ == "__main__":
                                                        args.fixed_cylinder_center_offset,
                                                        args.apply_fixed_mask)
 
+    print("Preparing to write fixed image pyramid...")
     save_image_pyramid(pyramid, mask_pyramid, affines, fixed_path, fixed_out_path, args.fixed_out_name)
 
     # Visualize

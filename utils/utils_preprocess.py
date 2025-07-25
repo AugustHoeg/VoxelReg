@@ -277,6 +277,7 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='thresho
     for i in range(len(image_pyramid)):
 
         if mask_method == 'threshold':
+            print(f"Creating threshold mask for pyramid level: {i}")
             mask_image = image_pyramid[i]
             if mask_threshold is None:  # Use Otsu's method for thresholding if threshold not specified
                 mask_threshold = threshold_otsu(mask_image)
@@ -292,6 +293,7 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='thresho
             # Normalize the image based on the mask
             masked_norm(image_pyramid[i], mask, apply_mask)  # Ensure range is between [0, 1]
         elif mask_method == 'cylinder':
+            print(f"Creating cylinder mask for pyramid level: {i}")
             if cylinder_radius is None:
                 raise ValueError("Pixel radius must be specified for cylindrical mask method.")
             # Create a cylindrical mask based on the image shape
@@ -323,11 +325,11 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
         # Save downscaled images
         # write_tiff(down, os.path.join(sample_path, filename + f"_down_{2**(i+1)}.tiff"))
         # np.save(os.path.join(out_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
-        print("Saving image for pyramid level: ", i)
+        print(f"Writing pyramid image level: {i} with shape {image_pyramid[i].shape}")
         write_nifti(image_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii.gz"))
 
     for i in range(0, len(mask_pyramid)):
         # np.save(os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.npy"), mask)
         # write_tiff(mask, os.path.join(sample_path, filename + "_mask.tiff"))
-        print("Saving mask for pyramid level: ", i)
+        print(f"Writing pyramid mask level: {i} with shape {mask_pyramid[i].shape}")
         write_nifti(mask_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.nii.gz"))
