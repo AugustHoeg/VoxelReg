@@ -9,6 +9,7 @@ from ome_zarr.writer import write_image, write_multiscale, write_multiscale_labe
 from ome_zarr.io import parse_url
 from numcodecs import Zstd, Blosc, LZ4
 from utils.utils_image import load_image, normalize_std
+from utils.utils_preprocess import image_crop_pad
 
 def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648, 648, 648), cname='lz4'):
 
@@ -125,13 +126,25 @@ def write_ome_group(root,
         # Masking
         if mask_paths is not None:
             mask_path = mask_paths[i]
-            mask = load_image(mask_path, dtype=np.float32)
+            mask = load_image(mask_path, dtype=np.uint8)
+            mask = np.ascontiguousarray(mask)
 
             # processing using mask
             pass
 
-        # Cropping
-        image = image[:, :, :]
+        # TODO: We need to check if the image is a multiple of chunk_size in highest resolution image, and to make sure
+        # TODO: the trim is a multiple of 4, otherwise there will be voxel size issues between pyramid levels.
+        if i == 0 and False:
+            # Check that image is multiple of chunk_size
+            trim = np.array(image.shape) / np.array(chunk_size)
+            if np.any(trim != np.floor(trim)):
+                print(f"Warning: Image shape {image.shape} is not a multiple of chunk size {chunk_size}.")
+
+                # Crop image to multiple of chunk_size
+                new_shape = np.array(image.shape) // np.array(chunk_size) * np.array(chunk_size)
+                image, start_coords, end_coords = image_crop_pad(image, new_shape, top_index='first')
+            else:
+                print(f"Image shape {image.shape} is a multiple of chunk size {chunk_size}.")
 
         # Normalize to +-3 standard deviations, rescaled to 0-1
         image = normalize_std(image, standard_deviations=3, mode='rescale')

@@ -130,6 +130,12 @@ if __name__ == "__main__":
         viz_slices(image, slices[1], save_dir=moving_out_path, title=args.moving_out_name + f"_scale_{2 ** i}_pre_axis_1", axis=1)
         viz_slices(image, slices[2], save_dir=moving_out_path, title=args.moving_out_name + f"_scale_{2 ** i}_pre_axis_2", axis=2)
 
+    # Record moving image top center position
+    p1 = [moving.shape[0], moving.shape[1] / 2, moving.shape[2] / 2]
+
+    # Clear memory
+    del moving, pyramid, mask_pyramid
+
 
     ##################### FIXED IMAGE ######################
 
@@ -145,7 +151,6 @@ if __name__ == "__main__":
                                                                                top_index=args.top_index)
 
     # Set fixed origin to moving image top slice, centered in H, W
-    p1 = [moving.shape[0], moving.shape[1] / 2, moving.shape[2] / 2]
     p2 = [fixed.shape[0], fixed.shape[1] / 2, fixed.shape[2] / 2]
     pos_diff = voxel2world(moving_affine, p1) - voxel2world(fixed_affine, p2)
     set_origin(fixed_affine, new_origin=pos_diff)
