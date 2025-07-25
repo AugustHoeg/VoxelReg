@@ -90,7 +90,6 @@ if __name__ == "__main__":
         print("Output name: ", out_name)
     if args.mask_path is not None:
         mask_path = os.path.join(sample_path, args.mask_path)
-        print("Mask path: ", mask_path)
 
     args.affine_transform_file = "transform.txt"
 
