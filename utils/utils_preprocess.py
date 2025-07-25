@@ -278,16 +278,14 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='thresho
 
         if mask_method == 'threshold':
             print(f"Creating threshold mask for pyramid level: {i}")
-            mask_image = image_pyramid[i]
             if mask_threshold is None:  # Use Otsu's method for thresholding if threshold not specified
-                mask_threshold = threshold_otsu(mask_image)
+                mask_threshold = threshold_otsu(image_pyramid[i])
                 print("Otsu threshold: ", mask_threshold)
             else:
                 mask_threshold = float(mask_threshold)
                 print("Custom threshold: ", mask_threshold)
-            mask = np.zeros_like(mask_image)
-            mask[mask_image > mask_threshold] = 1
-            mask = mask.astype(np.uint8)
+            mask = np.zeros(image_pyramid[i].shape, dtype=np.uint8)  # Create a mask of zeros
+            mask[image_pyramid[i] > mask_threshold] = 1  # Set values above threshold to 1
             mask_pyramid.append(mask)
 
             # Normalize the image based on the mask
