@@ -460,7 +460,7 @@ def elastix_refined_registration(fixed_image_sparse, moving_image_sparse, coarse
 
     parameter_object, parameter_map = get_default_parameter_object_list(registration_models, resolution_list, max_iteration_list, metric_list, no_registration_samples_list, write_result_image_list)
 
-    num_threads = 32 if 'bspline' not in registration_models else 1  # bspline does not support more than 1 thread
+    num_threads = 16 if 'bspline' not in registration_models else 1  # bspline does not support more than 1 thread
     elastix_object = get_elastix_registration_object(fixed_image_sparse, moving_image_sparse, parameter_object, num_threads, log_mode=log_mode)
 
     # Set transform parameter object from coarse registration as the initial tranformation for the refinement
