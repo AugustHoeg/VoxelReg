@@ -100,6 +100,11 @@ if __name__ == "__main__":
 
     filename, file_extension = os.path.basename(moving_path).split('.', 1)
 
+    print(f"Loading Moving image: {moving_path}")
+    print(f"Loading Fixed image: {fixed_path}")
+    if args.mask_path is not None:
+        print(f"Loading Mask image: {mask_path}")
+
     if file_extension == "nii" or file_extension == "nii.gz":
         moving_image_sparse = itk.imread(moving_path)
         fixed_image_sparse = itk.imread(fixed_path)
