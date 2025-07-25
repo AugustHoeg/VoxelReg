@@ -2,7 +2,7 @@
 tx2 = get_itk_affine_transform([-0.15945393738619706, 0.25756359580693305, 0.8474877202455747, 0.7493381845372026, 0.4983798814694924, -0.010477544604729855, -0.47229940402940174, 0.7037602488500311, -0.3027454129991309, -99.39023435010945, 49.48104092401816, 81.94456138124868])
 
 result_image_transform = itk.resample_image_filter(moving_image_sparse,
-                          transform=tx2,
+                          transform=transform,
                           use_reference_image=True,
                           reference_image=fixed_image_sparse)
 viz_multiple_images([fixed_image_sparse, moving_image_sparse, result_image_transform], [201], savefig=False)

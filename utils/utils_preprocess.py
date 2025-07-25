@@ -189,8 +189,33 @@ def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), pixel_size_mm=(None
     print("Nifti affine: \n", nifti_affine)
     return image, nifti_affine
 
+def compute_crop_bounds(image, roi, top_index="last", slice_axis=0):
+    start_crop = [0] * image.ndim
+    end_crop = [0] * image.ndim
 
-def image_crop_pad(image, roi, top_index="last"):
+    for i in range(len(roi)):
+        diff = roi[i] - image.shape[i]
+
+        if diff < 0:
+            if i == slice_axis:  # For the slice dimension, crop from the top or bottom
+                if top_index == "first":
+                    crop_before = 0
+                    crop_after = np.abs(diff)
+                else:
+                    crop_before = np.abs(diff)
+                    crop_after = 0
+            else:
+                crop_before = np.abs(diff) // 2
+                crop_after = np.abs(diff) - crop_before
+
+            start_crop[i] = int(crop_before)  # Set the start coordinate for this dimension
+            end_crop[i] = int(crop_after)
+        else:
+            raise ValueError(f"ROI {roi} is larger than image shape {image.shape} in dimension {i}.")
+    return start_crop, end_crop
+
+
+def image_crop_pad(image, roi, top_index="last", slice_axis=0):
     """
     Pads or crops an N-dimensional image to match the specified ROI size.
 
@@ -209,8 +234,17 @@ def image_crop_pad(image, roi, top_index="last"):
         diff = roi[i] - image.shape[i]
 
         if diff > 0:
-            pad_before = diff // 2
-            pad_after = diff - pad_before
+            if i == slice_axis:
+                if top_index == "first":
+                    pad_before = 0
+                    pad_after = diff
+                else:
+                    pad_before = diff
+                    pad_after = 0
+            else:
+                pad_before = diff // 2
+                pad_after = diff - pad_before
+
             pad_width = [(0, 0)] * image.ndim
             pad_width[i] = (pad_before, pad_after)
             image = np.pad(image, pad_width, mode='constant', constant_values=0)
@@ -219,7 +253,7 @@ def image_crop_pad(image, roi, top_index="last"):
             end_coords[i] = image.shape[i]  # Set end coords to the padded image shape
 
         elif diff < 0:
-            if i == 0:  # For the first dimension, crop from the top or bottom
+            if i == slice_axis:  # For the first dimension, crop from the top or bottom
                 if top_index == "first":
                     crop_before = 0
                     crop_after = np.abs(diff)

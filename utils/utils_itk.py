@@ -2,7 +2,7 @@ import numpy as np
 import itk
 import SimpleITK as sitk
 
-def crop_itk_image(image, crop_start, crop_end):
+def compute_itk_origin_size_crop(image, crop_start, crop_end):
 
     start = np.array(crop_start)
     spacing = np.array(image.GetSpacing())
@@ -11,7 +11,7 @@ def crop_itk_image(image, crop_start, crop_end):
 
     offset = direction @ (spacing * start)
     new_origin = origin + offset
-    new_size = crop_end - crop_start
+    new_size = np.array(crop_end) - np.array(crop_start)
     return new_origin, new_size
 
 
@@ -36,6 +36,28 @@ def scale_spacing_and_origin(itk_image, scale_factor):
 
     itk_image.SetSpacing(new_spacing)
     itk_image.SetOrigin(new_origin)
+
+def get_itk_metadata(image):
+    origin = image.GetOrigin()
+    spacing = image.GetSpacing()
+    direction = image.GetDirection()
+    size = itk.size(image)
+
+    return origin, spacing, direction, size
+
+def set_itk_metadata(image, origin, spacing, direction):
+    image.SetOrigin(origin)
+    image.SetSpacing(spacing)
+    image.SetDirection(direction)
+    return image
+
+def crop_itk_image(image, crop_start, crop_end):
+    crop_filter = itk.CropImageFilter.New(Input=image)
+    crop_filter.SetLowerBoundaryCropSize(crop_start)  # pixels cropped from lower side
+    crop_filter.SetUpperBoundaryCropSize(crop_end)  # pixels cropped from upper side
+    crop_filter.Update()
+    cropped_image = crop_filter.GetOutput()
+    return cropped_image
 
 
 def create_itk_view(array):

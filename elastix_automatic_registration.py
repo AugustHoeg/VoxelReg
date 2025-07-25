@@ -3,9 +3,9 @@ import argparse
 import itk
 import numpy as np
 from utils.utils_elastix import elastix_coarse_registration_sweep, elastix_refined_registration
-from utils.utils_itk import create_itk_view, scale_spacing_and_origin
+from utils.utils_itk import create_itk_view, scale_spacing_and_origin, crop_itk_image
 from utils.utils_tiff import load_tiff, write_tiff
-from utils.utils_preprocess import norm, masked_norm
+from utils.utils_preprocess import norm, masked_norm, compute_crop_bounds
 
 
 # Define paths
@@ -20,15 +20,15 @@ out_name = "Larch_A_LFOV_registered"  # Name of the output file
 
 
 # Define paths
-sample_path = project_path + "unregistered/"
+# sample_path = project_path + "unregistered/"
 #moving_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"
 #fixed_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"
 
-sample_path = project_path + "bone_1_cropped/"
-moving_path = sample_path + "moving_scale_4.nii.gz"
-fixed_path = sample_path + "fixed_scale_4.nii.gz"
+sample_path = project_path
+moving_path = project_path + "moving_scale_2.nii.gz"
+fixed_path = project_path + "fixed_scale_8.nii.gz"
 # mask_path = sample_path + "fixed_scale_4_mask.nii.gz"
-out_name = "bone_1_cropped_registered_scale_4"  # Name of the output file
+out_name = "bamboo_out"  # Name of the output file
 
 
 # Load downsampled images
@@ -62,6 +62,8 @@ def parse_arguments():
 
     parser.add_argument("--mask_path", type=str, required=False, default=None, help="Path to the mask image.")
 
+    parser.add_argument("--moving_image_roi", type=int, nargs=3, default=(1600, 900, 900), help="Region of interest for the moving image in (D, H, W) format. Default is (1600, 900, 900).")
+
     args = parser.parse_args()
     return args
 
@@ -90,10 +92,7 @@ if __name__ == "__main__":
         print("Output name: ", out_name)
     if args.mask_path is not None:
         mask_path = os.path.join(sample_path, args.mask_path)
-
-    args.affine_transform_file = "transform.txt"
-
-    if args.affine_transform_file is not None:
+    if args.affine_transform_file is not None:  # args.affine_transform_file = "transform.txt"
         args.affine_transform_file = os.path.join(sample_path, args.affine_transform_file)
         print("Affine transform file: ", args.affine_transform_file)
 
@@ -105,7 +104,7 @@ if __name__ == "__main__":
         print(f"Loading Mask image: {mask_path}")
 
     if file_extension == "nii" or file_extension == "nii.gz":
-        moving_image_sparse = itk.imread(moving_path)
+        moving_image = itk.imread(moving_path)
         fixed_image_sparse = itk.imread(fixed_path)
         if args.mask_path is not None:
             mask_image_sparse = itk.imread(mask_path)
@@ -116,8 +115,8 @@ if __name__ == "__main__":
         fixed_array_sparse = load_tiff(fixed_path)
 
         # Convert to ITK images and set spacing and origin
-        moving_image_sparse = create_itk_view(moving_array_sparse)
-        scale_spacing_and_origin(moving_image_sparse, 1.0)
+        moving_image = create_itk_view(moving_array_sparse)
+        scale_spacing_and_origin(moving_image, 1.0)
 
         fixed_image_sparse = create_itk_view(fixed_array_sparse)
         scale_spacing_and_origin(fixed_image_sparse, 1.0)
@@ -132,8 +131,8 @@ if __name__ == "__main__":
         fixed_array_sparse = np.load(fixed_path)
 
         # Convert to ITK images and set spacing and origin
-        moving_image_sparse = create_itk_view(moving_array_sparse)
-        scale_spacing_and_origin(moving_image_sparse, 1.0)
+        moving_image = create_itk_view(moving_array_sparse)
+        scale_spacing_and_origin(moving_image, 1.0)
 
         fixed_image_sparse = create_itk_view(fixed_array_sparse)
         scale_spacing_and_origin(fixed_image_sparse, 1.0)
@@ -146,6 +145,10 @@ if __name__ == "__main__":
         raise ValueError(f"Unsupported file extension: {file_extension}")
 
 
+    # Set FOV of fixed and moving image
+    start_crop, end_crop = compute_crop_bounds(moving_image, args.moving_image_roi[::-1], top_index='last', slice_axis=2)
+    moving_image_sparse = crop_itk_image(moving_image, start_crop[::-1], end_crop[::-1])  # should be long
+
     # Coarse registration parameters
     #center = [731, 65, 65]  # None
     #center = [1459, 161, 161]  # If any value is None, will pick geometric center for xy and top for z
@@ -154,10 +157,6 @@ if __name__ == "__main__":
     center = args.center
     spacing = args.spacing
     size = args.size
-
-    #ImageTypeOut = itk.Image[itk.F, 3]  # e.g., float32, 3D
-    #moving_image_sparse = itk.cast_image_filter(moving_image_sparse, ttype=[type(moving_image_sparse), ImageTypeOut])
-    #fixed_image_sparse = itk.cast_image_filter(fixed_image_sparse, ttype=[type(fixed_image_sparse), ImageTypeOut])
 
     # Run coarse registration via sweep
     result_coarse, coarse_trans_obj, metric = elastix_coarse_registration_sweep(
