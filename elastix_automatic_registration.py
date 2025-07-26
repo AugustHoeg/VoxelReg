@@ -62,7 +62,7 @@ def parse_arguments():
 
     parser.add_argument("--mask_path", type=str, required=False, default=None, help="Path to the mask image.")
 
-    parser.add_argument("--moving_image_roi", type=int, nargs=3, default=(1600, 900, 900), help="Region of interest for the moving image in (D, H, W) format. Default is (1600, 900, 900).")
+    parser.add_argument("--moving_image_roi", type=int, nargs=3, default=(np.inf, np.inf, np.inf), help="Region of interest for the moving image in (D, H, W) format. Default is (inf, inf, inf).")
 
     args = parser.parse_args()
     return args

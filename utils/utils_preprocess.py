@@ -194,24 +194,22 @@ def compute_crop_bounds(image, roi, top_index="last", slice_axis=0):
     end_crop = [0] * image.ndim
 
     for i in range(len(roi)):
-        diff = roi[i] - image.shape[i]
+        diff = min(0, roi[i] - image.shape[i])  # ensure diff is negative for cropping
 
-        if diff < 0:
-            if i == slice_axis:  # For the slice dimension, crop from the top or bottom
-                if top_index == "first":
-                    crop_before = 0
-                    crop_after = np.abs(diff)
-                else:
-                    crop_before = np.abs(diff)
-                    crop_after = 0
+        if i == slice_axis:  # For the slice dimension, crop from the top or bottom
+            if top_index == "first":
+                crop_before = 0
+                crop_after = np.abs(diff)
             else:
-                crop_before = np.abs(diff) // 2
-                crop_after = np.abs(diff) - crop_before
-
-            start_crop[i] = int(crop_before)  # Set the start coordinate for this dimension
-            end_crop[i] = int(crop_after)
+                crop_before = np.abs(diff)
+                crop_after = 0
         else:
-            raise ValueError(f"ROI {roi} is larger than image shape {image.shape} in dimension {i}.")
+            crop_before = np.abs(diff) // 2
+            crop_after = np.abs(diff) - crop_before
+
+        start_crop[i] = int(crop_before)  # Set the start coordinate for this dimension
+        end_crop[i] = int(crop_after)
+
     return start_crop, end_crop
 
 
