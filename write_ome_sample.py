@@ -13,6 +13,7 @@ def parse_arguments():
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Preprocess 3D image data for registration.")
     parser.add_argument("--base_path", type=str, required=True, help="Path to the base directory. Other paths will be relative to this path.")
+    parser.add_argument("--sample_path", type=str, required=True, help="Path to the sample directory relative to the base path.")
     parser.add_argument("--HR_paths", type=str, nargs='*', required=False, help="Path to the sample directory.")
     parser.add_argument("--LR_paths", type=str, nargs='*', required=False, help="Path to fixed image.")
     parser.add_argument("--REG_paths", type=str, nargs='*', required=False, help="Path to fixed image.")
@@ -27,8 +28,11 @@ def parse_arguments():
     parser.add_argument("--LR_chunks", type=int, nargs=3, default=(160, 160, 160), help="Size of largest low-res ome-zarr chunk (D, H, W).")
     parser.add_argument("--REG_chunks", type=int, nargs=3, default=(80, 80, 80), help="Size of largest registred ome-zarr chunk (D, H, W).")
 
-    parser.add_argument("--set_slice_count", type=int, default=0, help="Force scans to have a certain set slice count if greater than zero.")
-    parser.add_argument("--print_summary_only", action="store_true", help="If set, only print the summary of image paths without writing to OME-Zarr.")
+    #parser.add_argument("--set_slice_count", type=int, default=0, help="Force scans to have a certain set slice count if greater than zero.")
+    #parser.add_argument("--print_summary_only", action="store_true", help="If set, only print the summary of image paths without writing to OME-Zarr.")
+
+    parser.add_argument("--split_axis", type=int, default=0, help="Axis along which to split the image data (0 for depth, 1 for height, 2 for width).")
+    parser.add_argument("--num_split_sections", type=int, default=1, help="Number of sections to split the image data into along the specified axis.")
 
     args = parser.parse_args()
     return args
@@ -57,7 +61,17 @@ if __name__ == "__main__":
     #     mask_path = os.path.join(sample_path, args.mask_path)
     #     print("Mask path: ", mask_path)
 
-    write_ome_datasample(out_path, HR_paths, LR_paths, REG_paths, args.HR_chunks, args.LR_chunks, args.REG_chunks)
+    write_ome_datasample(out_path,
+                         HR_paths,
+                         LR_paths,
+                         REG_paths,
+                         args.HR_chunks,
+                         args.LR_chunks,
+                         args.REG_chunks,
+                         split_axis=args.split_axis,
+                         num_split_sections=args.num_split_sections,
+                         compression='lz4'
+                         )
 
     print("Done writing OME-Zarr data sample")
 

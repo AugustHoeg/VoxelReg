@@ -44,7 +44,8 @@ def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648
 
     print("Done writing multiscale data to OME-Zarr group")
 
-def write_ome_datasample(out_path, HR_paths, LR_paths, REG_paths, HR_chunks, LR_chunks, REG_chunks):
+
+def write_ome_datasample(out_name, HR_paths, LR_paths, REG_paths, HR_chunks, LR_chunks, REG_chunks, split_axis=0, num_split_sections=1, compression='lz4'):
 
     """
     We need these images:
@@ -66,122 +67,159 @@ def write_ome_datasample(out_path, HR_paths, LR_paths, REG_paths, HR_chunks, LR_
     if HR_paths is None:
         raise ValueError("HR image paths are required and cannot be empty.")
 
-    # Create/open a Zarr array in write mode
-    file_path = f"{out_path}.zarr"
-
-    if os.path.exists(file_path):
-        print(f"File {file_path} already exists. Skipping...")
-        return -1
-
-    store = parse_url(file_path, mode="w").store
-    #store = DirectoryStore(file_path)
-    root = zarr.group(store=store)
-
-    write_ome_group(root,
+    write_ome_group(image_paths=HR_paths,
+                    out_name=out_name,
                     group_name='HR',
-                    image_paths=HR_paths,
-                    mask_paths=None,
-                    chunk_size=HR_chunks,
-                    cname='lz4')
+                    split_axis=split_axis,
+                    num_split_sections=num_split_sections,
+                    chunks=HR_chunks,
+                    compression=compression)
 
-    if LR_paths is None:
+    if len(LR_paths) == 0:
         print("No LR image paths provided, skipping LR group.")
     else:
-        write_ome_group(root,
+        write_ome_group(image_paths=LR_paths,
+                        out_name=out_name,
                         group_name='LR',
-                        image_paths=LR_paths,
-                        mask_paths=None,
-                        chunk_size=LR_chunks,
-                        cname='lz4')
+                        split_axis=split_axis,
+                        num_split_sections=num_split_sections,
+                        chunks=LR_chunks,
+                        compression=compression)
 
-    if REG_paths is None:
+    if len(REG_paths) == 0:
         print("No REG image paths provided, skipping REG group.")
     else:
-        write_ome_group(root,
+        write_ome_group(image_paths=REG_paths,
+                        out_name=out_name,
                         group_name='REG',
-                        image_paths=REG_paths,
-                        mask_paths=None,
-                        chunk_size=REG_chunks,
-                        cname='lz4')
+                        split_axis=split_axis,
+                        num_split_sections=num_split_sections,
+                        chunks=REG_chunks,
+                        compression=compression)
 
-    print(f"Done writing OME-Zarr data sample to {file_path}")
+    return 0
 
 
+def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, num_split_sections=1, chunks=(160, 160, 160), compression='lz4'):
 
-def write_ome_group(root,
-                    group_name,
-                    image_paths,
-                    mask_paths=None,
-                    chunk_size=(160, 160, 160),
-                    cname='lz4'):
+    if image_paths is None:
+        raise ValueError("Image paths are required and cannot be empty.")
 
-    # Load HR image pyramid
+    # Load the image pyramid
+    pyramid_splits = load_image_pyramid_splits(image_paths,
+                                               split_axis,
+                                               num_split_sections,
+                                               dtype=np.float32,
+                                               normalize=True)
+
+    for i in range(num_split_sections):
+        # Create the output path for each split
+        if num_split_sections > 1:
+            if ".zarr" in out_name:
+                out_name = out_name.replace(".zarr", f"_{i}.zarr")
+            else:
+                out_path = f"{out_name}_{i}.zarr"
+            print(f"Writing OME-Zarr data sample split {i} to {out_path}")
+        else:
+            if ".zarr" in out_name:
+                out_path = out_name
+            else:
+                out_path = f"{out_name}.zarr"
+            print(f"Writing OME-Zarr data sample to {out_path}")
+
+        # Create/open a Zarr array in write mode
+        store = parse_url(out_path, mode="w").store
+        # store = DirectoryStore(file_path)
+        root = zarr.group(store=store)
+
+        if os.path.exists(os.path.join(out_path, group_name)):
+            print(f"Group {group_name} already exists in {out_path}. Skipping...")
+            return 0
+        else:
+            # Create image group for the volume
+            image_group = root.create_group(group_name)
+
+        write_ome_pyramid(
+            image_group=image_group,
+            image_pyramid=pyramid_splits[i],
+            label_pyramid=None,  # No labels
+            chunk_size=chunks,
+            cname=compression  # Compression codec
+        )
+
+        print(f"Done writing OME-Zarr data to {out_path}/{group_name}")
+
+    return 0
+
+
+def load_image_pyramid(image_paths, dtype=np.float32, normalize=True):
+    """
+    Load a pyramid of images from given paths.
+    If mask_paths are provided, apply the masks to the images.
+    """
     pyramid = []
-    for i in range(len(image_paths)):
-        # load image
-        image_path = image_paths[i]
-        image = load_image(image_path, dtype=np.float32)
+    for i, image_path in enumerate(image_paths):
+        # Load image
+        image = load_image(image_path, dtype=dtype)
         image = np.ascontiguousarray(image)
 
-        # Masking
-        if mask_paths is not None:
-            mask_path = mask_paths[i]
-            mask = load_image(mask_path, dtype=np.uint8)
-            mask = np.ascontiguousarray(mask)
-
-            # processing using mask
-            pass
-
-        # TODO: We need to check if the image is a multiple of chunk_size in highest resolution image, and to make sure
-        # TODO: the trim is a multiple of 4, otherwise there will be voxel size issues between pyramid levels.
-        if i == 0 and False:
-            # Check that image is multiple of chunk_size
-            trim = np.array(image.shape) / np.array(chunk_size)
-            if np.any(trim != np.floor(trim)):
-                print(f"Warning: Image shape {image.shape} is not a multiple of chunk size {chunk_size}.")
-
-                # Crop image to multiple of chunk_size
-                new_shape = np.array(image.shape) // np.array(chunk_size) * np.array(chunk_size)
-                image, start_coords, end_coords = image_crop_pad(image, new_shape, top_index='first')
-            else:
-                print(f"Image shape {image.shape} is a multiple of chunk size {chunk_size}.")
-
-        # Normalize to +-3 standard deviations, rescaled to 0-1
-        image = normalize_std(image, standard_deviations=3, mode='rescale')
+        if normalize:
+            image = normalize_std(image, standard_deviations=3, mode='rescale')
 
         pyramid.append(image)
 
-    # Create image group for the volume
-    image_group = root.create_group(group_name)
+    return pyramid
 
-    write_ome_pyramid(
-        image_group=image_group,
-        image_pyramid=pyramid,
-        label_pyramid=None,  # No labels
-        chunk_size=chunk_size,
-        cname=cname  # Compression codec
-    )
 
+def load_image_pyramid_splits(image_paths, split_axis=0, num_split_sections=1, dtype=np.float32, normalize=True):
+
+    # Load image pyramid
+    pyramid = []
+    for i, image_path in enumerate(image_paths):
+        # Load image
+        image = load_image(image_path, dtype=dtype)
+        image = np.ascontiguousarray(image)
+
+        if normalize:
+            image = normalize_std(image, standard_deviations=3, mode='rescale')
+
+        pyramid.append(image)
+
+    if num_split_sections <= 1:
+        # If no splitting is required, return the pyramid as is
+        return [pyramid]
+
+    # Split the pyramid images into num_splits along the specified axis
+    pyramid_splits = [] * num_split_sections
+    for image in pyramid:
+        splits = np.array_split(image, num_split_sections, axis=split_axis)
+
+        for i, split in enumerate(splits):
+            pyramid_splits[i].append(split)
+
+    return pyramid_splits
 
 
 if __name__ == "__main__":
 
-    sample_name = "Femur_74_80kV"
-    project_path = "../../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Femur_74/"
+    sample_name = "Femur_01_80kV"
+    project_path = "../../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Femur_01"
 
-    HR_paths = glob.glob(os.path.join(project_path, "fixed_scale_*.nii.gz" ))
+    HR_paths = glob.glob(os.path.join(project_path, "fixed_scale_*.nii.gz"))
     LR_paths = glob.glob(os.path.join(project_path, "moving_scale_*.nii.gz"))
     REG_paths = glob.glob(os.path.join(project_path, f"{sample_name}*.nii.gz"))
 
-    out_path = os.path.join(project_path, "Femur_74_ome")
+    out_name = os.path.join(project_path, "Femur_01_ome")
 
-    write_ome_datasample(out_path=out_path,
+    write_ome_datasample(out_name=out_name,
                          HR_paths=HR_paths,
                          LR_paths=LR_paths,
                          REG_paths=REG_paths,
-                         HR_chunks=(80, 80, 80),
-                         LR_chunks=(80, 80, 80),
-                         REG_chunks=(40, 40, 40)
-                         )
+                         HR_chunks=(160, 160, 160),
+                         LR_chunks=(120, 120, 120),
+                         REG_chunks=(40, 40, 40),
+                         split_axis=0,
+                         num_split_sections=1,
+                         compression='lz4')
 
     print("Done writing OME-Zarr data sample")
