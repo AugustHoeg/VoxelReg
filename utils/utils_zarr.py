@@ -205,7 +205,7 @@ def load_image_pyramid_splits(image_paths, split_axis=0, split_indices=(), dtype
     # Split the pyramid images into num_splits along the specified axis
     pyramid_splits = [[] for _ in range(len(split_indices) + 1)]
     for i, image in enumerate(pyramid):
-        print(f"Splitting pyramid image: {i} along axis {split_axis} with indices {split_indices}")
+        print(f"Splitting pyramid image: {i} along axis {split_axis} with indices {list(np.array(split_indices) // 2**i)}")
         splits = np.array_split(image, np.array(split_indices) // 2**i, axis=split_axis)
 
         for i, split in enumerate(splits):
