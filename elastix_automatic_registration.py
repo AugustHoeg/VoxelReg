@@ -63,6 +63,7 @@ def parse_arguments():
     parser.add_argument("--mask_path", type=str, required=False, default=None, help="Path to the mask image.")
 
     parser.add_argument("--moving_image_roi", type=int, nargs=3, default=(np.inf, np.inf, np.inf), help="Region of interest for the moving image in (D, H, W) format. Default is (inf, inf, inf).")
+    parser.add_argument("--top_index", type=str, default='last', help="Index of the top slice for cropping. Default is 'last'. Can be 'first' or 'last'.")
 
     args = parser.parse_args()
     return args
@@ -146,7 +147,8 @@ if __name__ == "__main__":
 
 
     # Set FOV of fixed and moving image
-    start_crop, end_crop = compute_crop_bounds(moving_image, args.moving_image_roi[::-1], top_index='last', slice_axis=2)
+    print(f"Cropping moving image to ROI: {args.moving_image_roi} with top_index: '{args.top_index}'")
+    start_crop, end_crop = compute_crop_bounds(moving_image, args.moving_image_roi[::-1], args.top_index, slice_axis=2)
     moving_image_sparse = crop_itk_image(moving_image, start_crop[::-1], end_crop[::-1])  # should be long
 
     # Coarse registration parameters
