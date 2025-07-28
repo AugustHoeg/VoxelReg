@@ -111,7 +111,7 @@ def write_ome_datasample(out_name,
     return 0
 
 
-def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_indices=(), chunks=(160, 160, 160), compression='lz4'):
+def write_ome_group(image_paths, out_path, group_name='HR', split_axis=0, split_indices=(), chunks=(160, 160, 160), compression='lz4'):
 
     if image_paths is None:
         raise ValueError("Image paths are required and cannot be empty.")
@@ -126,16 +126,16 @@ def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_
     for i in range(len(split_indices) + 1):
         # Create the output path for each split
         if split_indices:  # if split_indices is not empty
-            if ".zarr" in out_name:
-                out_name = out_name.replace(".zarr", f"_{i}.zarr")
+            if ".zarr" in out_path:
+                out_path = out_path.replace(".zarr", f"_{i}.zarr")
             else:
-                out_path = f"{out_name}_{i}.zarr"
+                out_path = f"{out_path}_{i}.zarr"
             print(f"Writing OME-Zarr data sample split {i} to {out_path}")
         else:
-            if ".zarr" in out_name:
-                out_path = out_name
+            if ".zarr" in out_path:
+                pass
             else:
-                out_path = f"{out_name}.zarr"
+                out_path = f"{out_path}.zarr"
             print(f"Writing OME-Zarr data sample to {out_path}")
 
         # Create/open a Zarr array in write mode
