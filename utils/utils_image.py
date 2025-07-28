@@ -10,6 +10,9 @@ import monai.transforms
 
 def load_image(image_path, dtype=np.float32, dataset_name='/exchange/data', return_metadata=False):
 
+    image = None
+    metadata = None
+
     if '.' not in os.path.basename(image_path):
         if glob.glob(os.path.join(image_path, '*.dcm')):
             reader = monai.transforms.LoadImage(dtype=dtype, image_only=True)
@@ -117,3 +120,7 @@ def create_cylinder_mask(shape, cylinder_radius, cylinder_offset):
         mask[slice_idx, :, :] = distance_from_center <= cylinder_radius
 
     return mask
+
+
+if __name__ == "__main__":
+    pass
