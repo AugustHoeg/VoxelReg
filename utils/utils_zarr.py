@@ -79,7 +79,7 @@ def write_ome_datasample(out_name,
         raise ValueError("HR image paths are required and cannot be empty.")
 
     write_ome_group(image_paths=HR_paths,
-                    out_name=out_name,
+                    out_path=out_name,
                     group_name='HR',
                     split_axis=split_axis,
                     split_indices=HR_split_indices,
@@ -90,7 +90,7 @@ def write_ome_datasample(out_name,
         print("No LR image paths provided, skipping LR group.")
     else:
         write_ome_group(image_paths=LR_paths,
-                        out_name=out_name,
+                        out_path=out_name,
                         group_name='LR',
                         split_axis=split_axis,
                         split_indices=LR_split_indices,
@@ -101,7 +101,7 @@ def write_ome_datasample(out_name,
         print("No REG image paths provided, skipping REG group.")
     else:
         write_ome_group(image_paths=REG_paths,
-                        out_name=out_name,
+                        out_path=out_name,
                         group_name='REG',
                         split_axis=split_axis,
                         split_indices=REG_split_indices,
