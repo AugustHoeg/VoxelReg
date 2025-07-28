@@ -77,6 +77,8 @@ def write_ome_datasample(out_name,
 
     if len(HR_paths) == 0:
         raise ValueError("HR image paths are required and cannot be empty.")
+    else:
+        print("HR paths: ", HR_paths)
 
     write_ome_group(image_paths=HR_paths,
                     out_name=out_name,

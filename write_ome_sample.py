@@ -19,17 +19,10 @@ def parse_arguments():
     parser.add_argument("--REG_paths", type=str, nargs='*', required=False, help="Path to fixed image.")
     parser.add_argument("--out_path", type=str, required=False, help="Path to the output file.")
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the registered output image.")
-    # parser.add_argument("--mask_path", type=str, required=False, default=None, help="Path to the mask image.")
-    # parser.add_argument("--name_format", type=str, required=False, help="Format for the output names.")
-    # parser.add_argument("--name_prefix", type=str, required=False, help="Prefix for the output files.")
-    # parser.add_argument("--name_suffix", type=str, required=False, help="Suffix for the output files.")
 
     parser.add_argument("--HR_chunks", type=int, nargs=3, default=(160, 160, 160), help="Size of largest high-res ome-zarr chunk (D, H, W).")
     parser.add_argument("--LR_chunks", type=int, nargs=3, default=(160, 160, 160), help="Size of largest low-res ome-zarr chunk (D, H, W).")
     parser.add_argument("--REG_chunks", type=int, nargs=3, default=(80, 80, 80), help="Size of largest registred ome-zarr chunk (D, H, W).")
-
-    #parser.add_argument("--set_slice_count", type=int, default=0, help="Force scans to have a certain set slice count if greater than zero.")
-    #parser.add_argument("--print_summary_only", action="store_true", help="If set, only print the summary of image paths without writing to OME-Zarr.")
 
     parser.add_argument("--HR_split_indices", type=int, nargs='*', default=(), help="Indices along the split axis for high-res images.")
     parser.add_argument("--LR_split_indices", type=int, nargs='*', default=(), help="Indices along the split axis for low-res images.")
