@@ -1,4 +1,4 @@
-
+import math
 import os
 import glob
 import numpy as np
@@ -45,7 +45,18 @@ def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648
     print("Done writing multiscale data to OME-Zarr group")
 
 
-def write_ome_datasample(out_name, HR_paths, LR_paths, REG_paths, HR_chunks, LR_chunks, REG_chunks, split_axis=0, num_split_sections=1, compression='lz4'):
+def write_ome_datasample(out_name,
+                         HR_paths,
+                         LR_paths,
+                         REG_paths,
+                         HR_chunks,
+                         LR_chunks,
+                         REG_chunks,
+                         HR_split_indices=(),
+                         LR_split_indices=(),
+                         REG_split_indices=(),
+                         split_axis=0,
+                         compression='lz4'):
 
     """
     We need these images:
@@ -64,14 +75,14 @@ def write_ome_datasample(out_name, HR_paths, LR_paths, REG_paths, HR_chunks, LR_
             - <sample_name>_scale_2.nii.gz
     """
 
-    if HR_paths is None:
+    if len(HR_paths) == 0:
         raise ValueError("HR image paths are required and cannot be empty.")
 
     write_ome_group(image_paths=HR_paths,
                     out_name=out_name,
                     group_name='HR',
                     split_axis=split_axis,
-                    num_split_sections=num_split_sections,
+                    split_indices=HR_split_indices,
                     chunks=HR_chunks,
                     compression=compression)
 
@@ -82,7 +93,7 @@ def write_ome_datasample(out_name, HR_paths, LR_paths, REG_paths, HR_chunks, LR_
                         out_name=out_name,
                         group_name='LR',
                         split_axis=split_axis,
-                        num_split_sections=num_split_sections,
+                        split_indices=LR_split_indices,
                         chunks=LR_chunks,
                         compression=compression)
 
@@ -93,14 +104,14 @@ def write_ome_datasample(out_name, HR_paths, LR_paths, REG_paths, HR_chunks, LR_
                         out_name=out_name,
                         group_name='REG',
                         split_axis=split_axis,
-                        num_split_sections=num_split_sections,
+                        split_indices=REG_split_indices,
                         chunks=REG_chunks,
                         compression=compression)
 
     return 0
 
 
-def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, num_split_sections=1, chunks=(160, 160, 160), compression='lz4'):
+def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_indices=(), chunks=(160, 160, 160), compression='lz4'):
 
     if image_paths is None:
         raise ValueError("Image paths are required and cannot be empty.")
@@ -108,13 +119,13 @@ def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, num_sp
     # Load the image pyramid
     pyramid_splits = load_image_pyramid_splits(image_paths,
                                                split_axis,
-                                               num_split_sections,
+                                               split_indices,
                                                dtype=np.float32,
                                                normalize=True)
 
-    for i in range(num_split_sections):
+    for i in range(len(split_indices) + 1):
         # Create the output path for each split
-        if num_split_sections > 1:
+        if len(split_indices) == 0:
             if ".zarr" in out_name:
                 out_name = out_name.replace(".zarr", f"_{i}.zarr")
             else:
@@ -171,7 +182,7 @@ def load_image_pyramid(image_paths, dtype=np.float32, normalize=True):
     return pyramid
 
 
-def load_image_pyramid_splits(image_paths, split_axis=0, num_split_sections=1, dtype=np.float32, normalize=True):
+def load_image_pyramid_splits(image_paths, split_axis=0, split_indices=(), dtype=np.float32, normalize=True):
 
     # Load image pyramid
     pyramid = []
@@ -185,14 +196,14 @@ def load_image_pyramid_splits(image_paths, split_axis=0, num_split_sections=1, d
 
         pyramid.append(image)
 
-    if num_split_sections <= 1:
+    if len(split_indices) == 0:
         # If no splitting is required, return the pyramid as is
         return [pyramid]
 
     # Split the pyramid images into num_splits along the specified axis
-    pyramid_splits = [] * num_split_sections
-    for image in pyramid:
-        splits = np.array_split(image, num_split_sections, axis=split_axis)
+    pyramid_splits = [[] for _ in range(len(split_indices) + 1)]
+    for i, image in enumerate(pyramid):
+        splits = np.array_split(image, np.array(split_indices) // 2**i, axis=split_axis)
 
         for i, split in enumerate(splits):
             pyramid_splits[i].append(split)
@@ -218,8 +229,10 @@ if __name__ == "__main__":
                          HR_chunks=(160, 160, 160),
                          LR_chunks=(120, 120, 120),
                          REG_chunks=(40, 40, 40),
+                         HR_split_indices=(320, ),
+                         LR_split_indices=(480, ),
+                         REG_split_indices=(480, ),
                          split_axis=0,
-                         num_split_sections=1,
                          compression='lz4')
 
     print("Done writing OME-Zarr data sample")

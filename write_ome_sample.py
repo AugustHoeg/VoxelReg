@@ -31,8 +31,10 @@ def parse_arguments():
     #parser.add_argument("--set_slice_count", type=int, default=0, help="Force scans to have a certain set slice count if greater than zero.")
     #parser.add_argument("--print_summary_only", action="store_true", help="If set, only print the summary of image paths without writing to OME-Zarr.")
 
+    parser.add_argument("--HR_split_indices", type=int, nargs='*', default=(), help="Indices along the split axis for high-res images.")
+    parser.add_argument("--LR_split_indices", type=int, nargs='*', default=(), help="Indices along the split axis for low-res images.")
+    parser.add_argument("--REG_split_indices", type=int, nargs='*', default=(), help="Indices along the split axis for registered images.")
     parser.add_argument("--split_axis", type=int, default=0, help="Axis along which to split the image data (0 for depth, 1 for height, 2 for width).")
-    parser.add_argument("--num_split_sections", type=int, default=1, help="Number of sections to split the image data into along the specified axis.")
 
     args = parser.parse_args()
     return args
@@ -68,8 +70,10 @@ if __name__ == "__main__":
                          args.HR_chunks,
                          args.LR_chunks,
                          args.REG_chunks,
+                         args.HR_split_indices,
+                         args.LR_split_indices,
+                         args.REG_split_indices,
                          split_axis=args.split_axis,
-                         num_split_sections=args.num_split_sections,
                          compression='lz4'
                          )
 
