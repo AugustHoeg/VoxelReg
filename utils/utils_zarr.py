@@ -125,7 +125,7 @@ def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_
 
     for i in range(len(split_indices) + 1):
         # Create the output path for each split
-        if len(split_indices) == 0:
+        if split_indices:  # if split_indices is not empty
             if ".zarr" in out_name:
                 out_name = out_name.replace(".zarr", f"_{i}.zarr")
             else:
