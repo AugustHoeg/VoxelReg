@@ -54,8 +54,9 @@ if __name__ == "__main__":
         out_path = os.path.join(sample_path, args.out_path)
     if args.out_name is not None:
         out_path = os.path.join(out_path, args.out_name)  # out_name = os.path.join(sample_path, args.out_name)
+        print("Output name: ", out_path)
 
-    print("Output path: ", out_path)
+    print("Output path: ", args.out_name)
 
     # if args.mask_path is not None:
     #     mask_path = os.path.join(sample_path, args.mask_path)
@@ -65,7 +66,7 @@ if __name__ == "__main__":
     print("LR split indices: ", args.LR_split_indices)
     print("REG split indices: ", args.REG_split_indices)
 
-    write_ome_datasample(out_name,
+    write_ome_datasample(out_path,
                          HR_paths,
                          LR_paths,
                          REG_paths,
