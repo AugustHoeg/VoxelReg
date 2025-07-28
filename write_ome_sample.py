@@ -60,6 +60,10 @@ if __name__ == "__main__":
     #     mask_path = os.path.join(sample_path, args.mask_path)
     #     print("Mask path: ", mask_path)
 
+    print("HR split indices: ", args.HR_split_indices)
+    print("LR split indices: ", args.LR_split_indices)
+    print("REG split indices: ", args.REG_split_indices)
+
     write_ome_datasample(out_path,
                          HR_paths,
                          LR_paths,
