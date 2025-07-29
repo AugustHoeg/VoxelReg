@@ -90,7 +90,8 @@ if __name__ == "__main__":
     # Remove first category
     if args.remove_first_category:
         print(f"Removing first category: {slice_splits[0]}")
-        del image_categories[str(slice_splits[0])]
+        image_categories.pop(next(iter(image_categories)))  # remove first category
+        # del image_categories[str(slice_splits[0])]
 
     if args.print_summary_only:
         print("Summary printed. Exiting without writing OME-Zarr data samples.")
