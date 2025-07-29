@@ -79,7 +79,7 @@ def write_ome_datasample(out_name,
         raise ValueError("HR image paths are required and cannot be empty.")
 
     write_ome_group(image_paths=HR_paths,
-                    out_path=out_name,
+                    out_name=out_name,
                     group_name='HR',
                     split_axis=split_axis,
                     split_indices=HR_split_indices,
@@ -90,7 +90,7 @@ def write_ome_datasample(out_name,
         print("No LR image paths provided, skipping LR group.")
     else:
         write_ome_group(image_paths=LR_paths,
-                        out_path=out_name,
+                        out_name=out_name,
                         group_name='LR',
                         split_axis=split_axis,
                         split_indices=LR_split_indices,
@@ -101,7 +101,7 @@ def write_ome_datasample(out_name,
         print("No REG image paths provided, skipping REG group.")
     else:
         write_ome_group(image_paths=REG_paths,
-                        out_path=out_name,
+                        out_name=out_name,
                         group_name='REG',
                         split_axis=split_axis,
                         split_indices=REG_split_indices,
@@ -111,7 +111,7 @@ def write_ome_datasample(out_name,
     return 0
 
 
-def write_ome_group(image_paths, out_path, group_name='HR', split_axis=0, split_indices=(), chunks=(160, 160, 160), compression='lz4'):
+def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_indices=(), chunks=(160, 160, 160), compression='lz4'):
 
     if image_paths is None:
         raise ValueError("Image paths are required and cannot be empty.")
@@ -123,20 +123,23 @@ def write_ome_group(image_paths, out_path, group_name='HR', split_axis=0, split_
                                                dtype=np.float32,
                                                normalize=True)
 
-    for i in range(len(split_indices) + 1):
-        # Create the output path for each split
-        if split_indices:  # if split_indices is not empty
-            if ".zarr" in out_path:
-                out_path = out_path.replace(".zarr", f"_{i}.zarr")
-            else:
-                out_path = f"{out_path}_{i}.zarr"
-            print(f"Writing OME-Zarr data sample split {i} to {out_path}")
+    out_path = out_name
+
+    if split_indices:
+        # Create file name for each split index
+        if ".zarr" in out_path:
+            out_paths = [out_path.replace(".zarr", f"_{i}.zarr") for i in range(len(split_indices) + 1)]
         else:
-            if ".zarr" in out_path:
-                pass
-            else:
-                out_path = f"{out_path}.zarr"
-            print(f"Writing OME-Zarr data sample to {out_path}")
+            out_paths = [f"{out_path}_{i}.zarr" for i in range(len(split_indices) + 1)]
+    else:
+        if ".zarr" not in out_path:
+            out_path = f"{out_path}.zarr"
+        out_paths = [out_path]
+
+    for i in range(len(split_indices) + 1):
+
+        out_path = out_paths[i]
+        print(f"Writing OME-Zarr data sample to {out_path}, split index {i}/{len(split_indices)}")
 
         # Create/open a Zarr array in write mode
         store = parse_url(out_path, mode="w").store
@@ -145,7 +148,7 @@ def write_ome_group(image_paths, out_path, group_name='HR', split_axis=0, split_
 
         if os.path.exists(os.path.join(out_path, group_name)):
             print(f"Group {group_name} already exists in {out_path}. Skipping...")
-            return 0
+            continue
         else:
             # Create image group for the volume
             image_group = root.create_group(group_name)

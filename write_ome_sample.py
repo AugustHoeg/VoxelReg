@@ -37,9 +37,30 @@ if __name__ == "__main__":
 
     args = parse_arguments()
 
+    ######
+    # parser = argparse.ArgumentParser(description="Preprocess 3D image data for registration.")
+    # args = parser.parse_args([])  # Use empty list to avoid command line parsing
+    # # For testing, we set arguments here
+    # args.base_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe"
+    # args.sample_path = "Femur_01"
+    # args.HR_paths = ["fixed_scale_2.nii.gz", "fixed_scale_4.nii.gz"]
+    # args.LR_paths = ["moving_scale_2.nii.gz", "moving_scale_4.nii.gz"]
+    # args.REG_paths = ["Femur_01_80kV_registered.nii.gz", "Femur_01_80kV_registered_scale_2.nii.gz"]
+    # args.out_path = ""
+    # args.out_name = "Femur_01_80kV_ome"
+    # args.HR_chunks = (80, 80, 80)
+    # args.LR_chunks = (60, 60, 60)
+    # args.REG_chunks = (40, 40, 40)
+    # args.HR_split_indices = []
+    # args.LR_split_indices = []
+    # args.REG_split_indices = []
+    # args.split_axis = 0
+    ######
+
     # Assign paths
     if args.sample_path is not None:
         sample_path = os.path.join(args.base_path, args.sample_path)
+        print("Sample path: ", sample_path)
     if args.HR_paths is not None:
         HR_paths = [os.path.join(sample_path, path) for path in args.HR_paths]
         print("HR paths: ", HR_paths)
@@ -54,9 +75,9 @@ if __name__ == "__main__":
         out_path = os.path.join(sample_path, args.out_path)
     if args.out_name is not None:
         out_path = os.path.join(out_path, args.out_name)  # out_name = os.path.join(sample_path, args.out_name)
-        print("Output name: ", out_path)
+        print("Output name: ", args.out_name)
 
-    print("Output path: ", args.out_name)
+    print("Output path: ", out_path)
 
     # if args.mask_path is not None:
     #     mask_path = os.path.join(sample_path, args.mask_path)
