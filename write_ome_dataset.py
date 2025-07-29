@@ -46,7 +46,7 @@ if __name__ == "__main__":
         dataset_path = os.path.join(args.base_path, args.dataset_path)
         print("dataset path: ", dataset_path)
     if args.out_path is not None:
-        out_path = os.path.join(args.base_path, args.out_name)
+        out_path = os.path.join(args.base_path, args.out_path)
         print("Output name: ", out_path)
 
     slice_splits = np.array(args.slice_splits) if args.slice_splits is not None else None
