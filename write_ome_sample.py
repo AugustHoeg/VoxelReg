@@ -51,9 +51,9 @@ if __name__ == "__main__":
     # args.HR_chunks = (80, 80, 80)
     # args.LR_chunks = (60, 60, 60)
     # args.REG_chunks = (40, 40, 40)
-    # args.HR_split_indices = []
-    # args.LR_split_indices = []
-    # args.REG_split_indices = []
+    # args.HR_split_indices = [400]
+    # args.LR_split_indices = [200]
+    # args.REG_split_indices = [100]
     # args.split_axis = 0
     ######
 
@@ -102,4 +102,11 @@ if __name__ == "__main__":
                          )
 
     print("Done writing OME-Zarr data sample")
+
+    # import zarr
+    # from zarr.storage import DirectoryStore
+    #
+    # store = DirectoryStore(out_path + "_0.zarr")
+    # root = zarr.group(store=store)
+    # print(root.tree())
 
