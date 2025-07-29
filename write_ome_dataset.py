@@ -83,7 +83,7 @@ if __name__ == "__main__":
     time_stamp = datetime.now().strftime("%Y%m%d%H%M")
     viz_orthogonal_slices(image, slices, savefig=True, save_dir="figures", title=f"scan_slices_orthogonal_{time_stamp}")
 
-    orient_image = orient_transform(image)
+    orient_image = orient_transform(image).numpy()
     print(f"Image shape after orientation transform: {orient_image.shape}")
     viz_orthogonal_slices(orient_image, slices, savefig=True, save_dir="figures", title=f"scan_slices_orient_orthogonal_{time_stamp}")
 
