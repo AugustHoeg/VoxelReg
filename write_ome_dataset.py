@@ -84,6 +84,7 @@ if __name__ == "__main__":
     viz_orthogonal_slices(image, slices, savefig=True, save_dir="figures", title=f"scan_slices_orthogonal_{time_stamp}")
 
     orient_image = orient_transform(image)
+    print(f"Image shape after orientation transform: {orient_image.shape}")
     viz_orthogonal_slices(orient_image, slices, savefig=True, save_dir="figures", title=f"scan_slices_orient_orthogonal_{time_stamp}")
 
     # Remove first category
