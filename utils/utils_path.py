@@ -160,7 +160,8 @@ def write_image_categories(image_categories,
         max_slices = int(category.split('_')[-1])
 
         for image_path in image_categories[category]:
-            image_name = f"{name_prefix}" + re.compile(name_format).search(image_path).group(0) + f"{name_suffix}"
+            image_name = f"{name_prefix}" + list(re.finditer(name_format, image_path))[-1].group(0) + f"{name_suffix}"
+            #image_name = f"{name_prefix}" + re.compile(name_format).search(image_path).group(0) + f"{name_suffix}"
             image = load_image(image_path, dtype=np.float32)
 
             # Ensure image is oriented with slice dimension first.
