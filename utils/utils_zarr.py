@@ -8,7 +8,7 @@ import dask.array as da
 from ome_zarr.writer import write_image, write_multiscale, write_multiscale_labels
 from ome_zarr.io import parse_url
 from numcodecs import Zstd, Blosc, LZ4
-from utils.utils_image import load_image, normalize_std, normalize_std_dask
+from utils.utils_image import load_image, normalize, normalize_std, normalize_std_dask
 from utils.utils_preprocess import image_crop_pad
 from dask.diagnostics import ProgressBar
 
@@ -124,7 +124,7 @@ def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_
                                                split_axis,
                                                split_indices,
                                                dtype=np.float32,
-                                               normalize=False)
+                                               norm_method='min_max')
 
     out_path = out_name
 
@@ -188,7 +188,7 @@ def load_image_pyramid(image_paths, dtype=np.float32, normalize=True):
     return pyramid
 
 
-def load_image_pyramid_splits(image_paths, split_axis=0, split_indices=(), dtype=np.float32, normalize=True):
+def load_image_pyramid_splits(image_paths, split_axis=0, split_indices=(), dtype=np.float32, norm_method="min_max"):
 
     # Load image pyramid
     pyramid = []
@@ -197,8 +197,11 @@ def load_image_pyramid_splits(image_paths, split_axis=0, split_indices=(), dtype
         print(f"Loading image: {os.path.basename(image_path)}")
         image = load_image(image_path, dtype=dtype, as_contiguous=True, as_dask_array=True)
 
-        if normalize:
-            print(f"Normalizing image: {os.path.basename(image_path)}")
+        if norm_method == "min_max":
+            print(f"Normalizing image: {os.path.basename(image_path)} using min-max normalization")
+            image = normalize(image, global_min=None, global_max=None, dtype=image.dtype)
+        elif norm_method == "std":
+            print(f"Normalizing image: {os.path.basename(image_path)} to +/- 3 standard deviations")
             image = normalize_std_dask(image, standard_deviations=3, mode='rescale')
 
         pyramid.append(image)

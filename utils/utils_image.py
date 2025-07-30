@@ -90,10 +90,17 @@ def load_image(image_path,
 
 def normalize(volume, global_min=0.0, global_max=1.0, dtype=np.float16):
 
-    normalized = (volume - global_min) / (global_max - global_min)
+    if global_min is None:
+        global_min = volume.min()
+    if global_max is None:
+        global_max = volume.max()
+
+    normalized = volume - global_min
+    normalized = normalized / (global_max - global_min)
     normalized = normalized.astype(dtype)
 
     return normalized
+
 
 def normalize_std(img, standard_deviations=3, mode='rescale'):
 
