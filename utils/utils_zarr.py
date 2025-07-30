@@ -10,6 +10,7 @@ from ome_zarr.io import parse_url
 from numcodecs import Zstd, Blosc, LZ4
 from utils.utils_image import load_image, normalize_std, normalize_std_dask
 from utils.utils_preprocess import image_crop_pad
+from dask.diagnostics import ProgressBar
 
 def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648, 648, 648), cname='lz4'):
 
@@ -24,23 +25,25 @@ def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648
         for i in range(len(image_pyramid))
     ]
 
-    # Write the image data to the Zarr group
-    write_multiscale(
-            image_pyramid,
-            group=image_group,
-            axes=["z", "y", "x"],
-            storage_options=storage_opts
-        )
+    with ProgressBar():
+        # Write the image data to the Zarr group
+        write_multiscale(
+                image_pyramid,
+                group=image_group,
+                axes=["z", "y", "x"],
+                storage_options=storage_opts
+            )
 
-    if label_pyramid is not None:
-        # Now write the label pyramid under /volume/labels/mask/
-        write_multiscale_labels(
-            label_pyramid,
-            group=image_group,
-            name="mask",
-            axes=["z", "y", "x"],
-            storage_options=storage_opts
-        )
+    with ProgressBar():
+        if label_pyramid is not None:
+            # Now write the label pyramid under /volume/labels/mask/
+            write_multiscale_labels(
+                label_pyramid,
+                group=image_group,
+                name="mask",
+                axes=["z", "y", "x"],
+                storage_options=storage_opts
+            )
 
     print("Done writing multiscale data to OME-Zarr group")
 
