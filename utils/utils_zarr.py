@@ -124,7 +124,7 @@ def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_
                                                split_axis,
                                                split_indices,
                                                dtype=np.float32,
-                                               norm_method='min_max')
+                                               norm_method=None)
 
     out_path = out_name
 
@@ -188,7 +188,7 @@ def load_image_pyramid(image_paths, dtype=np.float32, normalize=True):
     return pyramid
 
 
-def load_image_pyramid_splits(image_paths, split_axis=0, split_indices=(), dtype=np.float32, norm_method="min_max"):
+def load_image_pyramid_splits(image_paths, split_axis=0, split_indices=(), dtype=np.float32, norm_method=None):
 
     # Load image pyramid
     pyramid = []
@@ -197,12 +197,16 @@ def load_image_pyramid_splits(image_paths, split_axis=0, split_indices=(), dtype
         print(f"Loading image: {os.path.basename(image_path)}")
         image = load_image(image_path, dtype=dtype, as_contiguous=True, as_dask_array=True)
 
-        if norm_method == "min_max":
+        if norm_method is None:
+            print(f"Skipping normalization for image: {os.path.basename(image_path)}")
+        elif norm_method == "min_max":
             print(f"Normalizing image: {os.path.basename(image_path)} using min-max normalization")
             image = normalize(image, global_min=None, global_max=None, dtype=image.dtype)
         elif norm_method == "std":
             print(f"Normalizing image: {os.path.basename(image_path)} to +/- 3 standard deviations")
             image = normalize_std_dask(image, standard_deviations=3, mode='rescale')
+        else:
+            raise ValueError(f"Unsupported normalization method: {norm_method}")
 
         pyramid.append(image)
 
