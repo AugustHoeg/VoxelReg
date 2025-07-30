@@ -124,7 +124,7 @@ def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_
                                                split_axis,
                                                split_indices,
                                                dtype=np.float32,
-                                               normalize=True)
+                                               normalize=False)
 
     out_path = out_name
 
