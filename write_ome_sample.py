@@ -14,9 +14,9 @@ def parse_arguments():
     parser = argparse.ArgumentParser(description="Preprocess 3D image data for registration.")
     parser.add_argument("--base_path", type=str, required=True, help="Path to the base directory. Other paths will be relative to this path.")
     parser.add_argument("--sample_path", type=str, required=True, help="Path to the sample directory relative to the base path.")
-    parser.add_argument("--HR_paths", type=str, nargs='*', required=False, help="Path to the sample directory.")
-    parser.add_argument("--LR_paths", type=str, nargs='*', required=False, help="Path to fixed image.")
-    parser.add_argument("--REG_paths", type=str, nargs='*', required=False, help="Path to fixed image.")
+    parser.add_argument("--HR_paths", type=str, nargs='*', required=False, default=(), help="Path to the sample directory.")
+    parser.add_argument("--LR_paths", type=str, nargs='*', required=False, default=(), help="Path to fixed image.")
+    parser.add_argument("--REG_paths", type=str, nargs='*', required=False, default=(), help="Path to fixed image.")
     parser.add_argument("--out_path", type=str, required=False, help="Path to the output file.")
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the registered output image.")
 
@@ -61,13 +61,13 @@ if __name__ == "__main__":
     if args.sample_path is not None:
         sample_path = os.path.join(args.base_path, args.sample_path)
         print("Sample path: ", sample_path)
-    if args.HR_paths is not None:
+    if args.HR_paths:
         HR_paths = [os.path.join(sample_path, path) for path in args.HR_paths]
         print("HR paths: ", HR_paths)
-    if args.LR_paths is not None:
+    if args.LR_paths:
         LR_paths = [os.path.join(sample_path, path) for path in args.LR_paths]
         print("LR paths: ", LR_paths)
-    if args.REG_paths is not None:
+    if args.REG_paths:
         REG_paths = [os.path.join(sample_path, path) for path in args.REG_paths]
         print("REG paths: ", REG_paths)
 

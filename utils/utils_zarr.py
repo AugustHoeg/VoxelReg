@@ -25,7 +25,7 @@ def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648
         for i in range(len(image_pyramid))
     ]
 
-    with ProgressBar():
+    with ProgressBar(dt=1.0):
         # Write the image data to the Zarr group
         write_multiscale(
                 image_pyramid,
@@ -34,7 +34,7 @@ def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648
                 storage_options=storage_opts
             )
 
-    with ProgressBar():
+    with ProgressBar(dt=1.0):
         if label_pyramid is not None:
             # Now write the label pyramid under /volume/labels/mask/
             write_multiscale_labels(
