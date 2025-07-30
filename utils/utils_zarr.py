@@ -8,7 +8,7 @@ import dask.array as da
 from ome_zarr.writer import write_image, write_multiscale, write_multiscale_labels
 from ome_zarr.io import parse_url
 from numcodecs import Zstd, Blosc, LZ4
-from utils.utils_image import load_image, normalize_std
+from utils.utils_image import load_image, normalize_std, normalize_std_dask
 from utils.utils_preprocess import image_crop_pad
 
 def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648, 648, 648), cname='lz4'):
@@ -192,12 +192,11 @@ def load_image_pyramid_splits(image_paths, split_axis=0, split_indices=(), dtype
     for i, image_path in enumerate(image_paths):
         # Load image
         print(f"Loading image: {os.path.basename(image_path)}")
-        image = load_image(image_path, dtype=dtype)
-        image = np.ascontiguousarray(image)
+        image = load_image(image_path, dtype=dtype, as_contiguous=True, as_dask_array=True)
 
         if normalize:
             print(f"Normalizing image: {os.path.basename(image_path)}")
-            image = normalize_std(image, standard_deviations=3, mode='rescale')
+            image = normalize_std_dask(image, standard_deviations=3, mode='rescale')
 
         pyramid.append(image)
 
@@ -208,8 +207,13 @@ def load_image_pyramid_splits(image_paths, split_axis=0, split_indices=(), dtype
     # Split the pyramid images into num_splits along the specified axis
     pyramid_splits = [[] for _ in range(len(split_indices) + 1)]
     for i, image in enumerate(pyramid):
-        print(f"Splitting pyramid image: {i} along axis {split_axis} with indices {list(np.array(split_indices) // 2**i)}")
-        splits = np.array_split(image, np.array(split_indices) // 2**i, axis=split_axis)
+        # Check if the image is a Dask array
+        if isinstance(image, da.Array):
+            # TODO: Handle Dask arrays
+            raise NotImplementedError("Dask array splitting is not implemented yet.")
+        elif isinstance(image, np.ndarray):
+            print(f"Splitting pyramid image: {i} along axis {split_axis} with indices {list(np.array(split_indices) // 2**i)}")
+            splits = np.array_split(image, np.array(split_indices) // 2**i, axis=split_axis)
 
         for i, split in enumerate(splits):
             pyramid_splits[i].append(split)
