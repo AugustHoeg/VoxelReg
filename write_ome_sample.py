@@ -61,13 +61,13 @@ if __name__ == "__main__":
     if args.sample_path is not None:
         sample_path = os.path.join(args.base_path, args.sample_path)
         print("Sample path: ", sample_path)
-    if args.HR_paths:
+    if args.HR_paths is not None:
         HR_paths = [os.path.join(sample_path, path) for path in args.HR_paths]
         print("HR paths: ", HR_paths)
-    if args.LR_paths:
+    if args.LR_paths is not None:
         LR_paths = [os.path.join(sample_path, path) for path in args.LR_paths]
         print("LR paths: ", LR_paths)
-    if args.REG_paths:
+    if args.REG_paths is not None:
         REG_paths = [os.path.join(sample_path, path) for path in args.REG_paths]
         print("REG paths: ", REG_paths)
 
