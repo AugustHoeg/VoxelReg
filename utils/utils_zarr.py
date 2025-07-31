@@ -199,7 +199,7 @@ def load_image_pyramid_splits(image_paths, split_axis=0, split_indices=(), dtype
     for i, image_path in enumerate(image_paths):
         # Load image
         print(f"Loading image: {os.path.basename(image_path)}")
-        image = load_image(image_path, dtype=dtype, as_contiguous=True, as_dask_array=False)
+        image = load_image(image_path, dtype=dtype, as_contiguous=True, as_dask_array=True)
 
         if norm_method is None:
             print(f"Skipping normalization for image: {os.path.basename(image_path)}")
