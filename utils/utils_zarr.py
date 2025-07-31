@@ -59,7 +59,8 @@ def write_ome_datasample(out_name,
                          LR_split_indices=(),
                          REG_split_indices=(),
                          split_axis=0,
-                         compression='lz4'):
+                         compression='lz4',
+                         norm_method=None):
 
     """
     We need these images:
@@ -87,7 +88,8 @@ def write_ome_datasample(out_name,
                     split_axis=split_axis,
                     split_indices=HR_split_indices,
                     chunks=HR_chunks,
-                    compression=compression)
+                    compression=compression,
+                    norm_method=norm_method)
 
     if len(LR_paths) == 0:
         print("No LR image paths provided, skipping LR group.")
@@ -98,7 +100,8 @@ def write_ome_datasample(out_name,
                         split_axis=split_axis,
                         split_indices=LR_split_indices,
                         chunks=LR_chunks,
-                        compression=compression)
+                        compression=compression,
+                        norm_method=norm_method)
 
     if len(REG_paths) == 0:
         print("No REG image paths provided, skipping REG group.")
@@ -109,12 +112,13 @@ def write_ome_datasample(out_name,
                         split_axis=split_axis,
                         split_indices=REG_split_indices,
                         chunks=REG_chunks,
-                        compression=compression)
+                        compression=compression,
+                        norm_method=norm_method)
 
     return 0
 
 
-def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_indices=(), chunks=(160, 160, 160), compression='lz4'):
+def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_indices=(), chunks=(160, 160, 160), compression='lz4', norm_method=None):
 
     if image_paths is None:
         raise ValueError("Image paths are required and cannot be empty.")
@@ -124,7 +128,7 @@ def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_
                                                split_axis,
                                                split_indices,
                                                dtype=np.float32,
-                                               norm_method=None)
+                                               norm_method=norm_method)
 
     out_path = out_name
 
@@ -195,7 +199,7 @@ def load_image_pyramid_splits(image_paths, split_axis=0, split_indices=(), dtype
     for i, image_path in enumerate(image_paths):
         # Load image
         print(f"Loading image: {os.path.basename(image_path)}")
-        image = load_image(image_path, dtype=dtype, as_contiguous=True, as_dask_array=True)
+        image = load_image(image_path, dtype=dtype, as_contiguous=True, as_dask_array=False)
 
         if norm_method is None:
             print(f"Skipping normalization for image: {os.path.basename(image_path)}")
@@ -204,7 +208,7 @@ def load_image_pyramid_splits(image_paths, split_axis=0, split_indices=(), dtype
             image = normalize(image, global_min=None, global_max=None, dtype=image.dtype)
         elif norm_method == "std":
             print(f"Normalizing image: {os.path.basename(image_path)} to +/- 3 standard deviations")
-            image = normalize_std_dask(image, standard_deviations=3, mode='rescale')
+            image = normalize_std(image, standard_deviations=3, mode='rescale')
         else:
             raise ValueError(f"Unsupported normalization method: {norm_method}")
 
