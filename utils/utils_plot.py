@@ -69,12 +69,12 @@ def viz_multiple_images(image_list, slice_indices, title=None, axis=0, savefig=T
         for slice in slice_indices:
             plt.subplot(len(image_list), len(slice_indices), plot_count)
             if axis == 1:
-                plt.imshow(image[:, slice, :])
+                plt.imshow(image[:, slice, :], cmap='gray')
             elif axis == 2:
-                plt.imshow(image[:, :, slice])
+                plt.imshow(image[:, :, slice], cmap='gray')
             else:
                 # Default to axis 0
-                plt.imshow(image[slice, :, :])
+                plt.imshow(image[slice, :, :], cmap='gray')
             plt.title(f"Slice: {slice}, axis: {axis}", fontsize=16)
             plt.axis('off')
             plot_count += 1
