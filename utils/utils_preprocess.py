@@ -37,6 +37,60 @@ def masked_norm(image, mask, apply_mask=True):
     image[mask > 0] = masked_image
 
 
+def masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_mask=True):
+    # Get the min and max of the masked image
+    masked_image = image[mask > 0]
+    mean = masked_image.mean()
+    std = masked_image.std()
+    vmin = mean - standard_deviations * std
+    vmax = mean + standard_deviations * std
+
+    # Normalize the image using the mask values
+    masked_image -= vmin
+    masked_image /= (vmax - vmin)
+
+    if mode == 'clip':
+        np.clip(masked_image, 0, 1, out=masked_image)
+    elif mode == 'rescale':
+        vmin = masked_image.min(initial=0)
+        vmax = masked_image.max(initial=1)
+        if vmax > vmin:
+            masked_image -= vmin
+            masked_image /= (vmax - vmin)
+        else:
+            masked_image.fill(0)
+
+    # Set values outside mask to zero
+    if apply_mask:
+        image[mask == 0] = 0
+
+    # Set values inside mask to normalized values
+    image[mask > 0] = masked_image
+
+
+def norm_std(image, standard_deviations=3, mode='rescale'):
+    # Get the min and max of the masked image
+    mean = image.mean()
+    std = image.std()
+    vmin = mean - standard_deviations * std
+    vmax = mean + standard_deviations * std
+
+    # Normalize the image using the mask values
+    image -= vmin
+    image /= (vmax - vmin)
+
+    if mode == 'clip':
+        np.clip(image, 0, 1, out=image)
+    elif mode == 'rescale':
+        vmin = image.min(initial=0)
+        vmax = image.max(initial=1)
+        if vmax > vmin:
+            image -= vmin
+            image /= (vmax - vmin)
+        else:
+            image.fill(0)
+
+
 def crop_to_roi(image, roi_factor, margin_percent=0.50, divis_factor=2, minimum_size=(2000, 2000, 2000), maximum_size=(2000, 2000, 2000)):
 
     # Define roi
@@ -322,8 +376,12 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='thresho
     else:
         mask = None
 
-    # Normalize the image based on the mask and ensure range is between [0, 1]
-    image = normalize_std(image, standard_deviations=3, mask=mask, apply_mask=apply_mask)
+    if mask is None:
+        # Normalize the image and ensure range is between [0, 1]
+        norm_std(image, standard_deviations=3, mode='rescale')
+    else:
+        # Normalize the image using values inside mask and ensure range is between [0, 1]
+        masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_mask=apply_mask)
 
     # Create image/mask pyramid
     image_pyramid = []

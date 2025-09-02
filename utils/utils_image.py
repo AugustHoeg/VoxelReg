@@ -160,6 +160,7 @@ def normalize_std(img, standard_deviations=3, mode='rescale', mask=None, apply_m
     return norm_img
 
 
+
 def normalize_std_dask(img, standard_deviations=3, mode='rescale'):
     # Compute mean and std (works lazily for dask)
     mean = img.mean()
