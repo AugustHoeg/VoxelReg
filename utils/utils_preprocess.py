@@ -368,6 +368,8 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
     os.makedirs(out_path, exist_ok=True)
 
     for i in range(0, len(image_pyramid)):
+        if image_pyramid[i] is None:
+            continue
         # Save downscaled images
         # write_tiff(down, os.path.join(sample_path, filename + f"_down_{2**(i+1)}.tiff"))
         # np.save(os.path.join(out_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
@@ -375,6 +377,8 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
         write_nifti(image_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii.gz"))
 
     for i in range(0, len(mask_pyramid)):
+        if mask_pyramid[i] is None:
+            continue
         # np.save(os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.npy"), mask)
         # write_tiff(mask, os.path.join(sample_path, filename + "_mask.tiff"))
         print(f"Writing pyramid mask level: {i} with shape {mask_pyramid[i].shape}")
