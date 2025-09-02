@@ -103,9 +103,6 @@ def normalize(volume, global_min=0.0, global_max=1.0, dtype=np.float16):
     return normalized
 
 
-import numpy as np
-
-
 def normalize_std(img, standard_deviations=3, mode='rescale', mask=None, apply_mask=True):
     """
     Normalize image using N standard deviations and clip to range [0, 1].
@@ -118,42 +115,47 @@ def normalize_std(img, standard_deviations=3, mode='rescale', mask=None, apply_m
     :param apply_mask: Whether to set values outside mask to zero
     :return: Normalized image (numpy array)
     """
-
-    img = img.astype(np.float32)
-    norm_img = np.array(img, copy=True)  # start with a copy of the original
+    img = img.astype(np.float32, copy=False)
 
     # define mask
     if mask is None:
-        mask_arr = np.ones_like(img, dtype=bool)
+        mask_arr = np.ones(img.shape, dtype=bool)
     else:
-        mask_arr = mask.astype(bool)
+        mask_arr = mask.astype(bool, copy=False)
 
     values = img[mask_arr]
     if values.size == 0:
-        return norm_img  # nothing to normalize
+        return img.copy()  # nothing to normalize, return a copy for safety
 
     mean = values.mean()
     std = values.std()
     vmin = mean - standard_deviations * std
     vmax = mean + standard_deviations * std
 
-    # normalize only masked values
-    norm_vals = (img[mask_arr] - vmin) / (vmax - vmin)
+    # output array (same dtype, same shape, uninitialized)
+    norm_img = np.empty_like(img, dtype=np.float32)
+
+    # copy original if mask not applied, else fill zeros directly
+    if apply_mask:
+        norm_img.fill(0)
+    else:
+        norm_img[...] = img
+
+    # normalize only masked values (in-place on a view)
+    norm_vals = norm_img[mask_arr]
+    np.subtract(img[mask_arr], vmin, out=norm_vals)
+    np.divide(norm_vals, vmax - vmin, out=norm_vals)
 
     if mode == 'clip':
         np.clip(norm_vals, 0, 1, out=norm_vals)
     elif mode == 'rescale':
-        min_val = norm_vals.min()
-        max_val = norm_vals.max()
+        min_val = norm_vals.min(initial=0)
+        max_val = norm_vals.max(initial=1)
         if max_val > min_val:
-            norm_vals = (norm_vals - min_val) / (max_val - min_val)
+            np.subtract(norm_vals, min_val, out=norm_vals)
+            np.divide(norm_vals, max_val - min_val, out=norm_vals)
         else:
-            norm_vals = np.zeros_like(norm_vals)
-
-    norm_img[mask_arr] = norm_vals
-
-    if apply_mask:
-        norm_img[not mask] = 0
+            norm_vals.fill(0)
 
     return norm_img
 
