@@ -8,7 +8,7 @@ from utils.utils_plot import viz_slices, viz_multiple_images
 from utils.utils_tiff import load_tiff, write_tiff, center_crop, top_center_crop
 from utils.utils_nifti import write_nifti, get_crop_origin, set_origin, set_affine_scale, compute_affine_scale, compute_affine_crop
 from utils.utils_txm import load_txm, get_affine_txm
-from utils.utils_image import load_image, create_cylinder_mask, mask_cylinder
+from utils.utils_image import load_image, create_cylinder_mask, normalize_std
 
 
 def norm(image):
@@ -287,55 +287,71 @@ def define_image_space(image, nifti_affine, f, margin_percent, divis_factor, min
 
     return image, nifti_affine, start_coords, end_coords
 
+def mask_threshold(image, mask_threshold):
+
+    # print(f"Creating threshold mask for pyramid level: {i}")
+    if mask_threshold is None:  # Use Otsu's method for thresholding if threshold not specified
+        mask_threshold = threshold_otsu(image)
+        print("Otsu threshold: ", mask_threshold)
+    else:
+        mask_threshold = float(mask_threshold)
+        print("Custom threshold: ", mask_threshold)
+    mask = np.zeros(image.shape, dtype=np.uint8)  # Create a mask of zeros
+    mask[image > mask_threshold] = 1  # Set values above threshold to 1
+    return mask
+
+def mask_cylinder(image, cylinder_radius, cylinder_offset):
+
+    # print(f"Creating cylinder mask for pyramid level: {i}")
+    if cylinder_radius is None:
+        raise ValueError("Pixel radius must be specified for cylindrical mask method.")
+    # offset = (cylinder_offset[0] / 2 ** i, cylinder_offset[1] / 2 ** i)
+    # mask = create_cylinder_mask(image.shape, cylinder_radius / 2 ** i, offset)  # Example radius
+    mask = create_cylinder_mask(image.shape, cylinder_radius, cylinder_offset)  # Example radius
+    return mask
 
 def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
 
     # convert to float
     image = image.astype(np.float32)
 
-    # Create image pyramid
+    if mask_method == 'threshold':
+        mask = mask_threshold(image, mask_threshold)
+    elif mask_method == 'cylinder':
+        mask = mask_cylinder(image, cylinder_radius, cylinder_offset)
+    else:
+        mask = None
+
+    # Normalize the image based on the mask and ensure range is between [0, 1]
+    image = normalize_std(image, standard_deviations=3, mask=mask, apply_mask=apply_mask)
+
+    # Create image/mask pyramid
     image_pyramid = []
     image_pyramid.append(image)
+    mask_pyramid = []
+    mask_pyramid.append(mask)
+
     affines = []
     affines.append(nifti_affine.copy())
-    mask_pyramid = []
 
     # Create pyramid images
     for depth in range(pyramid_depth - 1):
         print(f"Creating pyramid level: {depth + 1}/{pyramid_depth - 1}")
-        image_pyramid.append(downscale_local_mean(image_pyramid[depth], (2, 2, 2)).astype(np.float32))
+        down = downscale_local_mean(image_pyramid[depth], (2, 2, 2)).astype(np.float32)
+        image_pyramid.append(down)
+
         affines.append(compute_affine_scale(affines[depth], scale=2))
 
-    for i in range(len(image_pyramid)):
-
         if mask_method == 'threshold':
-            print(f"Creating threshold mask for pyramid level: {i}")
-            if mask_threshold is None:  # Use Otsu's method for thresholding if threshold not specified
-                mask_threshold = threshold_otsu(image_pyramid[i])
-                print("Otsu threshold: ", mask_threshold)
-            else:
-                mask_threshold = float(mask_threshold)
-                print("Custom threshold: ", mask_threshold)
-            mask = np.zeros(image_pyramid[i].shape, dtype=np.uint8)  # Create a mask of zeros
-            mask[image_pyramid[i] > mask_threshold] = 1  # Set values above threshold to 1
-            mask_pyramid.append(mask)
-
-            # Normalize the image based on the mask
-            masked_norm(image_pyramid[i], mask, apply_mask)  # Ensure range is between [0, 1]
+            mask = mask_threshold(down, mask_threshold)
         elif mask_method == 'cylinder':
-            print(f"Creating cylinder mask for pyramid level: {i}")
-            if cylinder_radius is None:
-                raise ValueError("Pixel radius must be specified for cylindrical mask method.")
-            # Create a cylindrical mask based on the image shape
-            offset = (cylinder_offset[0] / 2**i, cylinder_offset[1] / 2**i)
-            mask = create_cylinder_mask(image_pyramid[i].shape, cylinder_radius / 2**i, offset)  # Example radius
-            mask_pyramid.append(mask)
-
-            # Normalize the image based on the mask
-            masked_norm(image_pyramid[i], mask, apply_mask)  # Ensure range is between [0, 1]
+            offset = [(val / 2 ** (depth + 1)) for val in cylinder_offset]
+            radius = [(val / 2 ** (depth + 1)) for val in cylinder_radius]
+            mask = mask_cylinder(down, radius, offset)
         else:
-            # Normalize the whole image
-            norm(image_pyramid[i])
+            mask = None
+
+        mask_pyramid.append(mask)
 
     return image_pyramid, mask_pyramid, affines
 

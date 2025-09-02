@@ -13,7 +13,7 @@ from utils.utils_zarr import write_ome_pyramid
 from zarr.storage import DirectoryStore
 from skimage.transform import downscale_local_mean
 
-from utils.utils_image import load_image, normalize_std
+from utils.utils_image import load_image, normalize_std, plot_histogram, compare_histograms, match_histogram_3d_continuous
 from utils.utils_plot import viz_slices
 from utils.utils_preprocess import image_crop_pad
 
@@ -175,6 +175,7 @@ def write_image_categories(image_categories,
             print(f"After cropping, scan shape is {image.shape}")
 
             image = normalize_std(image, standard_deviations=3, mode='rescale')
+            # plot_histogram(image)
 
             slices = [image.shape[0] // 2, image.shape[0] // 3, image.shape[0] // 4]
             viz_slices(image, slice_indices=slices, savefig=False, title=os.path.join(os.path.dirname(image_path), f"{image_name}_slices"))
@@ -188,7 +189,9 @@ def write_image_categories(image_categories,
             # Create image pyramid using downscale_local_mean
             image_pyramid = [image]
             for i in range(pyramid_levels - 1):
-                image_pyramid.append(downscale_local_mean(image_pyramid[i], (2, 2, 2)))
+                down = downscale_local_mean(image_pyramid[i], (2, 2, 2))
+                matched = match_histogram_3d_continuous(source=down, reference=image)
+                image_pyramid.append(matched)
 
             # Create Zarr store
             zarr_path = os.path.join(save_dir, f"{image_name}.zarr")

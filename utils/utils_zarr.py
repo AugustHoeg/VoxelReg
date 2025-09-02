@@ -8,7 +8,7 @@ import dask.array as da
 from ome_zarr.writer import write_image, write_multiscale, write_multiscale_labels
 from ome_zarr.io import parse_url
 from numcodecs import Zstd, Blosc, LZ4
-from utils.utils_image import load_image, normalize, normalize_std, normalize_std_dask
+from utils.utils_image import load_image, normalize, normalize_std, normalize_std_dask, match_histogram_3d_continuous, compare_histograms
 from utils.utils_preprocess import image_crop_pad
 from dask.diagnostics import ProgressBar
 
@@ -82,14 +82,14 @@ def write_ome_datasample(out_name,
     if len(HR_paths) == 0:
         raise ValueError("HR image paths are required and cannot be empty.")
 
-    write_ome_group(image_paths=HR_paths,
-                    out_name=out_name,
-                    group_name='HR',
-                    split_axis=split_axis,
-                    split_indices=HR_split_indices,
-                    chunks=HR_chunks,
-                    compression=compression,
-                    norm_method=norm_method)
+    ref_hr = write_ome_group(image_paths=HR_paths,
+                             out_name=out_name,
+                             group_name='HR',
+                             split_axis=split_axis,
+                             split_indices=HR_split_indices,
+                             chunks=HR_chunks,
+                             compression=compression,
+                             reference_image=None)
 
     if len(LR_paths) == 0:
         print("No LR image paths provided, skipping LR group.")
@@ -101,7 +101,7 @@ def write_ome_datasample(out_name,
                         split_indices=LR_split_indices,
                         chunks=LR_chunks,
                         compression=compression,
-                        norm_method=norm_method)
+                        reference_image=None)
 
     if len(REG_paths) == 0:
         print("No REG image paths provided, skipping REG group.")
@@ -113,22 +113,30 @@ def write_ome_datasample(out_name,
                         split_indices=REG_split_indices,
                         chunks=REG_chunks,
                         compression=compression,
-                        norm_method=norm_method)
+                        reference_image=ref_hr)
 
     return 0
 
 
-def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_indices=(), chunks=(160, 160, 160), compression='lz4', norm_method=None):
+def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_indices=(), chunks=(160, 160, 160), compression='lz4', reference_image=None):
 
     if image_paths is None:
         raise ValueError("Image paths are required and cannot be empty.")
 
     # Load the image pyramid
-    pyramid_splits = load_image_pyramid_splits(image_paths,
-                                               split_axis,
-                                               split_indices,
-                                               dtype=np.float32,
-                                               norm_method=norm_method)
+    pyramid = load_image_pyramid(image_paths, dtype=np.float32)
+
+    # match histograms
+    start_idx = 0
+    if reference_image is None:
+        reference_image = pyramid[0]  # use first image as reference
+        start_idx = 1  # normalize remaining images based on first image
+    for i in range(start_idx, len(pyramid)):
+        pyramid[i] = match_histogram_3d_continuous(source=pyramid[i], reference=reference_image)
+        compare_histograms(pyramid[i], reference_image)
+
+    # Split pyramid (if needed)
+    pyramid_splits = split_pyramid(pyramid, split_axis, split_indices)
 
     out_path = out_name
 
@@ -170,10 +178,10 @@ def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_
 
         print(f"Done writing OME-Zarr data to {out_path}/{group_name}")
 
-    return 0
+    return reference_image
 
 
-def load_image_pyramid(image_paths, dtype=np.float32, normalize=True):
+def load_image_pyramid(image_paths, dtype=np.float32):
     """
     Load a pyramid of images from given paths.
     If mask_paths are provided, apply the masks to the images.
@@ -181,16 +189,34 @@ def load_image_pyramid(image_paths, dtype=np.float32, normalize=True):
     pyramid = []
     for i, image_path in enumerate(image_paths):
         # Load image
-        image = load_image(image_path, dtype=dtype)
-        image = np.ascontiguousarray(image)
-
-        if normalize:
-            image = normalize_std(image, standard_deviations=3, mode='rescale')
+        image = load_image(image_path, dtype=dtype, as_contiguous=True)
 
         pyramid.append(image)
 
     return pyramid
 
+
+def split_pyramid(pyramid, split_axis=0, split_indices=()):
+
+    if len(split_indices) == 0:
+        # If no splitting is required, return the pyramid as is
+        return [pyramid]
+
+    # Split the pyramid images into num_splits along the specified axis
+    pyramid_splits = [[] for _ in range(len(split_indices) + 1)]
+    for i, image in enumerate(pyramid):
+        # Check if the image is a Dask array
+        if isinstance(image, da.Array):
+            # TODO: Handle Dask arrays
+            raise NotImplementedError("Dask array splitting is not implemented yet.")
+        elif isinstance(image, np.ndarray):
+            print(f"Splitting pyramid image: {i} along axis {split_axis} with indices {list(np.array(split_indices) // 2**i)}")
+            splits = np.array_split(image, np.array(split_indices) // 2**i, axis=split_axis)
+
+        for i, split in enumerate(splits):
+            pyramid_splits[i].append(split)
+
+    return pyramid_splits
 
 def load_image_pyramid_splits(image_paths, split_axis=0, split_indices=(), dtype=np.float32, norm_method=None):
 

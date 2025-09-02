@@ -7,6 +7,7 @@ import zarr
 import h5py
 import dask.array as da
 from monai.transforms import LoadImage
+import matplotlib.pyplot as plt
 
 
 def load_image(image_path,
@@ -102,25 +103,60 @@ def normalize(volume, global_min=0.0, global_max=1.0, dtype=np.float16):
     return normalized
 
 
-def normalize_std(img, standard_deviations=3, mode='rescale'):
+import numpy as np
 
+
+def normalize_std(img, standard_deviations=3, mode='rescale', mask=None, apply_mask=True):
     """
-    Normalize image using N standard deviations and clip to range [0; 1]
-    :param img:
-    :param standard_deviations:
-    :return:
+    Normalize image using N standard deviations and clip to range [0, 1].
+    Normalization is applied only to pixels where mask == 1.
+
+    :param img: Input image (numpy array)
+    :param standard_deviations: Number of std deviations from mean
+    :param mode: 'clip' or 'rescale'
+    :param mask: Optional binary mask (same shape as img) indicating pixels to normalize
+    :param apply_mask: Whether to set values outside mask to zero
+    :return: Normalized image (numpy array)
     """
 
-    mean = np.mean(img)
-    std = np.std(img)
+    img = img.astype(np.float32)
+    norm_img = np.array(img, copy=True)  # start with a copy of the original
+
+    # define mask
+    if mask is None:
+        mask_arr = np.ones_like(img, dtype=bool)
+    else:
+        mask_arr = mask.astype(bool)
+
+    values = img[mask_arr]
+    if values.size == 0:
+        return norm_img  # nothing to normalize
+
+    mean = values.mean()
+    std = values.std()
     vmin = mean - standard_deviations * std
     vmax = mean + standard_deviations * std
-    norm_img = (img - vmin) / (vmax - vmin)
+
+    # normalize only masked values
+    norm_vals = (img[mask_arr] - vmin) / (vmax - vmin)
+
     if mode == 'clip':
-        norm_img = np.clip(norm_img, 0, 1)
+        np.clip(norm_vals, 0, 1, out=norm_vals)
     elif mode == 'rescale':
-        norm_img = (norm_img - np.min(norm_img)) / (np.max(norm_img) - np.min(norm_img))
+        min_val = norm_vals.min()
+        max_val = norm_vals.max()
+        if max_val > min_val:
+            norm_vals = (norm_vals - min_val) / (max_val - min_val)
+        else:
+            norm_vals = np.zeros_like(norm_vals)
+
+    norm_img[mask_arr] = norm_vals
+
+    if apply_mask:
+        norm_img[not mask] = 0
+
     return norm_img
+
 
 def normalize_std_dask(img, standard_deviations=3, mode='rescale'):
     # Compute mean and std (works lazily for dask)
@@ -137,24 +173,6 @@ def normalize_std_dask(img, standard_deviations=3, mode='rescale'):
         norm_img = (norm_img - norm_img.min()) / (norm_img.max() - norm_img.min())
 
     return norm_img
-
-
-def mask_cylinder(img, cylinder_radius):
-
-    D, H, W = img.shape
-
-    # For every slice, any voxels outside the pixel radius will be set to 0
-
-    slice_center = (H / 2, W / 2)
-
-    for slice_idx in range(D):
-        Y, X = np.ogrid[:H, :W]
-        distance_from_center = np.sqrt((Y - slice_center[0])**2 + (X - slice_center[1])**2)
-        mask = distance_from_center <= cylinder_radius
-
-        img[slice_idx, :, :] *= mask
-
-    return img
 
 
 def create_cylinder_mask(shape, cylinder_radius, cylinder_offset):
@@ -182,6 +200,180 @@ def create_cylinder_mask(shape, cylinder_radius, cylinder_offset):
         mask[slice_idx, :, :] = distance_from_center <= cylinder_radius
 
     return mask
+
+
+def plot_histogram(image, data_min=0.0, data_max=1.0, num_bins=256, title="Histogram", color="darkgray"):
+    """
+    Compute and plot the histogram of an image/volume.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        Input 2D or 3D image (any dtype, will be flattened).
+    num_bins : int
+        Number of bins for the histogram (default: 256).
+    title : str
+        Title for the plot.
+    color : str
+        Color of the histogram bars.
+    """
+    # Flatten the image/volume
+    values = np.ravel(image)
+
+    # Compute histogram
+    hist, bin_edges = np.histogram(values, bins=num_bins, range=(data_min, data_max))
+
+    # Normalize histogram to probabilities (optional, looks cleaner)
+    hist = hist.astype(float) / hist.sum()
+
+    # Plot
+    plt.figure(figsize=(16, 10))
+    plt.bar(bin_edges[:-1], hist, width=np.diff(bin_edges), align="edge", color=color, alpha=0.7)
+    plt.title(title, fontsize=14, weight="bold")
+    plt.xlabel("Intensity", fontsize=12)
+    plt.ylabel("Probability", fontsize=12)
+    plt.grid(axis="y", linestyle="--", alpha=0.6)
+    plt.tight_layout()
+    plt.show()
+
+    return hist, bin_edges
+
+def compare_histograms(image1, image2,
+                       data_min=0.0, data_max=1.0, num_bins=256,
+                       labels=("Image 1", "Image 2"),
+                       colors=("steelblue", "darkorange"),
+                       title="Histogram Comparison"):
+    """
+    Compute and plot the histograms of two images/volumes for comparison.
+
+    Parameters
+    ----------
+    image1, image2 : np.ndarray
+        Input 2D or 3D images (any dtype, will be flattened).
+    data_min, data_max : float
+        Range for histogram computation.
+    num_bins : int
+        Number of bins for the histograms.
+    labels : tuple
+        Labels for the two histograms.
+    colors : tuple
+        Colors for the two histograms.
+    title : str
+        Title for the plot.
+    """
+    # Flatten
+    values1 = np.ravel(image1)
+    values2 = np.ravel(image2)
+
+    # Compute histograms
+    hist1, bin_edges = np.histogram(values1, bins=num_bins, range=(data_min, data_max))
+    hist2, _ = np.histogram(values2, bins=num_bins, range=(data_min, data_max))
+
+    # Normalize to probability
+    hist1 = hist1.astype(float) / hist1.sum()
+    hist2 = hist2.astype(float) / hist2.sum()
+
+    # Plot
+    plt.figure(figsize=(16, 10))
+    plt.step(bin_edges[:-1], hist1, where="mid", color=colors[0], label=labels[0], linewidth=2)
+    plt.step(bin_edges[:-1], hist2, where="mid", color=colors[1], label=labels[1], linewidth=2)
+    plt.fill_between(bin_edges[:-1], hist1, step="mid", alpha=0.3, color=colors[0])
+    plt.fill_between(bin_edges[:-1], hist2, step="mid", alpha=0.3, color=colors[1])
+
+    plt.title(title, fontsize=14, weight="bold")
+    plt.xlabel("Intensity", fontsize=12)
+    plt.ylabel("Probability", fontsize=12)
+    plt.legend(fontsize=11)
+    plt.grid(axis="y", linestyle="--", alpha=0.6)
+    plt.tight_layout()
+    plt.show()
+
+    return (hist1, hist2), bin_edges
+
+
+def match_histogram_3d(source, reference, num_bins=256):
+    """
+    Match the histogram of a 3D source volume to that of a reference volume.
+    Both inputs are expected to be floats in [0,1].
+
+    notes:
+
+    z_da = da.from_array(z['HR']['0'])
+    da.histogram(z_da, )
+
+    """
+
+    # Flatten
+    src_values = np.ravel(source)
+    ref_values = np.ravel(reference)
+
+    # Histogram bins in [0,1]
+    bin_edges = np.linspace(0.0, 1.0, num_bins + 1)
+
+    # Histograms
+    src_hist, _ = np.histogram(src_values, bins=bin_edges, density=True)
+    ref_hist, _ = np.histogram(ref_values, bins=bin_edges, density=True)
+
+    # CDFs
+    src_cdf = np.cumsum(src_hist); src_cdf /= src_cdf[-1]
+    ref_cdf = np.cumsum(ref_hist); ref_cdf /= ref_cdf[-1]
+
+    # Mapping: for each source bin’s CDF value, find corresponding ref intensity
+    mapping = np.interp(src_cdf, ref_cdf, bin_edges[:-1])
+
+    # Digitize source values into bins
+    src_bin_idx = np.digitize(src_values, bin_edges[:-1], right=True)
+    src_bin_idx = np.clip(src_bin_idx, 0, num_bins-1)
+
+    # Map using the lookup
+    matched = mapping[src_bin_idx].reshape(source.shape).astype(source.dtype)
+
+    return matched
+
+def match_histogram_3d_continuous(source, reference, ref_sorted=None):
+    """
+    Histogram match a 3D source volume to a reference volume using
+    continuous CDF-to-CDF mapping (no binning, smoother result).
+
+    Both inputs are expected to be floats in [0,1].
+
+    Parameters
+    ----------
+    source : np.ndarray
+        3D numpy array (D, H, W), float in [0,1]
+    reference : np.ndarray
+        3D numpy array (D, H, W), float in [0,1]
+
+    Returns
+    -------
+    matched : np.ndarray
+        Histogram-matched 3D volume, same shape as source
+    """
+
+    # Sort source values
+    src_values = np.ravel(source).astype(np.float32)
+    src_sorted = np.sort(src_values)
+
+    # Same for ref values
+    if ref_sorted is None:
+        ref_values = np.ravel(reference).astype(np.float32)
+        ref_sorted = np.sort(ref_values)
+
+    # Quantiles (uniformly spaced between 0 and 1)
+    src_quantiles = np.linspace(0, 1, len(src_sorted))
+    ref_quantiles = np.linspace(0, 1, len(ref_sorted))
+
+    # Map source quantiles to reference intensities
+    ref_interp = np.interp(src_quantiles, ref_quantiles, ref_sorted)
+
+    # Build continuous mapping from source intensities to reference intensities
+    matched_values = np.interp(src_values, src_sorted, ref_interp)
+
+    # Reshape back to volume
+    matched = matched_values.reshape(source.shape).astype(source.dtype)
+
+    return matched
+
 
 
 if __name__ == "__main__":
