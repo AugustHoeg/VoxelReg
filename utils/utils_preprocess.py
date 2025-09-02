@@ -287,7 +287,7 @@ def define_image_space(image, nifti_affine, f, margin_percent, divis_factor, min
 
     return image, nifti_affine, start_coords, end_coords
 
-def mask_threshold(image, mask_threshold):
+def mask_with_threshold(image, mask_threshold):
 
     # print(f"Creating threshold mask for pyramid level: {i}")
     if mask_threshold is None:  # Use Otsu's method for thresholding if threshold not specified
@@ -300,7 +300,7 @@ def mask_threshold(image, mask_threshold):
     mask[image > mask_threshold] = 1  # Set values above threshold to 1
     return mask
 
-def mask_cylinder(image, cylinder_radius, cylinder_offset):
+def mask_with_cylinder(image, cylinder_radius, cylinder_offset):
 
     # print(f"Creating cylinder mask for pyramid level: {i}")
     if cylinder_radius is None:
@@ -316,9 +316,9 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='thresho
     image = image.astype(np.float32)
 
     if mask_method == 'threshold':
-        mask = mask_threshold(image, mask_threshold)
+        mask = mask_with_threshold(image, mask_threshold)
     elif mask_method == 'cylinder':
-        mask = mask_cylinder(image, cylinder_radius, cylinder_offset)
+        mask = mask_with_cylinder(image, cylinder_radius, cylinder_offset)
     else:
         mask = None
 
@@ -343,11 +343,11 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='thresho
         affines.append(compute_affine_scale(affines[depth], scale=2))
 
         if mask_method == 'threshold':
-            mask = mask_threshold(down, mask_threshold)
+            mask = mask_with_threshold(down, mask_threshold)
         elif mask_method == 'cylinder':
             offset = [(val / 2 ** (depth + 1)) for val in cylinder_offset]
             radius = [(val / 2 ** (depth + 1)) for val in cylinder_radius]
-            mask = mask_cylinder(down, radius, offset)
+            mask = mask_with_cylinder(down, radius, offset)
         else:
             mask = None
 
