@@ -1,5 +1,7 @@
 import nibabel as nib
 import numpy as np
+import SimpleITK as sitk
+import ants
 
 def write_nifti(image, affine=np.eye(4), output_path="", dtype=np.float32, ret=False):
     """
@@ -11,6 +13,30 @@ def write_nifti(image, affine=np.eye(4), output_path="", dtype=np.float32, ret=F
 
     # Save the NIfTI image
     nib.save(nifti_image, output_path)
+    print(f"Saved nifti image to: {output_path}")
+
+    if ret:
+        return image
+
+
+def write_nifti_ants(image, affine=np.eye(4), output_path="", dtype=np.float32, ret=False):
+    """
+    Write a numpy array to a NIfTI file, preserving affine semantics exactly.
+    Uses ANTsPy (ITK backend) for faster writing.
+    """
+
+    # Ensure dtype + contiguity
+    image = np.ascontiguousarray(image.astype(dtype))
+
+    # Convert numpy array + affine to ANTs image
+    ants_img = ants.from_numpy(image, origin=list(affine[:3, 3]), spacing=list(np.linalg.norm(affine[:3, :3], axis=0)))
+
+    # Direction matrix is normalized affine rotation/scaling
+    dir_matrix = (affine[:3, :3] / np.linalg.norm(affine[:3, :3], axis=0))
+    ants_img.set_direction(dir_matrix)
+
+    # Save image
+    ants.image_write(ants_img, output_path)
     print(f"Saved nifti image to: {output_path}")
 
     if ret:
@@ -159,7 +185,30 @@ def compute_world_size(affine, image_shape):
 
 
 
+if __name__ == "__main__":
+
+    import time
+    image_size = 512
+
+    image = np.random.rand(image_size, image_size, image_size).astype(np.float32)
+    affine = np.array([[1, 0, 0, 10],
+                       [0, 1, 0, 20],
+                       [0, 0, 1, 30],
+                       [0, 0, 0, 1]])
+
+    start = time.time()
+    write_nifti(image, affine, "output_baseline.nii")
+    stop = time.time()
+    print("Time elapsed:", stop - start)
 
 
+    image = np.random.rand(image_size, image_size, image_size).astype(np.float32)
+    affine = np.array([[1, 0, 0, 10],
+                       [0, 1, 0, 20],
+                       [0, 0, 1, 30],
+                       [0, 0, 0, 1]])
 
-
+    start = time.time()
+    write_nifti_ants(image, affine, "output_fast.nii")
+    stop = time.time()
+    print("Time elapsed:", stop - start)

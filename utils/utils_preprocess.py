@@ -8,7 +8,7 @@ from utils.utils_plot import viz_slices, viz_multiple_images
 from utils.utils_tiff import load_tiff, write_tiff, center_crop, top_center_crop
 from utils.utils_nifti import write_nifti, get_crop_origin, set_origin, set_affine_scale, compute_affine_scale, compute_affine_crop
 from utils.utils_txm import load_txm, get_affine_txm
-from utils.utils_image import load_image, create_cylinder_mask, normalize_std
+from utils.utils_image import load_image, create_cylinder_mask, normalize_std, plot_histogram
 
 
 def norm(image):
@@ -421,7 +421,7 @@ def mask_with_cylinder(image, cylinder_radius, cylinder_offset):
     mask = create_cylinder_mask(image.shape, cylinder_radius, cylinder_offset)  # Example radius
     return mask
 
-def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
+def get_image_pyramid(image, nifti_affine, pyramid_depth=3, norm_percentiles=(5.0, 95.0), mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
 
     # convert to float
     image = image.astype(np.float32)
@@ -433,14 +433,17 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='thresho
     else:
         mask = None
 
+    lower, upper = norm_percentiles
     if mask is None:
         # Normalize the image and ensure range is between [0, 1]
         # norm_std(image, standard_deviations=3, mode='rescale')
-        norm_percentile(image, lower=1.0, upper=99.0, mode='rescale')  # 2% and 98%
+        norm_percentile(image, lower, upper, mode='rescale')  # 2% and 98%
     else:
         # Normalize the image using values inside mask and ensure range is between [0, 1]
         # masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_mask=apply_mask)
-        masked_norm_percentile(image, mask, lower=1.0, upper=99.0, mode='rescale', apply_mask=apply_mask)  # 2% and 98%
+        masked_norm_percentile(image, mask, lower, upper, mode='rescale', apply_mask=apply_mask)  # 2% and 98%
+
+    plot_histogram(image, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {0}", save_fig=True)
 
     # Create image/mask pyramid
     image_pyramid = []
@@ -456,6 +459,8 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='thresho
         print(f"Creating pyramid level: {depth + 1}/{pyramid_depth - 1}")
         down = downscale_local_mean(image_pyramid[depth], (2, 2, 2)).astype(np.float32)
         image_pyramid.append(down)
+
+        plot_histogram(down, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {depth + 1}", save_fig=True)
 
         affines.append(compute_affine_scale(affines[depth], scale=2))
 
@@ -491,7 +496,7 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
         # write_tiff(down, os.path.join(sample_path, filename + f"_down_{2**(i+1)}.tiff"))
         # np.save(os.path.join(out_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
         print(f"Writing pyramid image level: {i} with shape {image_pyramid[i].shape}")
-        write_nifti(image_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii.gz"))
+        write_nifti(image_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii"))
 
     for i in range(0, len(mask_pyramid)):
         if mask_pyramid[i] is None:

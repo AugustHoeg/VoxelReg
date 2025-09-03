@@ -1,6 +1,7 @@
 numpy
 itk-elastix
 itkwidgets
+antspyx
 zarr
 dask
 dask-image

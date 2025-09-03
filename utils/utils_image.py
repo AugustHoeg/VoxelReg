@@ -205,7 +205,7 @@ def create_cylinder_mask(shape, cylinder_radius, cylinder_offset):
     return mask
 
 
-def plot_histogram(image, data_min=0.0, data_max=1.0, num_bins=256, title="Histogram", color="darkgray"):
+def plot_histogram(image, data_min=0.0, data_max=1.0, num_bins=256, title="Histogram", color="darkgray", save_fig=False):
     """
     Compute and plot the histogram of an image/volume.
 
@@ -237,7 +237,11 @@ def plot_histogram(image, data_min=0.0, data_max=1.0, num_bins=256, title="Histo
     plt.ylabel("Probability", fontsize=12)
     plt.grid(axis="y", linestyle="--", alpha=0.6)
     plt.tight_layout()
-    plt.show()
+
+    if save_fig:
+        plt.savefig(f"figures/{title}.pdf", dpi=300, bbox_inches='tight')
+    else:
+        plt.show()
 
     return hist, bin_edges
 
