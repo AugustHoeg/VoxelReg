@@ -101,6 +101,135 @@ def masked_norm_percentile(image, mask, lower=1.0, upper=99.0, mode='rescale', a
     image[mask > 0] = masked_image
 
 
+def masked_norm_hist(image, mask, alpha=1e-4, bins=4096, smooth=True, mode='rescale', apply_mask=True):
+    """
+    Automatic contrast adjustment using histogram smoothing + cumulative cutoff.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image (any dtype).
+    alpha : float
+        Fraction of pixels to ignore in lower/upper tails.
+        e.g. 1e-4 means 0.01% at each end.
+    bins : int
+        Number of histogram bins.
+    smooth : bool
+        If True, apply simple moving average smoothing to histogram.
+
+    Returns
+    -------
+    np.ndarray
+        Contrast-adjusted image, float32 in [0,1].
+    """
+    # flatten without copy
+    masked_image = image[mask > 0]
+
+    # build histogram
+    hist, edges = np.histogram(masked_image, bins=bins)
+    if smooth:
+        # 3-bin moving average smoothing
+        hist = np.convolve(hist, np.ones(3)/3, mode='same')
+
+    # cumulative distribution
+    cdf = np.cumsum(hist) / np.sum(hist)
+
+    # find cutoff bin edges
+    lo_idx = np.searchsorted(cdf, alpha)
+    hi_idx = np.searchsorted(cdf, 1 - alpha)
+
+    lo = edges[lo_idx]
+    hi = edges[min(hi_idx, len(edges)-2)]
+
+    if hi <= lo:
+        return np.zeros_like(image, dtype=np.float32)
+
+    # in-place scaling
+    image -= lo
+    image /= (hi - lo)
+
+    if mode == 'clip':
+        np.clip(image, 0, 1, out=image)
+    elif mode == 'rescale':
+        vmin = image.min(initial=0)
+        vmax = image.max(initial=1)
+        if vmax > vmin:
+            image -= vmin
+            image /= (vmax - vmin)
+        else:
+            image.fill(0)
+
+    # Set values outside mask to zero
+    if apply_mask:
+        image[mask == 0] = 0
+
+    # Set values inside mask to normalized values
+    image[mask > 0] = masked_image
+
+    return image
+
+
+def norm_hist(image, alpha=1e-4, bins=4096, smooth=True, mode='rescale'):
+    """
+    Automatic contrast adjustment using histogram smoothing + cumulative cutoff.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image (any dtype).
+    alpha : float
+        Fraction of pixels to ignore in lower/upper tails.
+        e.g. 1e-4 means 0.01% at each end.
+    bins : int
+        Number of histogram bins.
+    smooth : bool
+        If True, apply simple moving average smoothing to histogram.
+
+    Returns
+    -------
+    np.ndarray
+        Contrast-adjusted image, float32 in [0,1].
+    """
+    # flatten without copy
+    flat = image.reshape(-1)
+
+    # build histogram
+    hist, edges = np.histogram(flat, bins=bins)
+    if smooth:
+        # 3-bin moving average smoothing
+        hist = np.convolve(hist, np.ones(3)/3, mode='same')
+
+    # cumulative distribution
+    cdf = np.cumsum(hist) / np.sum(hist)
+
+    # find cutoff bin edges
+    lo_idx = np.searchsorted(cdf, alpha)
+    hi_idx = np.searchsorted(cdf, 1 - alpha)
+
+    lo = edges[lo_idx]
+    hi = edges[min(hi_idx, len(edges)-2)]
+
+    if hi <= lo:
+        return np.zeros_like(image, dtype=np.float32)
+
+    # in-place scaling
+    image -= lo
+    image /= (hi - lo)
+
+    if mode == 'clip':
+        np.clip(image, 0, 1, out=image)
+    elif mode == 'rescale':
+        vmin = image.min(initial=0)
+        vmax = image.max(initial=1)
+        if vmax > vmin:
+            image -= vmin
+            image /= (vmax - vmin)
+        else:
+            image.fill(0)
+
+    return image
+
+
 def norm_percentile(image, lower=10.0, upper=90.0, mode='rescale'):
 
     low = np.percentile(image, lower)
@@ -437,13 +566,16 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, norm_percentiles=(5.
     if mask is None:
         # Normalize the image and ensure range is between [0, 1]
         # norm_std(image, standard_deviations=3, mode='rescale')
-        norm_percentile(image, lower, upper, mode='rescale')  # 2% and 98%
+        norm_percentile(image, lower, upper, mode='rescale')
+        image = norm_hist(image, alpha=0.02, bins=512, mode='rescale')
     else:
         # Normalize the image using values inside mask and ensure range is between [0, 1]
         # masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_mask=apply_mask)
-        masked_norm_percentile(image, mask, lower, upper, mode='rescale', apply_mask=apply_mask)  # 2% and 98%
+        masked_norm_percentile(image, mask, lower, upper, mode='rescale', apply_mask=apply_mask)
+        image = masked_norm_hist(image, mask, alpha=0.02, bins=512, mode='rescale', apply_mask=apply_mask)
 
     # plot_histogram(image, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {0}", save_fig=True)
+    # plot_histogram(image, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {0}", save_fig=False, log_scale=True)
 
     # Create image/mask pyramid
     image_pyramid = []
