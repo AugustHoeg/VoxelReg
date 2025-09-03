@@ -460,7 +460,8 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, norm_percentiles=(5.
         down = downscale_local_mean(image_pyramid[depth], (2, 2, 2)).astype(np.float32)
         image_pyramid.append(down)
 
-        plot_histogram(down, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {depth + 1}", save_fig=True)
+        if depth == pyramid_depth - 2:
+            plot_histogram(down, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {depth + 1}", save_fig=True)
 
         affines.append(compute_affine_scale(affines[depth], scale=2))
 
