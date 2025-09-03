@@ -566,13 +566,14 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, norm_percentiles=(5.
     if mask is None:
         # Normalize the image and ensure range is between [0, 1]
         # norm_std(image, standard_deviations=3, mode='rescale')
+        image = norm_hist(image, alpha=0.02, bins=1024, mode='rescale')
         norm_percentile(image, lower, upper, mode='rescale')
-        image = norm_hist(image, alpha=0.02, bins=512, mode='rescale')
+
     else:
         # Normalize the image using values inside mask and ensure range is between [0, 1]
         # masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_mask=apply_mask)
+        image = masked_norm_hist(image, mask, alpha=0.02, bins=1024, mode='rescale', apply_mask=apply_mask)
         masked_norm_percentile(image, mask, lower, upper, mode='rescale', apply_mask=apply_mask)
-        image = masked_norm_hist(image, mask, alpha=0.02, bins=512, mode='rescale', apply_mask=apply_mask)
 
     # plot_histogram(image, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {0}", save_fig=True)
     # plot_histogram(image, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {0}", save_fig=False, log_scale=True)
