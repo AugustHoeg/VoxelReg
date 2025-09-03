@@ -68,6 +68,63 @@ def masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_ma
     image[mask > 0] = masked_image
 
 
+def masked_norm_percentile(image, mask, lower=1.0, upper=99.0, mode='rescale', apply_mask=True):
+    # Get the min and max of the masked image
+    masked_image = image[mask > 0]
+
+    low = np.percentile(masked_image, lower)
+    high = np.percentile(masked_image, upper)
+
+    if high <= low:  # avoid divide-by-zero
+        return np.zeros_like(image, dtype=np.float32)
+
+    # Normalize the image using the mask values
+    masked_image -= low
+    masked_image /= (high - low)
+
+    if mode == 'clip':
+        np.clip(masked_image, 0, 1, out=masked_image)
+    elif mode == 'rescale':
+        vmin = masked_image.min(initial=0)
+        vmax = masked_image.max(initial=1)
+        if vmax > vmin:
+            masked_image -= vmin
+            masked_image /= (vmax - vmin)
+        else:
+            masked_image.fill(0)
+
+    # Set values outside mask to zero
+    if apply_mask:
+        image[mask == 0] = 0
+
+    # Set values inside mask to normalized values
+    image[mask > 0] = masked_image
+
+
+def norm_percentile(image, lower=1.0, upper=99.0, mode='rescale'):
+
+    low = np.percentile(image, lower)
+    high = np.percentile(image, upper)
+
+    if high <= low:  # avoid divide-by-zero
+        return np.zeros_like(image, dtype=np.float32)
+
+    # Normalize the image using the mask values
+    image -= low
+    image /= (high - low)
+
+    if mode == 'clip':
+        np.clip(image, 0, 1, out=image)
+    elif mode == 'rescale':
+        vmin = image.min(initial=0)
+        vmax = image.max(initial=1)
+        if vmax > vmin:
+            image -= vmin
+            image /= (vmax - vmin)
+        else:
+            image.fill(0)
+
+
 def norm_std(image, standard_deviations=3, mode='rescale'):
     # Get the min and max of the masked image
     mean = image.mean()
@@ -378,10 +435,12 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='thresho
 
     if mask is None:
         # Normalize the image and ensure range is between [0, 1]
-        norm_std(image, standard_deviations=3, mode='rescale')
+        # norm_std(image, standard_deviations=3, mode='rescale')
+        norm_percentile(image, lower=2.0, upper=98.0, mode='rescale')  # 2% and 98%
     else:
         # Normalize the image using values inside mask and ensure range is between [0, 1]
-        masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_mask=apply_mask)
+        # masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_mask=apply_mask)
+        masked_norm_percentile(image, mask, lower=2.0, upper=98.0, mode='rescale', apply_mask=apply_mask)  # 2% and 98%
 
     # Create image/mask pyramid
     image_pyramid = []
