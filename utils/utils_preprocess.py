@@ -443,7 +443,7 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, norm_percentiles=(5.
         # masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_mask=apply_mask)
         masked_norm_percentile(image, mask, lower, upper, mode='rescale', apply_mask=apply_mask)  # 2% and 98%
 
-    plot_histogram(image, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {0}", save_fig=True)
+    # plot_histogram(image, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {0}", save_fig=True)
 
     # Create image/mask pyramid
     image_pyramid = []
