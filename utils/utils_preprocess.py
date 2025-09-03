@@ -101,7 +101,7 @@ def masked_norm_percentile(image, mask, lower=1.0, upper=99.0, mode='rescale', a
     image[mask > 0] = masked_image
 
 
-def norm_percentile(image, lower=1.0, upper=99.0, mode='rescale'):
+def norm_percentile(image, lower=10.0, upper=90.0, mode='rescale'):
 
     low = np.percentile(image, lower)
     high = np.percentile(image, upper)

@@ -52,7 +52,7 @@ def parse_arguments():
     parser.add_argument("--fixed_pyramid_depth", type=int, default=4, help="Depth of saved image pyramid.")
 
     parser.add_argument("--f", type=int, default=4, help="LR resolution factor.")
-    parser.add_argument("--norm_percentiles", type=float, nargs=2, default=(5.0, 95.0), help="Lower and upper percentiles for image normalization")
+    parser.add_argument("--norm_percentiles", type=float, nargs=2, default=(10.0, 90.0), help="Lower and upper percentiles for image normalization")
 
     parser.add_argument("--moving_mask_method", default=None, help="Method for creating moving mask. Currently supports 'threshold' and 'cylinder'. Default is None, which skips mask creation.")
     parser.add_argument("--moving_mask_threshold", default=None, help="Threshold for binary mask image. If unspecified, otsu thresholding will be used. default is None.")
