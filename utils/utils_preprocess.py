@@ -436,11 +436,11 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, mask_method='thresho
     if mask is None:
         # Normalize the image and ensure range is between [0, 1]
         # norm_std(image, standard_deviations=3, mode='rescale')
-        norm_percentile(image, lower=2.0, upper=98.0, mode='rescale')  # 2% and 98%
+        norm_percentile(image, lower=1.0, upper=99.0, mode='rescale')  # 2% and 98%
     else:
         # Normalize the image using values inside mask and ensure range is between [0, 1]
         # masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_mask=apply_mask)
-        masked_norm_percentile(image, mask, lower=2.0, upper=98.0, mode='rescale', apply_mask=apply_mask)  # 2% and 98%
+        masked_norm_percentile(image, mask, lower=1.0, upper=99.0, mode='rescale', apply_mask=apply_mask)  # 2% and 98%
 
     # Create image/mask pyramid
     image_pyramid = []
