@@ -2,7 +2,10 @@ numpy
 itk-elastix
 itkwidgets
 antspyx
+ome-zarr
 zarr
+tifffile
+natsort
 dask
 dask-image
 cupy-cuda12x

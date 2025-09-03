@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import monai.transforms as mt
 
 from utils.utils_zarr import write_ome_pyramid
-from zarr.storage import DirectoryStore
+from zarr.storage import LocalStore
 from skimage.transform import downscale_local_mean
 
 from utils.utils_image import load_image, normalize_std, plot_histogram, compare_histograms, match_histogram_3d_continuous
@@ -195,7 +195,7 @@ def write_image_categories(image_categories,
 
             # Create Zarr store
             zarr_path = os.path.join(save_dir, f"{image_name}.zarr")
-            store = DirectoryStore(zarr_path)
+            store = LocalStore(zarr_path)
             root = zarr.group(store=store)
 
             # Create image group for the volume

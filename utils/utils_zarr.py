@@ -3,12 +3,12 @@ import os
 import glob
 import numpy as np
 import zarr
-from zarr.storage import DirectoryStore
+from zarr.storage import LocalStore
 import dask.array as da
 from ome_zarr.writer import write_image, write_multiscale, write_multiscale_labels
 from ome_zarr.io import parse_url
 from numcodecs import Zstd, Blosc, LZ4
-from utils.utils_image import load_image, normalize, normalize_std, normalize_std_dask, match_histogram_3d_continuous, compare_histograms
+from utils.utils_image import load_image, normalize, normalize_std, normalize_std_dask, match_histogram_3d_continuous_sampled, compare_histograms
 from utils.utils_preprocess import image_crop_pad
 from dask.diagnostics import ProgressBar
 
@@ -132,7 +132,7 @@ def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_
         reference_image = pyramid[0]  # use first image as reference
         start_idx = 1  # normalize remaining images based on first image
     for i in range(start_idx, len(pyramid)):
-        pyramid[i] = match_histogram_3d_continuous(source=pyramid[i], reference=reference_image)
+        pyramid[i] = match_histogram_3d_continuous_sampled(source=pyramid[i], reference=reference_image)
         compare_histograms(pyramid[i], reference_image)
 
     # Split pyramid (if needed)

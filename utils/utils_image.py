@@ -382,6 +382,59 @@ def match_histogram_3d_continuous(source, reference, ref_sorted=None):
     return matched
 
 
+def match_histogram_3d_continuous_sampled(source, reference, max_sample_size=4e9):
+    """
+    Histogram match a 3D source volume to a reference volume using
+    continuous CDF-to-CDF mapping (no binning, smoother result).
+
+    Both inputs are expected to be floats in [0,1].
+
+    Parameters
+    ----------
+    source : np.ndarray
+        3D numpy array (D, H, W), float in [0,1]
+    reference : np.ndarray
+        3D numpy array (D, H, W), float in [0,1]
+    sample_size : int
+        sample size to approximate CDF, default is 16GB sample size maximum (assuming float32 precision)
+
+    Returns
+    -------
+    matched : np.ndarray
+        Histogram-matched 3D volume, same shape as source
+    """
+
+    # Sort source values
+    if source.size > int(max_sample_size):
+        src_sample = np.random.choice(source.reshape(-1), size=int(max_sample_size), replace=False)
+    else:
+        src_sample = source.reshape(-1)  # view
+
+    if reference.size > int(max_sample_size):
+        ref_sample = np.random.choice(reference.reshape(-1), size=int(max_sample_size), replace=False)
+    else:
+        ref_sample = reference.reshape(-1)  # view
+
+    src_sorted = np.sort(src_sample)
+    ref_sorted = np.sort(ref_sample)
+
+    # Quantiles (uniformly spaced between 0 and 1)
+    src_quantiles = np.linspace(0, 1, len(src_sorted))
+    ref_quantiles = np.linspace(0, 1, len(ref_sorted))
+
+    # Map source quantiles to reference intensities
+    ref_interp = np.interp(src_quantiles, ref_quantiles, ref_sorted)
+
+    # Build continuous mapping from source intensities to reference intensities
+    matched_values = np.interp(source.reshape(-1), src_sorted, ref_interp)
+
+    # Reshape back to volume
+    matched = matched_values.reshape(source.shape).astype(source.dtype)
+
+    return matched
+
+
+
 
 if __name__ == "__main__":
     pass
