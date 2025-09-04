@@ -61,8 +61,8 @@ def parse_arguments():
     parser.add_argument("--fixed_pyramid_depth", type=int, default=4, help="Depth of saved image pyramid.")
 
     parser.add_argument("--f", type=int, default=4, help="LR resolution factor.")
-    parser.add_argument("--moving_norm_percentiles", type=float, nargs=2, default=(10.0, 90.0), help="Lower and upper percentiles for image normalization")
-    parser.add_argument("--fixed_norm_percentiles", type=float, nargs=2, default=(10.0, 90.0), help="Lower and upper percentiles for image normalization")
+    parser.add_argument("--moving_clip_percentiles", type=float, nargs=2, default=(1.0, 99.0), help="Lower and upper percentiles for image normalization")
+    parser.add_argument("--fixed_clip_percentiles", type=float, nargs=2, default=(1.0, 99.0), help="Lower and upper percentiles for image normalization")
 
     parser.add_argument("--moving_clip_range", type=float, nargs=2, default=(0.0, 1.0), help="Lower and upper percentiles for image normalization")
     parser.add_argument("--fixed_clip_range", type=float, nargs=2, default=(0.0, 1.0), help="Lower and upper percentiles for image normalization")
@@ -128,8 +128,7 @@ if __name__ == "__main__":
     # Get & save moving image pyramid
     pyramid, mask_pyramid, affines = get_image_pyramid(moving, moving_affine,
                                                        args.moving_pyramid_depth,
-                                                       args.moving_norm_percentiles,
-                                                       args.moving_clip_range,
+                                                       args.moving_clip_percentiles,
                                                        args.moving_mask_method,
                                                        args.moving_mask_threshold,
                                                        args.moving_cylinder_radius,
@@ -175,8 +174,7 @@ if __name__ == "__main__":
     # Get & save moving image pyramid
     pyramid, mask_pyramid, affines = get_image_pyramid(fixed, fixed_affine,
                                                        args.fixed_pyramid_depth,
-                                                       args.fixed_norm_percentiles,
-                                                       args.fixed_clip_range,
+                                                       args.fixed_clip_percentiles,
                                                        args.fixed_mask_method,
                                                        args.fixed_mask_threshold,
                                                        args.fixed_cylinder_radius,

@@ -72,41 +72,6 @@ def masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_ma
     return image
 
 
-def masked_norm_percentile(image, mask, lower=1.0, upper=99.0, mode='rescale', apply_mask=True):
-    # Get the min and max of the masked image
-    masked_image = image[mask > 0]
-
-    low = np.percentile(masked_image, lower)
-    high = np.percentile(masked_image, upper)
-
-    if high <= low:  # avoid divide-by-zero
-        return np.zeros_like(image, dtype=np.float32)
-
-    # Normalize the image using the mask values
-    masked_image -= low
-    masked_image /= (high - low)
-
-    if mode == 'clip':
-        np.clip(masked_image, 0, 1, out=masked_image)
-    elif mode == 'rescale':
-        vmin = masked_image.min(initial=0)
-        vmax = masked_image.max(initial=1)
-        if vmax > vmin:
-            masked_image -= vmin
-            masked_image /= (vmax - vmin)
-        else:
-            masked_image.fill(0)
-
-    # Set values outside mask to zero
-    if apply_mask:
-        image[mask == 0] = 0
-
-    # Set values inside mask to normalized values
-    image[mask > 0] = masked_image
-
-    return image
-
-
 def masked_norm_hist(image, mask, alpha=1e-4, bins=4096, smooth=True, mode='rescale', apply_mask=True):
     """
     Automatic contrast adjustment using histogram smoothing + cumulative cutoff.
@@ -253,7 +218,7 @@ def clip_rescale(image, a_min=0.0, a_max=1.0):
 
 
 
-def norm_percentile(image, lower=10.0, upper=90.0, mode='rescale'):
+def clip_percentile(image, lower=10.0, upper=90.0, mode='rescale'):
 
     low = np.percentile(image, lower)
     high = np.percentile(image, upper)
@@ -261,15 +226,13 @@ def norm_percentile(image, lower=10.0, upper=90.0, mode='rescale'):
     if high <= low:  # avoid divide-by-zero
         return np.zeros_like(image, dtype=np.float32)
 
-    # Normalize the image using the mask values
-    image -= low
-    image /= (high - low)
+    np.clip(image, low, high, out=image)
 
     if mode == 'clip':
         np.clip(image, 0, 1, out=image)
     elif mode == 'rescale':
-        vmin = image.min(initial=0)
-        vmax = image.max(initial=1)
+        vmin = image.min()
+        vmax = image.max()
         if vmax > vmin:
             image -= vmin
             image /= (vmax - vmin)
@@ -277,6 +240,40 @@ def norm_percentile(image, lower=10.0, upper=90.0, mode='rescale'):
             image.fill(0)
 
     return image
+
+
+def masked_clip_percentile(image, mask, lower=1.0, upper=99.0, mode='rescale', apply_mask=True):
+    # Get the min and max of the masked image
+    masked_image = image[mask > 0]
+
+    low = np.percentile(masked_image, lower)
+    high = np.percentile(masked_image, upper)
+
+    if high <= low:  # avoid divide-by-zero
+        return np.zeros_like(image, dtype=np.float32)
+
+    np.clip(masked_image, low, high, out=masked_image)
+
+    if mode == 'clip':
+        np.clip(masked_image, 0, 1, out=masked_image)
+    elif mode == 'rescale':
+        vmin = masked_image.min()
+        vmax = masked_image.max()
+        if vmax > vmin:
+            masked_image -= vmin
+            masked_image /= (vmax - vmin)
+        else:
+            masked_image.fill(0)
+
+    # Set values outside mask to zero
+    if apply_mask:
+        image[mask == 0] = 0
+
+    # Set values inside mask to normalized values
+    image[mask > 0] = masked_image
+
+    return image
+
 
 
 def norm_std(image, standard_deviations=3, mode='rescale'):
@@ -577,7 +574,7 @@ def mask_with_cylinder(image, cylinder_radius, cylinder_offset):
     mask = create_cylinder_mask(image.shape, cylinder_radius, cylinder_offset)  # Example radius
     return mask
 
-def get_image_pyramid(image, nifti_affine, pyramid_depth=3, norm_percentiles=(5.0, 95.0), clip_range=(0.0, 1.0), mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
+def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.0, 99.0), mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
 
     # convert to float
     image = image.astype(np.float32)
@@ -589,20 +586,17 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, norm_percentiles=(5.
     else:
         mask = None
 
-    lower, upper = norm_percentiles
-    clip_min, clip_max = clip_range
+    lower, upper = clip_percentiles
     if mask is None:
         # Normalize the image and ensure range is between [0, 1]
         # norm_std(image, standard_deviations=3, mode='rescale')
-        image = norm_percentile(image, lower, upper, mode='rescale')
-        image = clip_rescale(image, clip_min, clip_max)
+        image = clip_percentile(image, lower, upper, mode='rescale')
         # norm_hist(image, alpha=0.02, bins=1024, mode='rescale')
 
     else:
         # Normalize the image using values inside mask and ensure range is between [0, 1]
         # masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_mask=apply_mask)
-        image = masked_norm_percentile(image, mask, lower, upper, mode='rescale', apply_mask=apply_mask)
-        image = clip_rescale(image, clip_min, clip_max)
+        image = masked_clip_percentile(image, mask, lower, upper, mode='rescale', apply_mask=apply_mask)
         # masked_norm_hist(image, mask, alpha=0.02, bins=1024, mode='rescale', apply_mask=apply_mask)
 
     # plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=True)

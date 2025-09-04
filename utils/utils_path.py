@@ -13,9 +13,9 @@ from utils.utils_zarr import write_ome_pyramid
 from zarr.storage import LocalStore
 from skimage.transform import downscale_local_mean
 
-from utils.utils_image import load_image, normalize_std, plot_histogram, compare_histograms, match_histogram_3d_continuous
+from utils.utils_image import load_image, plot_histogram, compare_histograms, match_histogram_3d_continuous
 from utils.utils_plot import viz_slices
-from utils.utils_preprocess import image_crop_pad
+from utils.utils_preprocess import image_crop_pad, clip_percentile
 
 
 def get_orient_transform(axcodes="RAS", transpose_indices=(0, 1, 2)):
@@ -174,8 +174,9 @@ def write_image_categories(image_categories,
                 image, start_coords, end_coords = image_crop_pad(image, roi=(min_slices, *slice_shape), top_index='first')
             print(f"After cropping, scan shape is {image.shape}")
 
-            image = normalize_std(image, standard_deviations=3, mode='rescale')
+            # image = normalize_std(image, standard_deviations=3, mode='rescale')
             # plot_histogram(image)
+            image = clip_percentile(image, lower=1.0, upper=99.0, mode='rescale')
 
             slices = [image.shape[0] // 2, image.shape[0] // 3, image.shape[0] // 4]
             viz_slices(image, slice_indices=slices, savefig=False, title=os.path.join(os.path.dirname(image_path), f"{image_name}_slices"))
