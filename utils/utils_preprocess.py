@@ -218,6 +218,18 @@ def clip_rescale(image, a_min=0.0, a_max=1.0):
     return image
 
 
+def rescale(image):
+
+    vmin = image.min(initial=0)
+    vmax = image.max(initial=1)
+    if vmax > vmin:
+        image -= vmin
+        image /= (vmax - vmin)
+    else:
+        image.fill(0)
+
+    return image
+
 
 def clip_percentile(image, lower=10.0, upper=90.0, mode='rescale'):
 
@@ -580,6 +592,9 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
 
     # convert to float
     image = image.astype(np.float32)
+
+    # rescale to [0; 1]
+    rescale(image)
 
     if mask_method == 'threshold':
         mask = mask_with_threshold(image, mask_threshold)
