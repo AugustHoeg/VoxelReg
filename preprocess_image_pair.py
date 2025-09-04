@@ -64,6 +64,9 @@ def parse_arguments():
     parser.add_argument("--moving_norm_percentiles", type=float, nargs=2, default=(10.0, 90.0), help="Lower and upper percentiles for image normalization")
     parser.add_argument("--fixed_norm_percentiles", type=float, nargs=2, default=(10.0, 90.0), help="Lower and upper percentiles for image normalization")
 
+    parser.add_argument("--moving_clip_range", type=float, nargs=2, default=(0.0, 1.0), help="Lower and upper percentiles for image normalization")
+    parser.add_argument("--fixed_clip_range", type=float, nargs=2, default=(0.0, 1.0), help="Lower and upper percentiles for image normalization")
+
     parser.add_argument("--moving_mask_method", default=None, help="Method for creating moving mask. Currently supports 'threshold' and 'cylinder'. Default is None, which skips mask creation.")
     parser.add_argument("--moving_mask_threshold", default=None, help="Threshold for binary mask image. If unspecified, otsu thresholding will be used. default is None.")
     parser.add_argument("--moving_cylinder_radius", type=int, default=None, help="Radius of the cylinder for moving mask in voxels.")
@@ -126,6 +129,7 @@ if __name__ == "__main__":
     pyramid, mask_pyramid, affines = get_image_pyramid(moving, moving_affine,
                                                        args.moving_pyramid_depth,
                                                        args.moving_norm_percentiles,
+                                                       args.moving_clip_range,
                                                        args.moving_mask_method,
                                                        args.moving_mask_threshold,
                                                        args.moving_cylinder_radius,
@@ -172,6 +176,7 @@ if __name__ == "__main__":
     pyramid, mask_pyramid, affines = get_image_pyramid(fixed, fixed_affine,
                                                        args.fixed_pyramid_depth,
                                                        args.fixed_norm_percentiles,
+                                                       args.fixed_clip_range,
                                                        args.fixed_mask_method,
                                                        args.fixed_mask_threshold,
                                                        args.fixed_cylinder_radius,

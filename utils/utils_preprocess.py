@@ -606,7 +606,7 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, norm_percentiles=(5.
         # masked_norm_hist(image, mask, alpha=0.02, bins=1024, mode='rescale', apply_mask=apply_mask)
 
     # plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=True)
-    # plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=False, log_scale=True)
+    # plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=False, log_scale=False)
 
     # Create image/mask pyramid
     image_pyramid = []
