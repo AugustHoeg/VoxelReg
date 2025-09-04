@@ -205,7 +205,7 @@ def create_cylinder_mask(shape, cylinder_radius, cylinder_offset):
     return mask
 
 
-def plot_histogram(image, data_min=0.0, data_max=1.0, num_bins=256, title="Histogram", color="darkgray", save_fig=False, log_scale=False):
+def plot_histogram(image, data_min=None, data_max=None, num_bins=256, title="Histogram", color="darkgray", save_fig=False, log_scale=False):
     """
     Compute and plot the histogram of an image/volume.
 
@@ -222,6 +222,11 @@ def plot_histogram(image, data_min=0.0, data_max=1.0, num_bins=256, title="Histo
     """
     # Flatten the image/volume
     values = np.ravel(image)
+
+    if data_max == None:
+        data_max = values.max()
+    if data_min == None:
+        data_min = values.min()
 
     # Compute histogram
     hist, bin_edges = np.histogram(values, bins=num_bins, range=(data_min, data_max))

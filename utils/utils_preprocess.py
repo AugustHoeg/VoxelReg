@@ -36,6 +36,8 @@ def masked_norm(image, mask, apply_mask=True):
     # Set values inside mask to normalized values
     image[mask > 0] = masked_image
 
+    return image
+
 
 def masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_mask=True):
     # Get the min and max of the masked image
@@ -66,6 +68,8 @@ def masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_ma
 
     # Set values inside mask to normalized values
     image[mask > 0] = masked_image
+
+    return image
 
 
 def masked_norm_percentile(image, mask, lower=1.0, upper=99.0, mode='rescale', apply_mask=True):
@@ -99,6 +103,8 @@ def masked_norm_percentile(image, mask, lower=1.0, upper=99.0, mode='rescale', a
 
     # Set values inside mask to normalized values
     image[mask > 0] = masked_image
+
+    return image
 
 
 def masked_norm_hist(image, mask, alpha=1e-4, bins=4096, smooth=True, mode='rescale', apply_mask=True):
@@ -230,6 +236,23 @@ def norm_hist(image, alpha=1e-4, bins=4096, smooth=True, mode='rescale'):
     return image
 
 
+def clip_rescale(image, a_min=0.0, a_max=1.0):
+
+    # in-place clipping
+    np.clip(image, a_min=a_min, a_max=a_max, out=image)
+
+    vmin = image.min(initial=0)
+    vmax = image.max(initial=1)
+    if vmax > vmin:
+        image -= vmin
+        image /= (vmax - vmin)
+    else:
+        image.fill(0)
+
+    return image
+
+
+
 def norm_percentile(image, lower=10.0, upper=90.0, mode='rescale'):
 
     low = np.percentile(image, lower)
@@ -253,6 +276,8 @@ def norm_percentile(image, lower=10.0, upper=90.0, mode='rescale'):
         else:
             image.fill(0)
 
+    return image
+
 
 def norm_std(image, standard_deviations=3, mode='rescale'):
     # Get the min and max of the masked image
@@ -275,6 +300,8 @@ def norm_std(image, standard_deviations=3, mode='rescale'):
             image /= (vmax - vmin)
         else:
             image.fill(0)
+
+    return image
 
 
 def crop_to_roi(image, roi_factor, margin_percent=0.50, divis_factor=2, minimum_size=(2000, 2000, 2000), maximum_size=(2000, 2000, 2000)):
@@ -550,7 +577,7 @@ def mask_with_cylinder(image, cylinder_radius, cylinder_offset):
     mask = create_cylinder_mask(image.shape, cylinder_radius, cylinder_offset)  # Example radius
     return mask
 
-def get_image_pyramid(image, nifti_affine, pyramid_depth=3, norm_percentiles=(5.0, 95.0), mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
+def get_image_pyramid(image, nifti_affine, pyramid_depth=3, norm_percentiles=(5.0, 95.0), clip_range=(0.0, 1.0), mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
 
     # convert to float
     image = image.astype(np.float32)
@@ -563,20 +590,23 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, norm_percentiles=(5.
         mask = None
 
     lower, upper = norm_percentiles
+    clip_min, clip_max = clip_range
     if mask is None:
         # Normalize the image and ensure range is between [0, 1]
         # norm_std(image, standard_deviations=3, mode='rescale')
-        norm_percentile(image, lower, upper, mode='rescale')
-        image = norm_hist(image, alpha=0.02, bins=1024, mode='rescale')
+        image = norm_percentile(image, lower, upper, mode='rescale')
+        image = clip_rescale(image, clip_min, clip_max)
+        # norm_hist(image, alpha=0.02, bins=1024, mode='rescale')
 
     else:
         # Normalize the image using values inside mask and ensure range is between [0, 1]
         # masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_mask=apply_mask)
-        masked_norm_percentile(image, mask, lower, upper, mode='rescale', apply_mask=apply_mask)
-        image = masked_norm_hist(image, mask, alpha=0.02, bins=1024, mode='rescale', apply_mask=apply_mask)
+        image = masked_norm_percentile(image, mask, lower, upper, mode='rescale', apply_mask=apply_mask)
+        image = clip_rescale(image, clip_min, clip_max)
+        # masked_norm_hist(image, mask, alpha=0.02, bins=1024, mode='rescale', apply_mask=apply_mask)
 
-    # plot_histogram(image, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {0}", save_fig=True)
-    # plot_histogram(image, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {0}", save_fig=False, log_scale=True)
+    # plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=True)
+    # plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=False, log_scale=True)
 
     # Create image/mask pyramid
     image_pyramid = []
