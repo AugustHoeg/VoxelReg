@@ -23,8 +23,8 @@ project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokument
 
 # Define paths
 sample_path = project_path
-moving_path = sample_path + "Femur_21_80kV_100W_cropped.tif"
-fixed_path = sample_path + "Femur_21_80kV_100W_cropped.tif"
+moving_path = sample_path + "fixed_scale_8.nii"
+fixed_path = sample_path + "fixed_scale_8.nii"
 out_name = "test"  # Name of the output file
 
 
@@ -44,7 +44,7 @@ def parse_arguments():
 
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
 
-    parser.add_argument("--moving_min_size", type=int, nargs=3, default=(0, 0, 0), help="Minimum size for cropping.")
+    parser.add_argument("--moving_min_size", type=int, nargs=3, default=(680, 200, 200), help="Minimum size for cropping.")
     parser.add_argument("--moving_max_size", type=int, nargs=3, default=(1600, 800, 800), help="Maximum size for cropping.")
     parser.add_argument("--fixed_min_size", type=int, nargs=3, default=(0, 0, 0), help="Minimum size for cropping.")
     parser.add_argument("--fixed_max_size", type=int, nargs=3, default=(9999, 1920, 1920), help="Maximum size for cropping.")
@@ -67,7 +67,7 @@ def parse_arguments():
     parser.add_argument("--moving_clip_range", type=float, nargs=2, default=(0.0, 1.0), help="Lower and upper percentiles for image normalization")
     parser.add_argument("--fixed_clip_range", type=float, nargs=2, default=(0.0, 1.0), help="Lower and upper percentiles for image normalization")
 
-    parser.add_argument("--moving_mask_method", default=None, help="Method for creating moving mask. Currently supports 'threshold' and 'cylinder'. Default is None, which skips mask creation.")
+    parser.add_argument("--moving_mask_method", default='threshold', help="Method for creating moving mask. Currently supports 'threshold' and 'cylinder'. Default is None, which skips mask creation.")
     parser.add_argument("--moving_mask_threshold", default=None, help="Threshold for binary mask image. If unspecified, otsu thresholding will be used. default is None.")
     parser.add_argument("--moving_cylinder_radius", type=int, default=None, help="Radius of the cylinder for moving mask in voxels.")
     parser.add_argument("--moving_cylinder_center_offset", type=int, nargs=2, default=(0, 0), help="Offset for the center of the cylinder mask in voxels, default is 0 (centered in H, W).")

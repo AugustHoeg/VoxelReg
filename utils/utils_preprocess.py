@@ -9,6 +9,7 @@ from utils.utils_tiff import load_tiff, write_tiff, center_crop, top_center_crop
 from utils.utils_nifti import write_nifti, get_crop_origin, set_origin, set_affine_scale, compute_affine_scale, compute_affine_crop
 from utils.utils_txm import load_txm, get_affine_txm
 from utils.utils_image import load_image, create_cylinder_mask, normalize_std, plot_histogram
+from utils.utils_plot import viz_orthogonal_slices
 
 
 def norm(image):
@@ -245,6 +246,7 @@ def clip_percentile(image, lower=10.0, upper=90.0, mode='rescale'):
 def masked_clip_percentile(image, mask, lower=1.0, upper=99.0, mode='rescale', apply_mask=True):
     # Get the min and max of the masked image
     masked_image = image[mask > 0]
+    masked_image = masked_image[masked_image > 0]  # filter zeros for good measure
 
     low = np.percentile(masked_image, lower)
     high = np.percentile(masked_image, upper)
@@ -601,6 +603,10 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
 
     # plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=True)
     # plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=False, log_scale=False)
+
+    viz_orthogonal_slices(image, [min(image.shape) // 2, min(image.shape) // 3, image.shape[2] // 4], savefig=True)
+    viz_slices(image, [image.shape[0] // 2], savefig=True)
+    plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=False, log_scale=False)
 
     # Create image/mask pyramid
     image_pyramid = []
