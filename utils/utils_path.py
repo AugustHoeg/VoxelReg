@@ -159,7 +159,7 @@ def write_image_categories(image_categories,
             min_slices = int(category.split('_')[0])
         max_slices = int(category.split('_')[-1])
 
-        for image_path in image_categories[category]:
+        for i, image_path in enumerate(image_categories[category]):
             image_name = f"{name_prefix}" + list(re.finditer(name_format, image_path))[-1].group(0) + f"{name_suffix}"
             #image_name = f"{name_prefix}" + re.compile(name_format).search(image_path).group(0) + f"{name_suffix}"
             image = load_image(image_path, dtype=np.float32)
@@ -178,8 +178,9 @@ def write_image_categories(image_categories,
             # plot_histogram(image)
             image = clip_percentile(image, lower=0.5, upper=99.5, mode='rescale')
 
-            slices = [image.shape[0] // 2, image.shape[0] // 3, image.shape[0] // 4]
-            viz_slices(image, slice_indices=slices, savefig=False, title=os.path.join(os.path.dirname(image_path), f"{image_name}_slices"))
+            if i % 10 == 0:
+                slices = [image.shape[0] // 2, image.shape[0] // 3, image.shape[0] // 4]
+                viz_slices(image, slice_indices=slices, savefig=True, title=os.path.join(os.path.dirname(image_path), f"{image_name}_slices"))
 
             # Convert to C-order
             image = np.ascontiguousarray(image)
