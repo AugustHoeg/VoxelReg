@@ -7,7 +7,8 @@ from zarr.storage import LocalStore
 import dask.array as da
 from ome_zarr.writer import write_image, write_multiscale, write_multiscale_labels
 from ome_zarr.io import parse_url
-from numcodecs import Zstd, Blosc, LZ4
+#from numcodecs import Zstd, Blosc, LZ4
+from zarr.codecs import BloscCodec, BloscCname, BloscShuffle
 from utils.utils_image import load_image, normalize, normalize_std, normalize_std_dask, match_histogram_3d_continuous_sampled, compare_histograms
 from utils.utils_preprocess import image_crop_pad
 from dask.diagnostics import ProgressBar
@@ -15,13 +16,22 @@ from dask.diagnostics import ProgressBar
 def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648, 648, 648), cname='lz4'):
 
     # Define the chunk sizes for each level
-    chunk_sizes = [np.array(chunk_size) // (2**i) for i in range(len(image_pyramid))]
-    print("Chunk sizes: ", chunk_sizes)
+    chunk_shapes = [np.array(chunk_size) // (2**i) for i in range(len(image_pyramid))]
+    print("Chunk shapes: ", chunk_shapes)
 
     # Define storage options for each level
     # Compressions: LZ4(), Zstd(level=3)
     storage_opts = [
-        {"chunks": chunk_sizes[i], "compressor": Blosc(cname=cname, clevel=3, shuffle=Blosc.BITSHUFFLE)}
+        {
+            "chunk_shape": chunk_shapes[i].tolist(),
+            "codecs": [
+                BloscCodec(
+                    cname=BloscCname[cname],  # e.g. 'lz4', 'zstd', ...
+                    clevel=3,
+                    shuffle=BloscShuffle.bitshuffle  # good for uint8; ok generally
+                )
+            ]
+        }
         for i in range(len(image_pyramid))
     ]
 
