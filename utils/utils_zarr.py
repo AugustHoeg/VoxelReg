@@ -24,13 +24,7 @@ def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648
     storage_opts = [
         {
             "chunks": chunk_shapes[i].tolist(),
-            "compressor": [
-                BloscCodec(
-                    cname=BloscCname[cname],  # e.g. 'lz4', 'zstd', ...
-                    clevel=3,
-                    shuffle=BloscShuffle.bitshuffle  # good for uint8; ok generally
-                )
-            ]
+            "compressor": BloscCodec(cname=BloscCname[cname], clevel=3, shuffle=BloscShuffle.bitshuffle)
         }
         for i in range(len(image_pyramid))
     ]
