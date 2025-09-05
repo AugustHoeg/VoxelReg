@@ -176,7 +176,7 @@ def write_image_categories(image_categories,
 
             # image = normalize_std(image, standard_deviations=3, mode='rescale')
             # plot_histogram(image)
-            image = clip_percentile(image, lower=1.0, upper=99.0, mode='rescale')
+            image = clip_percentile(image, lower=0.5, upper=99.5, mode='rescale')
 
             slices = [image.shape[0] // 2, image.shape[0] // 3, image.shape[0] // 4]
             viz_slices(image, slice_indices=slices, savefig=False, title=os.path.join(os.path.dirname(image_path), f"{image_name}_slices"))
