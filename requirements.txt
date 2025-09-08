@@ -14,7 +14,7 @@ monai
 matplotlib==3.9.0
 torchio
 opencv-python
-qim3d
+qim3d==0.3.2
 hydra-core
 invoke
 scikit-learn

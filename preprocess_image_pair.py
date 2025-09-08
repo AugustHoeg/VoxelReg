@@ -27,6 +27,9 @@ moving_path = sample_path + "fixed_scale_8.nii"
 fixed_path = sample_path + "fixed_scale_8.nii"
 out_name = "test"  # Name of the output file
 
+moving_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos3_recon.txm"
+fixed_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos3_recon.txm"
+
 
 def parse_arguments():
 
