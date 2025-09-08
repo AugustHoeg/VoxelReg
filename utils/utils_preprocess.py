@@ -233,7 +233,7 @@ def rescale(image):
 
 def clip_percentile(image, lower=1.0, upper=99.0, mode='rescale'):
 
-    image_filtered = image[(image > 0.05) | (image < 0.95)]  # filter low/high values
+    image_filtered = image[(image > 0.025) | (image < 0.975)]  # filter low/high values
 
     low = np.percentile(image_filtered, lower)
     high = np.percentile(image_filtered, upper)
@@ -260,7 +260,7 @@ def clip_percentile(image, lower=1.0, upper=99.0, mode='rescale'):
 def masked_clip_percentile(image, mask, lower=1.0, upper=99.0, mode='rescale', apply_mask=True):
     # Get the min and max of the masked image
     masked_image = image[mask > 0]
-    masked_image = masked_image[(masked_image > 0.05) | (masked_image < 0.95)]  # filter low/high values
+    masked_image = masked_image[(masked_image > 0.025) | (masked_image < 0.975)]  # filter low/high values
 
     low = np.percentile(masked_image, lower)
     high = np.percentile(masked_image, upper)
