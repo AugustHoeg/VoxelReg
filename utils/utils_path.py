@@ -147,6 +147,8 @@ def write_image_categories(image_categories,
                            cname='lz4',
                            group_name='HR'):
 
+    count = 0  # REMOVE THIS LINE
+
     for category in image_categories:
 
         if len(image_categories[category]) == 0:
@@ -160,6 +162,17 @@ def write_image_categories(image_categories,
         max_slices = int(category.split('_')[-1])
 
         for i, image_path in enumerate(image_categories[category]):
+
+            ### REMOVE THESE LINES IN PRODUCTION ###
+            # skip first 600 scans
+            if count < 600:
+                if count % 100 == 0:
+                    print(f"Skipping scan {count+1}")
+                continue
+            count += 1
+            ########################################
+
+            print(f"Processing scan {i+1}/{len(image_categories[category])} in category {category}")
             image_name = f"{name_prefix}" + list(re.finditer(name_format, image_path))[-1].group(0) + f"{name_suffix}"
             #image_name = f"{name_prefix}" + re.compile(name_format).search(image_path).group(0) + f"{name_suffix}"
             image = load_image(image_path, dtype=np.float32)
