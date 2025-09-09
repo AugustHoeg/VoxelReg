@@ -5,7 +5,7 @@ import numpy as np
 from utils.utils_elastix import elastix_coarse_registration_sweep, elastix_refined_registration
 from utils.utils_itk import create_itk_view, scale_spacing_and_origin, crop_itk_image
 from utils.utils_tiff import load_tiff, write_tiff
-from utils.utils_preprocess import norm, masked_norm, compute_crop_bounds
+from utils.utils_preprocess import apply_mask, compute_crop_bounds
 
 
 # Define paths
@@ -229,9 +229,7 @@ if __name__ == "__main__":
 
     # Enforce normalization to [0, 1]
     if args.mask_path is not None:
-        masked_norm(result_array, mask_array_sparse)  # in-place
-    else:
-        norm(result_array)  # in-place
+        apply_mask(result_array, mask_array_sparse)  # zero values outside mask in-place
 
     # Convert to ITK image
     result_image = itk.image_view_from_array(result_array)
@@ -247,7 +245,7 @@ if __name__ == "__main__":
     write_tiff(result_array, full_out_path)
     print(f"Output saved to {full_out_path}")
 
-    full_out_path = os.path.join(out_path, out_name + ".nii.gz")
+    full_out_path = os.path.join(out_path, out_name + ".nii")
     itk.imwrite(result_image, full_out_path)
     #write_nifti(result_array, affine=get_affine_from_itk_image(result_refined), output_path=full_out_path)
     print(f"Output saved to {full_out_path}")

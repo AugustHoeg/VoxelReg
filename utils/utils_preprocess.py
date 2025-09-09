@@ -12,6 +12,10 @@ from utils.utils_image import load_image, create_cylinder_mask, normalize_std, p
 from utils.utils_plot import viz_orthogonal_slices
 
 
+def apply_mask(image, mask):
+    image[mask == 0] = 0
+
+
 def norm(image):
     # image = (image - np.min(image)) / (np.max(image) - np.min(image))
     image_min = np.min(image)
