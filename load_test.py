@@ -30,17 +30,17 @@ if __name__ == "__main__":
     start = time.time()
     image, metadata = load_image(scan_path, dtype=np.float32, nifti_backend="nibabel", return_metadata=True)
     stop = time.time()
-    print("Time elapsed:", stop - start)
+    print("Time elapsed, nibabel:", stop - start)
 
     start = time.time()
     image, metadata = load_image(scan_path, dtype=np.float32, nifti_backend="antspyx", return_metadata=True)
     stop = time.time()
-    print("Time elapsed:", stop - start)
+    print("Time elapsed, antspyx:", stop - start)
 
     start = time.time()
     image, metadata = load_image(scan_path, dtype=np.float32, nifti_backend="sitk", return_metadata=True)
     stop = time.time()
-    print("Time elapsed:", stop - start)
+    print("Time elapsed, sitk:", stop - start)
 
 
 
