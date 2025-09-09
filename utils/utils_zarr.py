@@ -137,7 +137,7 @@ def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_
         start_idx = 1  # normalize remaining images based on first image
     for i in range(start_idx, len(pyramid)):
         pyramid[i] = match_histogram_3d_continuous_sampled(source=pyramid[i], reference=reference_image)
-        compare_histograms(pyramid[i], reference_image)
+        # compare_histograms(pyramid[i], reference_image)
 
     # Split pyramid (if needed)
     pyramid_splits = split_pyramid(pyramid, split_axis, split_indices)
