@@ -475,7 +475,7 @@ def match_histogram_3d_continuous_sampled(source, reference, max_sample_size=4e9
 if __name__ == "__main__":
 
     base_path = "../../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/"
-    image_path = os.path.join(base_path, "fixed_scale_8.nii")
+    image_path = os.path.join(base_path, "fixed_scale_8.nii.gz")
 
     start = time.time()
     image, metadata = load_image(image_path, dtype=np.float32, nifti_backend="nibabel", return_metadata=True)
