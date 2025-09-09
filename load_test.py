@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     args = parse_arguments()
 
-    if args.sample_path is not None:
+    if args.scan_path is not None:
         scan_path = os.path.join(args.base_path, args.scan_path)
         print("Scan path: ", scan_path)
 
