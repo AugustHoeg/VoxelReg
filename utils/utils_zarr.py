@@ -194,7 +194,7 @@ def load_image_pyramid(image_paths, dtype=np.float32):
     pyramid = []
     for i, image_path in enumerate(image_paths):
         print(f"Loading pyramid level {i}...")
-        image = load_image(image_path, dtype=dtype, as_contiguous=True)
+        image = load_image(image_path, dtype=dtype, as_contiguous=True, nifti_backend="antspyx")
         pyramid.append(image)
 
     return pyramid

@@ -8,6 +8,7 @@ import h5py
 import dask.array as da
 from monai.transforms import LoadImage
 import matplotlib.pyplot as plt
+import ants
 
 
 def load_image(image_path,
@@ -15,12 +16,28 @@ def load_image(image_path,
                dataset_name='/exchange/data',
                return_metadata=False,
                as_contiguous=False,
-               as_dask_array=False):
+               as_dask_array=False,
+               nifti_backend="nibabel"):
     """
     Load an image from various formats, optionally as a Dask array.
-    """
 
-    # TODO: add functionality for as_contiguous for other file formats than nifti
+    Parameters
+    ----------
+    image_path : str
+        Path to the image file or directory (for DICOM).
+    dtype : numpy dtype
+        Data type of the output array.
+    dataset_name : str
+        Dataset name for HDF5 files.
+    return_metadata : bool
+        Whether to return metadata (e.g., nibabel object or ants image).
+    as_contiguous : bool
+        Whether to return a contiguous numpy array.
+    as_dask_array : bool
+        Whether to return the image as a Dask array.
+    nifti_backend : str
+        Which backend to use for NIfTI: "nibabel" or "antspyx".
+    """
 
     image = None
     metadata = None
@@ -38,16 +55,22 @@ def load_image(image_path,
 
         # NIfTI
         if file_extension in ("nii", "nii.gz"):
-            nifti_data = nib.load(image_path)
-            image = nifti_data.get_fdata(dtype=dtype)
+            if nifti_backend == "antspyx":
+                nifti_data = ants.image_read(image_path)
+                image = nifti_data.numpy().astype(dtype)
+                metadata = nifti_data  # Keep the ANTs image as metadata
+            elif nifti_backend == "nibabel":
+                nifti_data = nib.load(image_path)
+                image = nifti_data.get_fdata(dtype=dtype)
+                metadata = nifti_data
+            else:
+                raise ValueError("nifti_backend must be either 'nibabel' or 'antspyx'.")
 
             if as_contiguous:
                 image = np.ascontiguousarray(image)
 
             if as_dask_array:
                 image = da.from_array(image, chunks="auto")
-
-            metadata = nifti_data
 
         # TIFF
         elif file_extension in ("tiff", "tif"):
