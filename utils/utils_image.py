@@ -1,4 +1,5 @@
 import os
+import time
 import glob
 import numpy as np
 import nibabel as nib
@@ -9,6 +10,7 @@ import dask.array as da
 from monai.transforms import LoadImage
 import matplotlib.pyplot as plt
 import ants
+import SimpleITK as sitk
 
 
 def load_image(image_path,
@@ -63,6 +65,10 @@ def load_image(image_path,
                 nifti_data = nib.load(image_path)
                 image = nifti_data.get_fdata(dtype=dtype)
                 metadata = nifti_data
+            elif nifti_backend == "simpleitk" or nifti_backend == "sitk":
+                nifti_data = sitk.ReadImage(image_path)
+                image = sitk.GetArrayFromImage(nifti_data).astype(dtype)
+                metadata = nifti_data  # Keep the SimpleITK image as metadata
             else:
                 raise ValueError("nifti_backend must be either 'nibabel' or 'antspyx'.")
 
@@ -467,4 +473,23 @@ def match_histogram_3d_continuous_sampled(source, reference, max_sample_size=4e9
 
 
 if __name__ == "__main__":
-    pass
+
+    base_path = "../../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/"
+    image_path = os.path.join(base_path, "fixed_scale_8.nii")
+
+    start = time.time()
+    image, metadata = load_image(image_path, dtype=np.float32, nifti_backend="nibabel", return_metadata=True)
+    stop = time.time()
+    print("Time elapsed:", stop - start)
+
+    start = time.time()
+    image, metadata = load_image(image_path, dtype=np.float32, nifti_backend="antspyx", return_metadata=True)
+    stop = time.time()
+    print("Time elapsed:", stop - start)
+
+    start = time.time()
+    image, metadata = load_image(image_path, dtype=np.float32, nifti_backend="sitk", return_metadata=True)
+    stop = time.time()
+    print("Time elapsed:", stop - start)
+
+

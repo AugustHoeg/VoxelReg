@@ -16,6 +16,18 @@ def find_coutours():
     # find contour
     contour = find_contours(image_gauss > image_th, level=0.5)
 
+def threshold_image(volume, threshold=None):
+
+    if threshold is None:
+        print("No threshold provided, computing otsu threshold...")
+        threshold = threshold_otsu(volume)  # if threshold not provided, use otsu threshold
+    print(f"Using threshold: {threshold} for flood filling.")
+
+    # Step 1: Threshold to detect object
+    mask = volume > threshold
+
+    return mask
+
 def thresholded_floodfill(volume, threshold=None):
     """
     Create a segmentation mask with exactly one connected bone component
@@ -80,7 +92,9 @@ if __name__ == "__main__":
     print("Image shape:", image.shape)
     viz_orthogonal_slices(image, slice_indices=[min(image.shape)//2, min(image.shape)//2, min(image.shape)//2], title="Input Image", savefig=False)
 
-    mask = thresholded_floodfill(image, threshold=0.22)
+    mask = threshold_image(image, threshold=None)
+
+    #mask = thresholded_floodfill(image, threshold=0.22)
     viz_orthogonal_slices(mask, slice_indices=[min(mask.shape)//2, min(mask.shape)//2, min(mask.shape)//2], title="Bone Mask", savefig=False)
 
 
