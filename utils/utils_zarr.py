@@ -128,6 +128,7 @@ def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_
         raise ValueError("Image paths are required and cannot be empty.")
 
     # Load the image pyramid
+    print("Loading image pyramid...")
     pyramid = load_image_pyramid(image_paths, dtype=np.float32)
 
     # match histograms
@@ -136,6 +137,7 @@ def write_ome_group(image_paths, out_name, group_name='HR', split_axis=0, split_
         reference_image = pyramid[0]  # use first image as reference
         start_idx = 1  # normalize remaining images based on first image
     for i in range(start_idx, len(pyramid)):
+        print(f"Matching histogram pyramid level {i}...")
         pyramid[i] = match_histogram_3d_continuous_sampled(source=pyramid[i], reference=reference_image)
         # compare_histograms(pyramid[i], reference_image)
 
