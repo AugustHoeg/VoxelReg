@@ -168,8 +168,8 @@ def write_image_categories(image_categories,
             if count < 600:
                 if count % 100 == 0:
                     print(f"Skipping scan {count+1}")
+                count += 1
                 continue
-            count += 1
             ########################################
 
             print(f"Processing scan {i+1}/{len(image_categories[category])} in category {category}")
