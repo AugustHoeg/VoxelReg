@@ -601,13 +601,14 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
 
     # rescale to [0; 1]
     rescale(image)
-
-    if mask is None and mask_method == 'threshold':
-        mask = mask_with_threshold(image, mask_threshold)
-    elif mask is None and mask_method == 'cylinder':
-        mask = mask_with_cylinder(image, cylinder_radius, cylinder_offset)
+    if mask is None:
+        if mask_method == 'threshold':
+            mask = mask_with_threshold(image, mask_threshold)
+        if mask_method == 'cylinder':
+            mask = mask_with_cylinder(image, cylinder_radius, cylinder_offset)
 
     lower, upper = clip_percentiles
+
     if mask is None:
         print("Performing percentile clipping...")
         # Normalize the image and ensure range is between [0, 1]
