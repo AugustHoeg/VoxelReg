@@ -21,7 +21,7 @@ def threshold_image(volume, threshold=None):
     if threshold is None:
         print("No threshold provided, computing otsu threshold...")
         threshold = threshold_otsu(volume)  # if threshold not provided, use otsu threshold
-    print(f"Using threshold: {threshold} for flood filling.")
+    print(f"Using threshold: {threshold}")
 
     # Step 1: Threshold to detect object
     mask = volume > threshold
