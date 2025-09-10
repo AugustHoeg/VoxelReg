@@ -115,8 +115,11 @@ def parse_arguments():
     parser.add_argument("--scan_path", type=str, required=False, help="Path to fixed image.")
     parser.add_argument("--out_path", type=str, required=False, help="path for the output image.")
     parser.add_argument("--out_name", type=str, required=False, default="out", help="Name for the output image.")
-    parser.add_argument("--out_format", type=str, default=".npy", help="data format to save to")
+    parser.add_argument("--out_format", type=str, default=".tif", help="data format to save to")
     parser.add_argument("--out_dataformat", type=str, required=False, default="UINT8", help="data format to convert to")
+    parser.add_argument("--gaussian_sigma_img", type=float, required=False, default=5)
+    parser.add_argument("--gaussian_sigma_mask", type=float, required=False, default=3.5)
+    parser.add_argument("--threshold_value", type=float, required=False, default=0.14)
 
     args = parser.parse_args()
     return args
@@ -133,15 +136,15 @@ if __name__ == "__main__":
     out_format = args.out_format
 
     # Params
-    gaussian_sigma_img = 5
-    gaussian_sigma_mask = 2.0
-    threshold_value = 0.160
+    gaussian_sigma_img = args.gaussian_sigma_img  # 5 for A, 5 for B, 5 for C
+    gaussian_sigma_mask = args.gaussian_sigma_mask  # 2.0 for A, 3.0 for B, 3.0 for C, 3.5 for D
+    threshold_value = args.threshold_value  # 0.120  # 0.160 for A, 0.120 for B, 0.082 for C, 0.14 for D
     struct_fill_holes = (5, 5, 5)
     erosion_structure = (3, 1)  # (dimensions, connectivity)
-    erosion_iterations = 10
+    erosion_iterations = 1
     scale_factor = 4  # nearest-neighbor
 
-    scan_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Vertebrae_A/Vertebrae_A_80kV_registered.nii.gz"
+    scan_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Vertebrae_D/Vertebrae_D_80kV_registered.nii.gz"
 
     filename, file_extension = os.path.basename(scan_path).split('.', 1)
 
