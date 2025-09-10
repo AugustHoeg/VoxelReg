@@ -245,7 +245,7 @@ if __name__ == "__main__":
     write_tiff(result_array, full_out_path)
     print(f"Output saved to {full_out_path}")
 
-    full_out_path = os.path.join(out_path, out_name + ".nii")
+    full_out_path = os.path.join(out_path, out_name + ".nii.gz")
     itk.imwrite(result_image, full_out_path)
     #write_nifti(result_array, affine=get_affine_from_itk_image(result_refined), output_path=full_out_path)
     print(f"Output saved to {full_out_path}")
