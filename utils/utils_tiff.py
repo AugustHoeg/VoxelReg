@@ -190,22 +190,16 @@ def write_downsampled_tiff(image, output_path, factor, ret=False):
         return image
 
 
-def write_tiff(image, output_path, ret=False):
-    """
-    saves a tiff from numpy array.
+def write_tiff(image, output_path, dtype=None, ret=False):
 
-    Args:
-        input_path (str): Path to the input 3D TIFF file.
-        output_path (str): Path to save the TIFF file.
-    """
+    if dtype is not None:
+        image = image.astype(dtype)
 
-    tifffile.imwrite(output_path, image.astype(image.dtype))
-    print(f"Saved downsampled image to: {output_path}")
+    tifffile.imwrite(output_path, image)
+    print(f"Saved tiff to: {output_path}")
 
     if ret:
         return image
-
-
 
 
 if __name__ == "__main__":
