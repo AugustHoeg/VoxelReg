@@ -679,7 +679,7 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
         # write_tiff(down, os.path.join(sample_path, filename + f"_down_{2**(i+1)}.tiff"))
         # np.save(os.path.join(out_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
         print(f"Writing pyramid image level: {i} with shape {image_pyramid[i].shape}")
-        write_nifti(image_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii"))
+        write_nifti(image_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii.gz"))
 
     for i in range(0, len(mask_pyramid)):
         if mask_pyramid[i] is None:
