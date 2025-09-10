@@ -609,12 +609,14 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
 
     lower, upper = clip_percentiles
     if mask is None:
+        print("Performing percentile clipping...")
         # Normalize the image and ensure range is between [0, 1]
         # norm_std(image, standard_deviations=3, mode='rescale')
         image = clip_percentile(image, lower, upper, mode='rescale')
         # norm_hist(image, alpha=0.02, bins=1024, mode='rescale')
 
     else:
+        print("Performing masked percentile clipping...")
         # Normalize the image using values inside mask and ensure range is between [0, 1]
         # masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_mask=apply_mask)
         image = masked_clip_percentile(image, mask, lower, upper, mode='rescale', apply_mask=apply_mask)
