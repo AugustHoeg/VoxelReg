@@ -10,7 +10,7 @@ from utils.utils_preprocess import rescale
 def parse_arguments():
 
     # Set up argument parser
-    parser = argparse.ArgumentParser(description="Save tiff.")
+    parser = argparse.ArgumentParser(description="Convert scan.")
     parser.add_argument("--base_path", type=str, required=True, help="Path to the sample directory.")
     parser.add_argument("--scan_path", type=str, required=False, help="Path to fixed image.")
     parser.add_argument("--out_path", type=str, required=False, help="path for the output image.")
