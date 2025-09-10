@@ -71,7 +71,7 @@ def parse_arguments():
     parser.add_argument("--fixed_clip_range", type=float, nargs=2, default=(0.0, 1.0), help="Lower and upper percentiles for image normalization")
 
     parser.add_argument("--moving_mask_path", default=None, help="Path to moving mask image, default is None.")
-    parser.add_argument("--moving_mask_method", default='threshold', help="Method for creating moving mask. Currently supports 'threshold' and 'cylinder'. Default is None, which skips mask creation.")
+    parser.add_argument("--moving_mask_method", default=None, help="Method for creating moving mask. Currently supports 'threshold' and 'cylinder'. Default is None, which skips mask creation.")
     parser.add_argument("--moving_mask_threshold", default=None, help="Threshold for binary mask image. If unspecified, otsu thresholding will be used. default is None.")
     parser.add_argument("--moving_cylinder_radius", type=int, default=None, help="Radius of the cylinder for moving mask in voxels.")
     parser.add_argument("--moving_cylinder_center_offset", type=int, nargs=2, default=(0, 0), help="Offset for the center of the cylinder mask in voxels, default is 0 (centered in H, W).")
