@@ -70,12 +70,14 @@ def parse_arguments():
     parser.add_argument("--moving_clip_range", type=float, nargs=2, default=(0.0, 1.0), help="Lower and upper percentiles for image normalization")
     parser.add_argument("--fixed_clip_range", type=float, nargs=2, default=(0.0, 1.0), help="Lower and upper percentiles for image normalization")
 
+    parser.add_argument("--moving_mask_path", default=None, help="Path to moving mask image, default is None.")
     parser.add_argument("--moving_mask_method", default='threshold', help="Method for creating moving mask. Currently supports 'threshold' and 'cylinder'. Default is None, which skips mask creation.")
     parser.add_argument("--moving_mask_threshold", default=None, help="Threshold for binary mask image. If unspecified, otsu thresholding will be used. default is None.")
     parser.add_argument("--moving_cylinder_radius", type=int, default=None, help="Radius of the cylinder for moving mask in voxels.")
     parser.add_argument("--moving_cylinder_center_offset", type=int, nargs=2, default=(0, 0), help="Offset for the center of the cylinder mask in voxels, default is 0 (centered in H, W).")
     parser.add_argument("--apply_moving_mask", action="store_true", help="Apply moving mask to the image.")
 
+    parser.add_argument("--fixed_mask_path", default=None, help="Path to fixed mask image, default is None.")
     parser.add_argument("--fixed_mask_method", default=None, help="Method for creating fixed mask. Currently supports 'threshold' and 'cylinder'. Default is None, which skips mask creation.")
     parser.add_argument("--fixed_mask_threshold", default=None, help="Threshold for binary mask image, default is None.")
     parser.add_argument("--fixed_cylinder_radius", type=int, default=None, help="Radius of the cylinder for fixed mask in voxels.")
@@ -107,6 +109,12 @@ if __name__ == "__main__":
     if args.fixed_path is not None:
         fixed_path = os.path.join(sample_path, args.fixed_path)
         print("Fixed path: ", fixed_path)
+    if args.moving_mask_path is not None:
+        moving_mask_path = os.path.join(sample_path, args.moving_mask_path)
+        print("Moving mask path: ", moving_mask_path)
+    if args.fixed_mask_path is not None:
+        fixed_mask_path = os.path.join(sample_path, args.fixed_mask_path)
+        print("Fixed mask path: ", fixed_mask_path)
     if args.moving_out_path is not None:
         moving_out_path = os.path.join(sample_path, args.moving_out_path)  # os.path.join(sample_path, args.out_name)
         print("Moving output path: ", moving_out_path)
@@ -128,10 +136,27 @@ if __name__ == "__main__":
                                                                                    divis_factor=args.moving_divis_factor,
                                                                                    top_index=args.top_index)
 
+    # Get moving image mask
+    moving_mask = None
+    if args.moving_mask_path is not None:
+        moving_mask, moving_mask_affine = get_image_and_affine(moving_mask_path,
+                                                             custom_origin=(0, 0, 0),
+                                                             pixel_size_mm=args.moving_pixel_size)
+
+        moving_mask, _, _, _ = define_image_space(moving_mask, moving_mask_affine, f=1,
+                                                 min_size=args.moving_min_size,
+                                                 max_size=args.moving_max_size,
+                                                 margin_percent=0.0,
+                                                 divis_factor=args.moving_divis_factor,
+                                                 top_index=args.top_index)
+        moving_mask_affine = moving_affine  # Defined, but currently unused
+
+
     # Get & save moving image pyramid
     pyramid, mask_pyramid, affines = get_image_pyramid(moving, moving_affine,
                                                        args.moving_pyramid_depth,
                                                        args.moving_clip_percentiles,
+                                                       moving_mask,
                                                        args.moving_mask_method,
                                                        args.moving_mask_threshold,
                                                        args.moving_cylinder_radius,
@@ -174,10 +199,27 @@ if __name__ == "__main__":
     set_origin(fixed_affine, new_origin=pos_diff)
     print("nifti affine after set pos\n", fixed_affine)
 
+    # Get fixed image mask
+    fixed_mask = None
+    if args.fixed_mask_path is not None:
+        fixed_mask, fixed_mask_affine = get_image_and_affine(fixed_mask_path,
+                                                             custom_origin=(0, 0, 0),
+                                                             pixel_size_mm=args.fixed_pixel_size)
+
+        fixed_mask, _, _, _ = define_image_space(fixed_mask, fixed_mask_affine, f=1,
+                                                 min_size=args.fixed_min_size,
+                                                 max_size=args.fixed_max_size,
+                                                 margin_percent=0.0,
+                                                 divis_factor=args.fixed_divis_factor,
+                                                 top_index=args.top_index)
+        fixed_mask_affine = fixed_affine  # Defined, but currently unused
+
+
     # Get & save moving image pyramid
     pyramid, mask_pyramid, affines = get_image_pyramid(fixed, fixed_affine,
                                                        args.fixed_pyramid_depth,
                                                        args.fixed_clip_percentiles,
+                                                       fixed_mask,
                                                        args.fixed_mask_method,
                                                        args.fixed_mask_threshold,
                                                        args.fixed_cylinder_radius,

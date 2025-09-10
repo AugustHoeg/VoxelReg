@@ -594,7 +594,7 @@ def mask_with_cylinder(image, cylinder_radius, cylinder_offset):
     mask = create_cylinder_mask(image.shape, cylinder_radius, cylinder_offset)  # Example radius
     return mask
 
-def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.0, 99.0), mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
+def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.0, 99.0), mask=None, mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
 
     # convert to float
     image = image.astype(np.float32)
@@ -602,12 +602,10 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
     # rescale to [0; 1]
     rescale(image)
 
-    if mask_method == 'threshold':
+    if mask is None and mask_method == 'threshold':
         mask = mask_with_threshold(image, mask_threshold)
-    elif mask_method == 'cylinder':
+    elif mask is None and mask_method == 'cylinder':
         mask = mask_with_cylinder(image, cylinder_radius, cylinder_offset)
-    else:
-        mask = None
 
     lower, upper = clip_percentiles
     if mask is None:
