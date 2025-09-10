@@ -139,6 +139,7 @@ if __name__ == "__main__":
     # Get moving image mask
     moving_mask = None
     if args.moving_mask_path is not None:
+        print(f"Using moving mask from: {moving_mask_path}")
         moving_mask, moving_mask_affine = get_image_and_affine(moving_mask_path,
                                                              custom_origin=(0, 0, 0),
                                                              pixel_size_mm=args.moving_pixel_size)
@@ -202,6 +203,7 @@ if __name__ == "__main__":
     # Get fixed image mask
     fixed_mask = None
     if args.fixed_mask_path is not None:
+        print(f"Using fixed mask from: {fixed_mask_path}")
         fixed_mask, fixed_mask_affine = get_image_and_affine(fixed_mask_path,
                                                              custom_origin=(0, 0, 0),
                                                              pixel_size_mm=args.fixed_pixel_size)
