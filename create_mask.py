@@ -144,8 +144,7 @@ if __name__ == "__main__":
     erosion_iterations = 1
     scale_factor = 4  # nearest-neighbor
 
-    scan_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Vertebrae_D/Vertebrae_D_80kV_registered.nii.gz"
-
+    # scan_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Vertebrae_D/Vertebrae_D_80kV_registered.nii.gz"
     filename, file_extension = os.path.basename(scan_path).split('.', 1)
 
     print(f"Loading {scan_path}")
