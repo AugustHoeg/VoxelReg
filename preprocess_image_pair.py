@@ -1,6 +1,8 @@
 import os
 import argparse
 
+import numpy as np
+
 from utils.utils_plot import viz_slices, viz_multiple_images
 from utils.utils_preprocess import crop_to_roi, preprocess, get_image_and_affine, save_image_pyramid, get_image_pyramid, define_image_space
 from utils.utils_nifti import voxel2world, set_origin
@@ -142,7 +144,8 @@ if __name__ == "__main__":
         print(f"Using moving mask from: {moving_mask_path}")
         moving_mask, moving_mask_affine = get_image_and_affine(moving_mask_path,
                                                              custom_origin=(0, 0, 0),
-                                                             pixel_size_mm=args.moving_pixel_size)
+                                                             pixel_size_mm=args.moving_pixel_size,
+                                                             dtype=np.uint8)
 
         moving_mask, _, _, _ = define_image_space(moving_mask, moving_mask_affine, f=1,
                                                  min_size=args.moving_min_size,
@@ -206,7 +209,8 @@ if __name__ == "__main__":
         print(f"Using fixed mask from: {fixed_mask_path}")
         fixed_mask, fixed_mask_affine = get_image_and_affine(fixed_mask_path,
                                                              custom_origin=(0, 0, 0),
-                                                             pixel_size_mm=args.fixed_pixel_size)
+                                                             pixel_size_mm=args.fixed_pixel_size,
+                                                             dtype=np.uint8)
 
         fixed_mask, _, _, _ = define_image_space(fixed_mask, fixed_mask_affine, f=1,
                                                  min_size=args.fixed_min_size,

@@ -650,14 +650,15 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
 
         affines.append(compute_affine_scale(affines[depth], scale=2))
 
-        if mask_method == 'threshold':
-            mask = mask_with_threshold(down, mask_threshold)
-        elif mask_method == 'cylinder':
-            offset = [(val / 2 ** (depth + 1)) for val in cylinder_offset]
-            radius = [(val / 2 ** (depth + 1)) for val in cylinder_radius]
-            mask = mask_with_cylinder(down, radius, offset)
+        if mask is None:
+            if mask_method == 'threshold':
+                mask = mask_with_threshold(down, mask_threshold)
+            elif mask_method == 'cylinder':
+                offset = [(val / 2 ** (depth + 1)) for val in cylinder_offset]
+                radius = [(val / 2 ** (depth + 1)) for val in cylinder_radius]
+                mask = mask_with_cylinder(down, radius, offset)
         else:
-            mask = None
+            mask = downscale_local_mean(mask_pyramid[depth], (2, 2, 2)).astype(np.uint8)
 
         mask_pyramid.append(mask)
 
