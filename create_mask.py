@@ -195,7 +195,7 @@ if __name__ == "__main__":
     # Write nifti for viz
     print(f"Writing {scan_path}")
     out_path = os.path.join(args.base_path, args.out_path, args.out_name + "_down.nii.gz")
-    write_nifti(mask, affine=affine, output_path=out_path, dtype=args.out_dataformat)
+    write_nifti(mask, affine=affine, output_path=out_path, dtype=out_dataformat)
 
     img_upscaled = transform.resize(
         mask,
