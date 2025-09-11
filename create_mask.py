@@ -144,11 +144,11 @@ if __name__ == "__main__":
     erosion_iterations = 1
     scale_factor = 4  # nearest-neighbor
 
-    # scan_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Vertebrae_D/Vertebrae_D_80kV_registered.nii.gz"
+    scan_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Vertebrae_D/Vertebrae_D_80kV_registered.nii.gz"
     filename, file_extension = os.path.basename(scan_path).split('.', 1)
 
     print(f"Loading {scan_path}")
-    if file_extension == ".nii" or file_extension == ".nii.gz":
+    if file_extension == "nii" or file_extension == "nii.gz":
         img, metadata = load_image(scan_path, dtype=np.float32, as_contiguous=True, return_metadata=True)
         affine = metadata.affine
     else:
@@ -193,7 +193,7 @@ if __name__ == "__main__":
     # Write nifti for viz
     print(f"Writing {scan_path}")
     out_path = os.path.join(args.base_path, args.out_path, args.out_name + "_down.nii.gz")
-    write_nifti(mask, affine=np.eye(4), output_path=out_path, dtype=np.uint8)
+    write_nifti(mask, affine=np.eye(4), output_path=out_path, dtype=args.out_dataformat)
 
     img_upscaled = transform.resize(
         mask,
