@@ -185,6 +185,11 @@ if __name__ == "__main__":
         pass
         #out_dataformat = np.float32
 
+    # Write nifti for viz
+    print(f"Writing {scan_path}")
+    out_path = os.path.join(args.base_path, args.out_path, args.out_name + "_down" + out_format)
+    write_nifti(mask, affine=np.eye(4), output_path=out_path, dtype=".nii.gz")
+
     img_upscaled = transform.resize(
         mask,
         np.array(img.shape) * scale_factor,
@@ -193,8 +198,6 @@ if __name__ == "__main__":
         preserve_range=True
     ).astype(out_dataformat)
 
-    print(f"Writing {scan_path}")
-    out_path = os.path.join(args.base_path, args.out_path, args.out_name + out_format)
     if out_format == ".npy":
         write_npy(img_upscaled, output_path=out_path, dtype=out_dataformat)
     elif out_format == ".tiff" or out_format == ".tif":
