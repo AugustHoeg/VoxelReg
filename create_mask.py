@@ -148,7 +148,10 @@ if __name__ == "__main__":
     filename, file_extension = os.path.basename(scan_path).split('.', 1)
 
     print(f"Loading {scan_path}")
-    img = load_image(scan_path, dtype=np.float32)
+    if file_extension == ".nii" or file_extension == ".nii.gz":
+        img, metadata = load_image(scan_path, dtype=np.float32, as_contiguous=True, return_metadata=True)
+    else:
+        img = load_image(scan_path, dtype=np.float32)
 
     # Rescale
     img = rescale(img)
