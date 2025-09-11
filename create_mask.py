@@ -144,7 +144,7 @@ if __name__ == "__main__":
     erosion_iterations = 1
     scale_factor = 4  # nearest-neighbor
 
-    scan_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Vertebrae_D/Vertebrae_D_80kV_registered.nii.gz"
+    scan_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Vertebrae_D/Vertebrae_D_80kV_registered.npy"
     filename, file_extension = os.path.basename(scan_path).split('.', 1)
 
     print(f"Loading {scan_path}")
@@ -153,6 +153,8 @@ if __name__ == "__main__":
         affine = metadata.affine
     else:
         img = load_image(scan_path, dtype=np.float32)
+        # flip axes to match nifti orientation
+        img = np.transpose(img, (2, 1, 0))
         affine = np.eye(4)
 
     # Rescale
@@ -193,7 +195,7 @@ if __name__ == "__main__":
     # Write nifti for viz
     print(f"Writing {scan_path}")
     out_path = os.path.join(args.base_path, args.out_path, args.out_name + "_down.nii.gz")
-    write_nifti(mask, affine=np.eye(4), output_path=out_path, dtype=args.out_dataformat)
+    write_nifti(mask, affine=affine, output_path=out_path, dtype=args.out_dataformat)
 
     img_upscaled = transform.resize(
         mask,
@@ -208,7 +210,7 @@ if __name__ == "__main__":
     elif out_format == ".tiff" or out_format == ".tif":
         write_tiff(img_upscaled, output_path=out_path, dtype=out_dataformat)
     elif out_format == ".nii" or out_format == ".nii.gz":
-        write_nifti(img_upscaled, affine=np.eye(4), output_path=out_path, dtype=out_dataformat)
+        write_nifti(img_upscaled, affine=affine, output_path=out_path, dtype=out_dataformat)
     else:
         raise ValueError(f"Unsupported file format: {out_format}")
 
