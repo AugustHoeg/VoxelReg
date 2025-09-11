@@ -150,8 +150,10 @@ if __name__ == "__main__":
     print(f"Loading {scan_path}")
     if file_extension == ".nii" or file_extension == ".nii.gz":
         img, metadata = load_image(scan_path, dtype=np.float32, as_contiguous=True, return_metadata=True)
+        affine = metadata.affine
     else:
         img = load_image(scan_path, dtype=np.float32)
+        affine = np.eye(4)
 
     # Rescale
     img = rescale(img)
@@ -191,7 +193,7 @@ if __name__ == "__main__":
     # Write nifti for viz
     print(f"Writing {scan_path}")
     out_path = os.path.join(args.base_path, args.out_path, args.out_name + "_down.nii.gz")
-    write_nifti(mask, affine=np.eye(4), output_path=out_path, dtype=np.float32)
+    write_nifti(mask, affine=np.eye(4), output_path=out_path, dtype=np.uint8)
 
     img_upscaled = transform.resize(
         mask,
