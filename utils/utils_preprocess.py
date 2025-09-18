@@ -287,6 +287,7 @@ def masked_clip_percentile(image, mask, lower=1.0, upper=99.0, mode='rescale', a
 
     # Set values outside mask to zero
     if apply_mask:
+        print("Applying mask to image...")
         image[mask == 0] = 0
 
     # Set values inside mask to normalized values

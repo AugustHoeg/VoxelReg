@@ -182,7 +182,7 @@ def write_image_categories(image_categories,
 
             if i % 10 == 0:
                 slices = [image.shape[0] // 2, image.shape[0] // 3, image.shape[0] // 4]
-                viz_slices(image, slice_indices=slices, savefig=True, title=os.path.join(os.path.dirname(image_path), f"{image_name}_slices"))
+                viz_slices(image, slice_indices=slices, savefig=True, title=os.path.join(os.path.dirname(image_path), f"{image_name}_slices"), save_dir="")
 
             # Convert to C-order
             image = np.ascontiguousarray(image)
@@ -213,6 +213,9 @@ def write_image_categories(image_categories,
                 cname=cname  # Compression codec
             )
 
+            z = zarr.open(zarr_path)
+            print(z["HR/0"].shape)
+
             print(f"Done writing {image_path} to OME-Zarr format at {zarr_path}")
 
             print("Done")
@@ -234,7 +237,7 @@ def write_ome_dataset(dataset_name):
         splits = np.array([260])
         name_prefix = "volume_"
         slice_shape = (256, 320)
-        set_slice_count = 256
+        set_slice_count = 320
         axis = 2
         orient_transform = mt.Compose([
             mt.Orientation(axcodes="LPS"),
