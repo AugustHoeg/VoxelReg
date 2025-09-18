@@ -21,7 +21,7 @@ out_name = "f_001_prepropress"  # Name of the output file
 # args.moving_cylinder_center_offset = (50, 200)
 # args.apply_moving_mask = True
 
-project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/"
+project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Cardboard_A/"
 
 # Define paths
 sample_path = project_path
@@ -29,8 +29,8 @@ moving_path = sample_path + "fixed_scale_8.nii"
 fixed_path = sample_path + "fixed_scale_8.nii"
 out_name = "test"  # Name of the output file
 
-moving_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos3_recon.txm"
-fixed_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos3_recon.txm"
+moving_path = sample_path + "Cardboard_A_LFOV_80kV_7W_air_4s_8mu_bin1_pos1_Stitch_scale_4.tif"
+fixed_path = sample_path + "Cardboard_A_4X_80kV_7W_air_3s_2mu_bin1_pos1_Stitch_scale_4.tif"
 
 
 def parse_arguments():
@@ -42,16 +42,16 @@ def parse_arguments():
     parser.add_argument("--moving_path", type=str, required=False, help="Path to the scan file.")
     parser.add_argument("--fixed_path", type=str, required=False, help="Path to the scan file.")
 
-    parser.add_argument("--moving_out_path", type=str, required=False, help="Path to the output file.")
-    parser.add_argument("--fixed_out_path", type=str, required=False, help="Path to the output file.")
+    parser.add_argument("--moving_out_path", type=str, required=False, default="", help="Path to the output file.")
+    parser.add_argument("--fixed_out_path", type=str, required=False, default="", help="Path to the output file.")
     parser.add_argument("--moving_out_name", type=str, required=False, default="moving", help="Output name for the processed image.")
     parser.add_argument("--fixed_out_name", type=str, required=False, default="fixed", help="Output name for the processed image.")
 
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
 
-    parser.add_argument("--moving_min_size", type=int, nargs=3, default=(680, 200, 200), help="Minimum size for cropping.")
-    parser.add_argument("--moving_max_size", type=int, nargs=3, default=(1600, 800, 800), help="Maximum size for cropping.")
-    parser.add_argument("--fixed_min_size", type=int, nargs=3, default=(0, 0, 0), help="Minimum size for cropping.")
+    parser.add_argument("--moving_min_size", type=int, nargs=3, default=(0, 480, 480), help="Minimum size for cropping.")
+    parser.add_argument("--moving_max_size", type=int, nargs=3, default=(9999, 1920, 1920), help="Maximum size for cropping.")
+    parser.add_argument("--fixed_min_size", type=int, nargs=3, default=(0, 480, 480), help="Minimum size for cropping.")
     parser.add_argument("--fixed_max_size", type=int, nargs=3, default=(9999, 1920, 1920), help="Maximum size for cropping.")
 
     parser.add_argument("--moving_pixel_size", type=float, nargs=3, default=(None, None, None), help="Pixel size in mm for moving image.")
