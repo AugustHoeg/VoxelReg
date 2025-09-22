@@ -24,11 +24,12 @@ out_name = "Larch_A_LFOV_registered"  # Name of the output file
 #moving_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"
 #fixed_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"
 
-sample_path = project_path
-moving_path = project_path + "moving_scale_2.nii.gz"
-fixed_path = project_path + "fixed_scale_8.nii.gz"
-# mask_path = sample_path + "fixed_scale_4_mask.nii.gz"
-out_name = "bamboo_out"  # Name of the output file
+sample_path = project_path + "Oak_A/"
+moving_path = sample_path + "moving_scale_1.nii.gz"
+fixed_path = sample_path + "fixed_scale_4.nii.gz"
+mask_path = sample_path + "fixed_scale_4_mask.nii.gz"
+out_path = sample_path
+out_name = "oak_registered"  # Name of the output file
 
 
 # Load downsampled images
@@ -96,6 +97,9 @@ if __name__ == "__main__":
     if args.affine_transform_file is not None:  # args.affine_transform_file = "transform.txt"
         args.affine_transform_file = os.path.join(sample_path, args.affine_transform_file)
         print("Affine transform file: ", args.affine_transform_file)
+
+    # args.affine_transform_file = os.path.join(sample_path, "transform.txt")
+    # args.mask_path = mask_path
 
     filename, file_extension = os.path.basename(moving_path).split('.', 1)
 

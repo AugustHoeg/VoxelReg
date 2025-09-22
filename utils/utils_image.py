@@ -63,7 +63,8 @@ def load_image(image_path,
                 metadata = nifti_data  # Keep the ANTs image as metadata
             elif nifti_backend == "nibabel":
                 nifti_data = nib.load(image_path)
-                image = nifti_data.get_fdata(dtype=dtype)
+                #image = nifti_data.get_fdata(dtype=dtype)
+                image = np.asanyarray(nifti_data.dataobj).astype(dtype)
                 metadata = nifti_data
             elif nifti_backend == "simpleitk" or nifti_backend == "sitk":
                 nifti_data = sitk.ReadImage(image_path)
@@ -482,6 +483,9 @@ if __name__ == "__main__":
     stop = time.time()
     print("Time elapsed:", stop - start)
 
+    image = np.ascontiguousarray(image)
+    matched = match_histogram_3d_continuous_sampled(image, image*2, max_sample_size=4e9)
+
     start = time.time()
     image, metadata = load_image(image_path, dtype=np.float32, nifti_backend="antspyx", return_metadata=True)
     stop = time.time()
@@ -491,5 +495,7 @@ if __name__ == "__main__":
     image, metadata = load_image(image_path, dtype=np.float32, nifti_backend="sitk", return_metadata=True)
     stop = time.time()
     print("Time elapsed:", stop - start)
+
+
 
 

@@ -21,7 +21,7 @@ out_name = "f_001_prepropress"  # Name of the output file
 # args.moving_cylinder_center_offset = (50, 200)
 # args.apply_moving_mask = True
 
-project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Cardboard_A/"
+project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Oak_A/"
 
 # Define paths
 sample_path = project_path
@@ -29,8 +29,8 @@ moving_path = sample_path + "fixed_scale_8.nii"
 fixed_path = sample_path + "fixed_scale_8.nii"
 out_name = "test"  # Name of the output file
 
-moving_path = sample_path + "Cardboard_A_LFOV_80kV_7W_air_4s_8mu_bin1_pos1_Stitch_scale_4.tif"
-fixed_path = sample_path + "Cardboard_A_4X_80kV_7W_air_3s_2mu_bin1_pos1_Stitch_scale_4.tif"
+moving_path = sample_path + "Oak_A_bin1x1_LFOV_retake_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_pos1_Stitch_scale_4.tif"
+fixed_path = sample_path + "Oak_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_Stitch_scale_4.tif"
 
 
 def parse_arguments():
@@ -128,6 +128,7 @@ if __name__ == "__main__":
     ##################### MOVING IMAGE ######################
 
     # Load moving image
+    # args.moving_pixel_size = (4, 4, 4) # REMOVE THIS
     moving, moving_affine = get_image_and_affine(moving_path, custom_origin=(0, 0, 0), pixel_size_mm=args.moving_pixel_size)
 
     # Define moving image space
@@ -157,9 +158,12 @@ if __name__ == "__main__":
 
 
     # Get & save moving image pyramid
+    # args.moving_mask_method = 'threshold' # REMOVE THIS
+    # args.moving_mask_threshold = 0 # REMOVE THIS
     pyramid, mask_pyramid, affines = get_image_pyramid(moving, moving_affine,
                                                        args.moving_pyramid_depth,
                                                        args.moving_clip_percentiles,
+                                                       args.moving_clip_range,
                                                        moving_mask,
                                                        args.moving_mask_method,
                                                        args.moving_mask_threshold,
@@ -187,6 +191,7 @@ if __name__ == "__main__":
     ##################### FIXED IMAGE ######################
 
     # Load fixed image
+    # args.fixed_pixel_size = (1, 1, 1) # REMOVE THIS
     fixed, fixed_affine = get_image_and_affine(fixed_path, custom_origin=(0, 0, 0), pixel_size_mm=args.fixed_pixel_size)
 
     # Define fixed image space
@@ -222,9 +227,12 @@ if __name__ == "__main__":
 
 
     # Get & save moving image pyramid
+    # args.fixed_mask_method = 'threshold' # REMOVE THIS
+    # args.fixed_mask_threshold = 0 # REMOVE THIS
     pyramid, mask_pyramid, affines = get_image_pyramid(fixed, fixed_affine,
                                                        args.fixed_pyramid_depth,
                                                        args.fixed_clip_percentiles,
+                                                       args.fixed_clip_range,
                                                        fixed_mask,
                                                        args.fixed_mask_method,
                                                        args.fixed_mask_threshold,

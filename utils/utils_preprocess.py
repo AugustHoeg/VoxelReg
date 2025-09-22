@@ -595,18 +595,22 @@ def mask_with_cylinder(image, cylinder_radius, cylinder_offset):
     mask = create_cylinder_mask(image.shape, cylinder_radius, cylinder_offset)  # Example radius
     return mask
 
-def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.0, 99.0), mask=None, mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
+def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.0, 99.0), clip_range=(0.0, 1.0), mask=None, mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
 
-    # convert to float
-    image = image.astype(np.float32)
+    image = image.astype(np.float32)  # convert to float
 
-    # rescale to [0; 1]
-    rescale(image)
+    rescale(image)  # rescale to [0; 1]
+
+    if clip_range != (0.0, 1.0):
+        clip_rescale(image, *clip_range)  # clip, then rescale to range
+
     if mask is None:
         if mask_method == 'threshold':
-            mask = mask_with_threshold(image, mask_threshold)
-        if mask_method == 'cylinder':
-            mask = mask_with_cylinder(image, cylinder_radius, cylinder_offset)
+            mask = mask_with_threshold(image, mask_threshold).astype(np.uint8)
+        elif mask_method == 'cylinder':
+            mask = mask_with_cylinder(image, cylinder_radius, cylinder_offset).astype(np.uint8)
+        else:
+            mask = None
 
     lower, upper = clip_percentiles
 
@@ -653,11 +657,11 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
 
         if mask is None:
             if mask_method == 'threshold':
-                mask = mask_with_threshold(down, mask_threshold)
+                mask = mask_with_threshold(down, mask_threshold).astype(np.uint8)
             elif mask_method == 'cylinder':
                 offset = [(val / 2 ** (depth + 1)) for val in cylinder_offset]
                 radius = [(val / 2 ** (depth + 1)) for val in cylinder_radius]
-                mask = mask_with_cylinder(down, radius, offset)
+                mask = mask_with_cylinder(down, radius, offset).astype(np.uint8)
         else:
             mask = downscale_local_mean(mask_pyramid[depth], (2, 2, 2)).astype(np.uint8)
 
@@ -684,7 +688,7 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
         # write_tiff(down, os.path.join(sample_path, filename + f"_down_{2**(i+1)}.tiff"))
         # np.save(os.path.join(out_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
         print(f"Writing pyramid image level: {i} with shape {image_pyramid[i].shape}")
-        write_nifti(image_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii.gz"))
+        write_nifti(image_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii.gz"), dtype=np.float32)
 
     for i in range(0, len(mask_pyramid)):
         if mask_pyramid[i] is None:
@@ -692,4 +696,4 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
         # np.save(os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.npy"), mask)
         # write_tiff(mask, os.path.join(sample_path, filename + "_mask.tiff"))
         print(f"Writing pyramid mask level: {i} with shape {mask_pyramid[i].shape}")
-        write_nifti(mask_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.nii.gz"))
+        write_nifti(mask_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.nii.gz"), dtype=np.uint8)
