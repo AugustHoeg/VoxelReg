@@ -156,7 +156,7 @@ def write_ome_group(image_paths, mask_paths=None, out_name="", group_name='HR', 
         print(f"Matching histogram pyramid level {i}...")
         source_vals = pyramid[i]
 
-        viz_slices(pyramid[i], [10, 20, 30], savefig=False, vmin=0, vmax=1, axis=0)
+        # viz_slices(pyramid[i], [10, 20, 30], savefig=False, vmin=0, vmax=1, axis=0)
 
         if mask_pyramid is not None:
             source_mask = mask_pyramid[i].astype(bool)
@@ -167,10 +167,7 @@ def write_ome_group(image_paths, mask_paths=None, out_name="", group_name='HR', 
             matched_vals = match_histograms(source_vals, reference_vals)
             pyramid[i] = matched_vals
 
-        viz_slices(pyramid[i], [10, 20, 30], savefig=False, vmin=0, vmax=1, axis=0)
-
-        # pyramid[i] = match_histogram_3d_continuous_sampled(source=pyramid[i], reference=reference_image)
-        # compare_histograms(pyramid[i], reference_image)
+        # viz_slices(pyramid[i], [10, 20, 30], savefig=False, vmin=0, vmax=1, axis=0)
 
     ######
     # matched = match_histograms(pyramid[2], reference_image)
