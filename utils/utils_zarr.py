@@ -140,7 +140,7 @@ def write_ome_group(image_paths, mask_paths=None, out_name="", group_name='HR', 
 
     mask_pyramid = None
     if mask_paths is not None:
-        mask_pyramid = load_image_pyramid(mask_paths, dtype=np.float32)
+        mask_pyramid = load_image_pyramid(mask_paths, dtype=np.uint8)
         print("Mask pyramid shapes:", [img.shape for img in mask_pyramid]) # ref_mask = load_image("../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Cardboard_A/fixed_scale_1_mask.nii.gz")
 
     # match histograms
