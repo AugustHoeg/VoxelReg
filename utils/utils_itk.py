@@ -2,6 +2,47 @@ import numpy as np
 import itk
 import SimpleITK as sitk
 
+def convert_itk_image(input_image, input_dtype = itk.F, output_dtype = itk.US, dimension=3):
+
+    InputImageType = itk.Image[input_dtype, dimension]
+    RescaleImageType = itk.Image[itk.F, dimension]
+    OutputImageType = itk.Image[output_dtype, dimension]
+
+    # cast to itk.F
+    castImageFilter = itk.CastImageFilter[InputImageType, RescaleImageType].New()
+    castImageFilter.SetInput(input_image)
+    castImageFilter.Update()  # <-- Important
+
+    # Rescale to range of output dtype
+    rescaler = itk.RescaleIntensityImageFilter[RescaleImageType, RescaleImageType].New()
+    rescaler.SetInput(castImageFilter.GetOutput())
+    if output_dtype == itk.F:
+        out_min = 0.0
+        out_max = 1.0
+    else:
+        out_min = itk.NumericTraits[output_dtype].min()
+        out_max = itk.NumericTraits[output_dtype].max()
+
+    rescaler.SetOutputMinimum(out_min)
+    rescaler.SetOutputMaximum(out_max)
+    rescaler.Update()  # <-- Important
+
+    # cast to new dtype
+    castImageFilter = itk.CastImageFilter[RescaleImageType, OutputImageType].New()
+    castImageFilter.SetInput(rescaler.GetOutput())
+    castImageFilter.Update()  # <-- Important
+    return castImageFilter.GetOutput()
+
+
+def cast_itk(input_image, input_dtype, output_dtype, dimension=3):
+    InputImageType = itk.Image[input_dtype, dimension]
+    OutputImageType = itk.Image[output_dtype, dimension]
+    castImageFilter = itk.CastImageFilter[InputImageType, OutputImageType].New()
+    castImageFilter.SetInput(input_image)
+    castImageFilter.Update()  # <-- Important
+    return castImageFilter.GetOutput()
+
+
 def compute_itk_origin_size_crop(image, crop_start, crop_end):
 
     start = np.array(crop_start)

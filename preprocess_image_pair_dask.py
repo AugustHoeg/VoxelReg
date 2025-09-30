@@ -1,13 +1,20 @@
 import os
 import argparse
+import zarr
 
 import numpy as np
 import dask.array as da
 from dask.diagnostics import ProgressBar
 
+from ome_zarr.writer import write_image, write_multiscale, write_multiscale_labels
+from ome_zarr.io import parse_url
+#from numcodecs import Zstd, Blosc, LZ4
+from zarr.codecs import BloscCodec, BloscCname, BloscShuffle
+
 from utils.utils_plot import viz_slices, viz_multiple_images
-from utils.utils_preprocess import crop_to_roi, preprocess, get_image_and_affine, save_image_pyramid, get_image_pyramid, define_image_space, get_dtype
+from utils.utils_preprocess import get_image_and_affine, save_image_pyramid, standardize, create_pyramid, define_image_space, get_dtype
 from utils.utils_nifti import voxel2world, set_origin
+from utils.utils_zarr import write_ome_pyramid, checkpoint_as_zarr
 
 # Define paths
 project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/2022_QIM_52_Bone/"
@@ -152,11 +159,11 @@ if __name__ == "__main__":
                                                                                    divis_factor=args.moving_divis_factor,
                                                                                    top_index=args.top_index)
 
-    print("Checkpointing moving image to disk...")
-    with ProgressBar():
-        moving_out_path_zarr = os.path.join(moving_out_path, args.moving_out_name + ".zarr")
-        da.to_zarr(moving, moving_out_path_zarr, overwrite=True)
-        moving = da.from_zarr(moving_out_path_zarr, chunks=moving.chunksize)
+    #print("Checkpointing to disk...")
+    #with ProgressBar():
+    #    moving_out_path_zarr = os.path.join(moving_out_path, args.moving_out_name + ".zarr")
+    #    da.to_zarr(moving, moving_out_path_zarr, overwrite=True)
+    #    moving = da.from_zarr(moving_out_path_zarr, chunks=moving.chunksize)
 
     # Get moving image mask
     moving_mask = None
@@ -181,16 +188,67 @@ if __name__ == "__main__":
     args.moving_mask_method = 'threshold' # REMOVE THIS
     args.moving_mask_threshold = 100 # REMOVE THIS
     args.apply_moving_mask = True # REMOVE THIS
-    pyramid, mask_pyramid, affines = get_image_pyramid(moving, moving_affine,
-                                                       args.moving_pyramid_depth,
-                                                       args.moving_clip_percentiles,
-                                                       args.moving_clip_range,
-                                                       moving_mask,
-                                                       args.moving_mask_method,
-                                                       args.moving_mask_threshold,
-                                                       args.moving_cylinder_radius,
-                                                       args.moving_cylinder_center_offset,
-                                                       args.apply_moving_mask)
+    moving, moving_mask = standardize(moving,
+                                      moving_mask,
+                                      args.moving_clip_range,
+                                      args.moving_clip_percentiles,
+                                      args.moving_mask_method,
+                                      args.moving_mask_threshold,
+                                      args.moving_cylinder_radius,
+                                      args.moving_cylinder_center_offset,
+                                      args.apply_moving_mask)
+
+    print("Checkpointing to disk...")
+    with ProgressBar(dt=1):
+        moving_zarr_path = os.path.join(moving_out_path, args.moving_out_name + ".zarr")
+        moving_mask_zarr_path = moving_zarr_path.replace(".zarr", "_mask.zarr")
+        moving = checkpoint_as_zarr(moving, moving_zarr_path, chunks=(1, *moving.shape[1:]))
+        moving_mask = checkpoint_as_zarr(moving_mask, moving_mask_zarr_path, chunks=(1, *moving_mask.shape[1:]))
+
+        #da.to_zarr(moving, moving_out_path_zarr, overwrite=True)
+        #moving = da.from_zarr(moving_out_path_zarr, chunks=moving.chunksize)
+        #moving = da.array(zarr.open(moving_out_path_zarr, mode="r+"))
+
+        #da.to_zarr(moving_mask, moving_out_path_zarr.replace(".zarr", "_mask.zarr"), overwrite=True)
+        #moving_mask = da.from_zarr(moving_out_path_zarr.replace(".zarr", "_mask.zarr"), chunks=moving_mask.chunksize)
+        #moving_mask = da.array(zarr.open(moving_out_path_zarr.replace(".zarr", "_mask.zarr"), mode="r+"))
+
+    pyramid, mask_pyramid, affines = create_pyramid(moving,
+                                                    moving_mask,
+                                                    moving_affine,
+                                                    args.moving_pyramid_depth)
+
+    #### test
+    moving_ome_path = moving_zarr_path.replace(".zarr", "_ome.zarr")
+    # Create/open a Zarr array in write mode
+    store = parse_url(moving_ome_path, mode="w").store
+    # store = DirectoryStore(file_path)
+    root = zarr.group(store=store)
+
+    group_name = "LR"
+    out_path = moving_ome_path
+    if os.path.exists(os.path.join(moving_ome_path, group_name)):
+        print(f"Group {group_name} already exists in {out_path}. Skipping...")
+        exit(0)
+    else:
+        # Create image group for the volume
+        image_group = root.create_group(group_name)
+
+    coordinate_transforms = [{"type": "affine", "matrix": affine.tolist()} for affine in affines]
+
+    write_ome_pyramid(
+        image_group=image_group,
+        image_pyramid=pyramid,
+        label_pyramid=None,
+        chunk_size=(40, 40, 40),
+        shard_size=None,  # Shards are currently not supported by dask arrays
+        cname=None,  # Compression codec
+        coordinate_transforms=coordinate_transforms,
+        format=None,
+    )
+
+    print(f"Done writing OME-Zarr data to {out_path}/{group_name}")
+    ### test
 
     print("Preparing to write moving image pyramid...")
     save_image_pyramid(pyramid, mask_pyramid, affines, moving_path, moving_out_path, args.moving_out_name)

@@ -3,7 +3,7 @@ import time
 import glob
 import numpy as np
 import nibabel as nib
-from utils.utils_tiff import load_tiff
+import dask_image.imread
 import zarr
 import h5py
 import dask.array as da
@@ -12,14 +12,18 @@ import matplotlib.pyplot as plt
 import ants
 import SimpleITK as sitk
 
+from utils.utils_tiff import load_tiff
+from utils.utils_txm import load_txm
 
 def load_image(image_path,
-               dtype=np.float32,
+               backend="Numpy",
+               dtype=None,
+               chunk_shape=(1, -1, -1),
                dataset_name='/exchange/data',
                return_metadata=False,
                as_contiguous=False,
-               as_dask_array=False,
-               nifti_backend="nibabel"):
+               nifti_backend="nibabel",
+               **kwargs):
     """
     Load an image from various formats, optionally as a Dask array.
 
@@ -47,56 +51,77 @@ def load_image(image_path,
     # DICOM folder (no file extension)
     if '.' not in os.path.basename(image_path):
         if glob.glob(os.path.join(image_path, '*.dcm')):
-            reader = LoadImage(dtype=dtype, image_only=True)
-            image = reader(image_path).numpy()  # MONAI returns torch tensor
-            if as_dask_array:
-                image = da.from_array(image, chunks="auto")
+            if backend == "Dask":
+                print("Dask backend for DICOM not supported. Loading full image and returning dask array...")
+                reader = LoadImage(dtype=dtype, image_only=True)
+                image = reader(image_path).numpy()  # MONAI returns torch tensor
+                image = da.from_array(image, chunks=chunk_shape)
+            elif backend == "Numpy":
+                reader = LoadImage(dtype=dtype, image_only=True)
+                image = reader(image_path).numpy()  # MONAI returns torch tensor
 
     else:
         filename, file_extension = os.path.basename(image_path).split('.', 1)
 
         # NIfTI
         if file_extension in ("nii", "nii.gz"):
-            if nifti_backend == "antspyx":
-                nifti_data = ants.image_read(image_path)
-                image = nifti_data.numpy().astype(dtype)
-                metadata = nifti_data  # Keep the ANTs image as metadata
-            elif nifti_backend == "nibabel":
+            if backend == "Dask":
                 nifti_data = nib.load(image_path)
-                #image = nifti_data.get_fdata(dtype=dtype)
-                image = np.asanyarray(nifti_data.dataobj).astype(dtype)
                 metadata = nifti_data
-            elif nifti_backend == "simpleitk" or nifti_backend == "sitk":
-                nifti_data = sitk.ReadImage(image_path)
-                image = sitk.GetArrayFromImage(nifti_data).astype(dtype)
-                metadata = nifti_data  # Keep the SimpleITK image as metadata
-            else:
-                raise ValueError("nifti_backend must be either 'nibabel' or 'antspyx'.")
+                image = da.from_array(nifti_data.dataobj, chunks=chunk_shape).astype(dtype)
+            elif backend == "Numpy":
+                if nifti_backend == "antspyx":
+                    nifti_data = ants.image_read(image_path)
+                    image = nifti_data.numpy().astype(dtype)
+                    metadata = nifti_data  # Keep the ANTs image as metadata
+                elif nifti_backend == "nibabel":
+                    nifti_data = nib.load(image_path)
+                    #image = nifti_data.get_fdata(dtype=dtype)
+                    image = np.asanyarray(nifti_data.dataobj).astype(dtype)
+                    metadata = nifti_data
+                elif nifti_backend == "simpleitk" or nifti_backend == "sitk":
+                    nifti_data = sitk.ReadImage(image_path)
+                    image = sitk.GetArrayFromImage(nifti_data).astype(dtype)
+                    metadata = nifti_data  # Keep the SimpleITK image as metadata
+                else:
+                    raise ValueError("nifti_backend must be either 'nibabel' or 'antspyx'.")
 
             if as_contiguous:
                 image = np.ascontiguousarray(image)
 
-            if as_dask_array:
-                image = da.from_array(image, chunks="auto")
 
         # TIFF
         elif file_extension in ("tiff", "tif"):
-            image = load_tiff(image_path, dtype=dtype)
-            if as_dask_array:
-                image = da.from_array(image, chunks="auto")
+            if backend == "Dask":
+                image = dask_image.imread.imread(image_path, nframes=1).astype(dtype)
+            elif backend == "Numpy":
+                image = load_tiff(image_path, dtype=dtype)
+
+        # TXM
+        elif file_extension == "txm":
+            if backend == "Dask":
+                print("Dask backend for .txm not supported. Loading full image and returning dask array...")
+                image, metadata = load_txm(image_path).astype(dtype)
+                image = da.from_array(image, chunks=chunk_shape)
+            elif backend == "Numpy":
+                image, metadata = load_txm(image_path).astype(dtype)
 
         # NPY
         elif file_extension == "npy":
-            image = np.load(image_path).astype(dtype)
-            if as_dask_array:
-                image = da.from_array(image, chunks="auto")
+            if backend == "Dask":
+                print("Dask backend for .npy not supported. Loading full image and returning dask array...")
+                image = np.load(image_path).astype(dtype)
+                image = da.from_array(image, chunks=chunk_shape)
+            if backend == "Numpy":
+                image = np.load(image_path).astype(dtype)
+
 
         # Zarr
         elif file_extension == "zarr":
             zarr_data = zarr.open(image_path, mode='r')
-            if as_dask_array:
-                image = da.from_zarr(zarr_data).astype(dtype)
-            else:
+            if backend == "Dask":
+                image = da.from_zarr(zarr_data, chunks=chunk_shape).astype(dtype)
+            elif backend == "Numpy":
                 image = np.array(zarr_data, dtype=dtype)
 
         # HDF5
@@ -105,9 +130,9 @@ def load_image(image_path,
             d, h, w = data.shape
             print(f"HDF5 shape: (D={d}, H={h}, W={w})")
 
-            if as_dask_array:
-                image = da.from_array(data, chunks=(1, h, w)).astype(dtype)
-            else:
+            if backend == "Dask":
+                image = da.from_array(data, chunks=chunk_shape).astype(dtype)
+            elif backend == "Numpy":
                 image = np.array(data, dtype=dtype)
 
         else:
@@ -283,7 +308,7 @@ def plot_histogram(image, data_min=None, data_max=None, num_bins=256, title="His
     return hist, bin_edges
 
 def compare_histograms(image1, image2,
-                       data_min=0.0, data_max=1.0, num_bins=256,
+                       data_min=0, data_max=65535, num_bins=256,
                        labels=("Image 1", "Image 2"),
                        colors=("steelblue", "darkorange"),
                        title="Histogram Comparison"):

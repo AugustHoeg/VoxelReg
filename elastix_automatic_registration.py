@@ -3,9 +3,10 @@ import argparse
 import itk
 import numpy as np
 from utils.utils_elastix import elastix_coarse_registration_sweep, elastix_refined_registration
-from utils.utils_itk import create_itk_view, scale_spacing_and_origin, crop_itk_image
+from utils.utils_itk import create_itk_view, scale_spacing_and_origin, crop_itk_image, convert_itk_image, cast_itk
 from utils.utils_tiff import load_tiff, write_tiff
-from utils.utils_preprocess import apply_mask, compute_crop_bounds
+from utils.utils_preprocess import apply_image_mask, compute_crop_bounds, minmax_scaler, dtype_min_max
+from utils.utils_plot import viz_orthogonal_slices, viz_slices
 
 
 # Define paths
@@ -24,12 +25,12 @@ out_name = "Larch_A_LFOV_registered"  # Name of the output file
 #moving_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"
 #fixed_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"
 
-sample_path = project_path + "Oak_A/"
+sample_path = project_path + "Cardboard_A/"
 moving_path = sample_path + "moving_scale_1.nii.gz"
 fixed_path = sample_path + "fixed_scale_4.nii.gz"
 mask_path = sample_path + "fixed_scale_4_mask.nii.gz"
 out_path = sample_path
-out_name = "oak_registered"  # Name of the output file
+out_name = "cardboard_registered"  # Name of the output file
 
 
 # Load downsampled images
@@ -98,8 +99,8 @@ if __name__ == "__main__":
         args.affine_transform_file = os.path.join(sample_path, args.affine_transform_file)
         print("Affine transform file: ", args.affine_transform_file)
 
-    # args.affine_transform_file = os.path.join(sample_path, "transform.txt")
-    # args.mask_path = mask_path
+    args.affine_transform_file = os.path.join(sample_path, "transform.txt") # REMOVE THIS
+    args.mask_path = mask_path # REMOVE THIS
 
     filename, file_extension = os.path.basename(moving_path).split('.', 1)
 
@@ -163,6 +164,10 @@ if __name__ == "__main__":
     center = args.center
     spacing = args.spacing
     size = args.size
+
+    # Convert to float for registration accuracy
+    fixed_image_sparse = cast_itk(fixed_image_sparse, input_dtype=itk.US, output_dtype=itk.F)
+    moving_image_sparse = cast_itk(moving_image_sparse, input_dtype=itk.US, output_dtype=itk.F)
 
     # Run coarse registration via sweep
     result_coarse, coarse_trans_obj, metric = elastix_coarse_registration_sweep(
@@ -228,12 +233,14 @@ if __name__ == "__main__":
     spacing = result_image.GetSpacing()
     direction = result_image.GetDirection()
 
-    # Get array for normalization
-    result_array = itk.array_view_from_image(result_image)  # .astype(np.float32)
+    # Convert image to uint16 array
+    result_array = itk.array_view_from_image(result_image)
+    minmax_scaler(result_array, vmin=0, vmax=65535)
+    result_array = result_array.astype(np.uint16)
 
-    # Enforce normalization to [0, 1]
+    # Apply fixed mask
     if args.mask_path is not None:
-        apply_mask(result_array, mask_array_sparse)  # zero values outside mask in-place
+        apply_image_mask(result_array, mask_array_sparse)  # zero values outside mask in-place
 
     # Convert to ITK image
     result_image = itk.image_view_from_array(result_array)

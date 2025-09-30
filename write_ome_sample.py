@@ -35,6 +35,8 @@ def parse_arguments():
     parser.add_argument("--split_axis", type=int, default=0, help="Axis along which to split the image data (0 for depth, 1 for height, 2 for width).")
     parser.add_argument("--norm_method", default=None, help="Method used for image normalization, default is None")
 
+    parser.add_argument("--dtype", type=str, default="UINT16", help="Data type of input images")
+
     args = parser.parse_args()
     return args
 
@@ -44,26 +46,26 @@ if __name__ == "__main__":
     args = parse_arguments()
 
     #####
-    # parser = argparse.ArgumentParser(description="Preprocess 3D image data for registration.")
-    # args = parser.parse_args([])  # Use empty list to avoid command line parsing
-    # # For testing, we set arguments here
-    # args.base_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe"
-    # args.sample_path = "Oak_A"
-    # args.HR_paths = ["fixed_scale_1.nii.gz", "fixed_scale_2.nii.gz", "fixed_scale_4.nii.gz"]
-    # args.LR_paths = ["moving_scale_1.nii.gz", "moving_scale_2.nii.gz", "moving_scale_4.nii.gz"]
-    # args.REG_paths = ["oak_registered.nii.gz"]
-    # args.HR_mask_paths = ["fixed_scale_1_mask.nii.gz", "fixed_scale_2_mask.nii.gz", "fixed_scale_4_mask.nii.gz"]
-    # args.LR_mask_paths = ["moving_scale_1_mask.nii.gz", "moving_scale_2_mask.nii.gz", "moving_scale_4_mask.nii.gz"]
-    # args.REG_mask_paths = ["fixed_scale_4_mask.nii.gz"]
-    # args.out_path = ""
-    # args.out_name = "Oak_A_test"
-    # args.HR_chunks = (40, 40, 40)
-    # args.LR_chunks = (40, 40, 40)
-    # args.REG_chunks = (40, 40, 40)
-    # args.HR_split_indices = [100]
-    # args.LR_split_indices = [50]
-    # args.REG_split_indices = [25]
-    # args.split_axis = 0
+    parser = argparse.ArgumentParser(description="Preprocess 3D image data for registration.")
+    args = parser.parse_args([])  # Use empty list to avoid command line parsing
+    # For testing, we set arguments here
+    args.base_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe"
+    args.sample_path = "Cardboard_A"
+    args.HR_paths = ["fixed_scale_1.nii.gz", "fixed_scale_2.nii.gz", "fixed_scale_4.nii.gz"]
+    args.LR_paths = ["moving_scale_1.nii.gz", "moving_scale_2.nii.gz", "moving_scale_4.nii.gz"]
+    args.REG_paths = ["cardboard_registered.nii.gz"]
+    args.HR_mask_paths = ["fixed_scale_1_mask.nii.gz", "fixed_scale_2_mask.nii.gz", "fixed_scale_4_mask.nii.gz"]
+    args.LR_mask_paths = ["moving_scale_1_mask.nii.gz", "moving_scale_2_mask.nii.gz", "moving_scale_4_mask.nii.gz"]
+    args.REG_mask_paths = ["fixed_scale_4_mask.nii.gz"]
+    args.out_path = ""
+    args.out_name = "Cardboard_A_test"
+    args.HR_chunks = (40, 40, 40)
+    args.LR_chunks = (40, 40, 40)
+    args.REG_chunks = (10, 10, 10)
+    args.HR_split_indices = [120]
+    args.LR_split_indices = [120]
+    args.REG_split_indices = [40]
+    args.split_axis = 0
     #####
 
     # Assign image paths

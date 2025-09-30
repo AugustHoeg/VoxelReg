@@ -183,6 +183,10 @@ def get_default_parameter_object(registration_model='translation', resolutions=4
     # Add the parameter map
     parameter_object.AddParameterMap(parameter_map)
 
+    # Set internal pixel precision
+    parameter_object.SetParameter("FixedInternalImagePixelType", "float")
+    parameter_object.SetParameter("MovingInternalImagePixelType", "float")
+
     if save_path is not None:
         # Save custom parameter map
         parameter_object.WriteParameterFile(parameter_map, save_path)
