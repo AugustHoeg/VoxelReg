@@ -312,7 +312,7 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
             # Create image group for the volume
             image_group = root.create_group(group_name)
 
-        pyramid_splits[i] = [da.array(img) for img in pyramid_splits[i]] # REMOVE THIS
+        # pyramid_splits[i] = [da.array(img) for img in pyramid_splits[i]] # REMOVE THIS
 
         write_ome_pyramid(
             image_group=image_group,
