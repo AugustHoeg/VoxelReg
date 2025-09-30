@@ -24,12 +24,12 @@ out_name = "Larch_A_LFOV_registered"  # Name of the output file
 #moving_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"
 #fixed_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"
 
-sample_path = project_path + "Oak_A/"
+sample_path = project_path + "Cardboard_A/"
 moving_path = sample_path + "moving_scale_1.nii.gz"
 fixed_path = sample_path + "fixed_scale_4.nii.gz"
 mask_path = sample_path + "fixed_scale_4_mask.nii.gz"
 out_path = sample_path
-out_name = "oak_registered"  # Name of the output file
+out_name = "cardboard_registered"  # Name of the output file
 
 
 # Load downsampled images

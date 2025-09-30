@@ -241,11 +241,12 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
         print("Mask pyramid shapes:", [img.shape for img in mask_pyramid]) # ref_mask = load_image("../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Cardboard_A/fixed_scale_1_mask.nii.gz")
 
     source_vals_list = []
-    for i in range(len(pyramid)):
+    for i in range(len(pyramid)):  # We don't have to save all, just the level corresponding with REG/0 and REG/1
         source_vals = pyramid[i]
         if mask_pyramid is not None:
             source_mask = mask_pyramid[i].astype(bool)
-            source_vals = source_vals[source_mask]
+            # source_vals = source_vals[source_mask]
+            source_vals = np.where(source_mask, source_vals, np.nan)
         source_vals_list.append(source_vals)
 
     # match histograms
@@ -262,14 +263,24 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
             viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_raw")
 
             if mask_pyramid is not None:
-                source_mask = mask_pyramid[i].astype(bool)
-                matched_vals = match_histograms(source_vals, reference_vals)  # Do this slice-wise, or N-slice-wise!
-                pyramid[i][source_mask] = matched_vals
+                for slice_idx in range(source_vals.shape[0]):
+                    if slice_idx % 100 == 0:
+                        print(f"Matching slice {slice_idx}/{source_vals.shape[0]}")
+                    matched_slice = match_histograms(source_vals[slice_idx], reference_vals[slice_idx])
+                    matched_slice = np.nan_to_num(matched_slice, nan=0)  # fill nans with 0
+                    pyramid[i][slice_idx] = matched_slice
+                #source_mask = mask_pyramid[i].astype(bool)
+                #matched_vals = match_histograms(source_vals, reference_vals)  # Do this slice-wise, or N-slice-wise!
+                #pyramid[i][source_mask] = matched_vals
             else:
                 matched_vals = match_histograms(source_vals, reference_vals)
                 pyramid[i] = matched_vals
 
             viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_matched")
+
+            # # Optionally, save matched image for verification
+            from utils.utils_nifti import write_nifti
+            write_nifti(pyramid[i], output_path=out_name + f"_{group_name}_matched_level{i}.nii.gz", dtype=np.uint16)
 
     ######
     # matched = match_histograms(pyramid[2], reference_image)
