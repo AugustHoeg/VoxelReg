@@ -1,4 +1,5 @@
 numpy
+snakeviz
 itk-elastix
 itkwidgets
 antspyx

@@ -12,8 +12,24 @@ from utils.utils_image import load_image, create_cylinder_mask, normalize_std, p
 from utils.utils_plot import viz_orthogonal_slices
 
 
-def apply_mask(image, mask):
-    image[mask == 0] = 0
+def get_dtype(dtype_name):
+    if dtype_name == "UINT8":
+        return np.uint8
+    elif dtype_name == "UINT16":
+        return np.uint16
+    elif dtype_name == "FP16":
+        return np.float16
+    elif dtype_name == "FP32":
+        return np.float32
+    elif dtype_name == "FP64":
+        return np.float64
+    else:
+        raise ValueError(f"Unsupported dtype name {dtype_name}")
+
+
+def apply_image_mask(image, mask):
+    mask = mask.astype(bool)
+    image[~mask] = 0
 
 
 def norm(image):
@@ -235,7 +251,17 @@ def rescale(image):
     return image
 
 
-def clip_percentile(image, lower=1.0, upper=99.0, mode='rescale'):
+
+def minmax_scaler(image, vmin=0, vmax=1.0):
+    image_min, image_max = image.min(), image.max()
+    image -= image_min
+    image /= (image_max - image_min)
+    image *= (vmax - vmin)
+    image += vmin
+    return image
+
+
+def clip_percentile(image, lower=1.0, upper=99.0, vmin=0, vmax=65535):
 
     image_filtered = image[(image > 0.025) | (image < 0.975)]  # filter low/high values
 
@@ -247,22 +273,13 @@ def clip_percentile(image, lower=1.0, upper=99.0, mode='rescale'):
 
     np.clip(image, low, high, out=image)
 
-    if mode == 'clip':
-        np.clip(image, 0, 1, out=image)
-    elif mode == 'rescale':
-        vmin = image.min()
-        vmax = image.max()
-        if vmax > vmin:
-            image -= vmin
-            image /= (vmax - vmin)
-        else:
-            image.fill(0)
+    image = minmax_scaler(image, vmin, vmax)
 
     return image
 
 
-def masked_clip_percentile(image, mask, lower=1.0, upper=99.0, mode='rescale', apply_mask=True):
-    # Get the min and max of the masked image
+def masked_clip_percentile(image, mask, lower=1.0, upper=99.0, vmin=0, vmax=65535):
+
     masked_image = image[mask > 0]
     masked_image = masked_image[(masked_image > 0.025) | (masked_image < 0.975)]  # filter low/high values
 
@@ -274,21 +291,7 @@ def masked_clip_percentile(image, mask, lower=1.0, upper=99.0, mode='rescale', a
 
     np.clip(masked_image, low, high, out=masked_image)
 
-    if mode == 'clip':
-        np.clip(masked_image, 0, 1, out=masked_image)
-    elif mode == 'rescale':
-        vmin = masked_image.min()
-        vmax = masked_image.max()
-        if vmax > vmin:
-            masked_image -= vmin
-            masked_image /= (vmax - vmin)
-        else:
-            masked_image.fill(0)
-
-    # Set values outside mask to zero
-    if apply_mask:
-        print("Applying mask to image...")
-        image[mask == 0] = 0
+    masked_image = minmax_scaler(masked_image, vmin, vmax)
 
     # Set values inside mask to normalized values
     image[mask > 0] = masked_image
@@ -436,32 +439,21 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
     return pyramid, pyramid_affines
 
 
-def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), pixel_size_mm=(None, None, None), dtype=np.float32):
-
-    #filename, file_extension = os.path.splitext(os.path.basename(scan_path))
+def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), pixel_size_mm=(None, None, None), backend="Numpy", dtype=np.uint16):
     filename, file_extension = os.path.basename(scan_path).split('.', 1)
     print("file name: ", filename)
     print("file extension: ", file_extension)
 
+    image, metadata = load_image(scan_path, backend=backend, dtype=dtype, return_metadata=True)
+
     nifti_affine = None
-    if file_extension == "tiff" or file_extension == "tif":
-        # If path has glob wildcards, parse flag to load all files
-        image = load_tiff(scan_path, dtype=dtype, image_sequence=True if '*' in scan_path else False)
-    elif file_extension == "txm":
-        image, metadata = load_txm(scan_path)
-        print("######### TXM metadata ########## \n", metadata)
-        nifti_affine = get_affine_txm(metadata)
+    if file_extension == "txm":
+        nifti_affine = get_affine_txm(metadata, custom_origin)
     elif file_extension == "nii" or file_extension == "nii.gz":
-        image, nifti_data = load_image(scan_path, dtype=dtype, return_metadata=True)
-        nifti_affine = nifti_data.affine
-    elif file_extension == "npy":
-        image = load_image(scan_path, dtype=dtype)
-    elif file_extension == "h5":
-        image = load_image(scan_path, dtype=dtype, dataset_name='/exchange/data')
-        print("Loading HDF5 dataset: /exchange/data")
-        image = np.array(image)
-    else:
-        assert False, f"Unsupported file format: {file_extension}"
+        nifti_affine = metadata.affine
+
+    if backend == "Numpy":
+        print(f"Image min: {image.min()}, Image max: {image.max()}")
 
     if nifti_affine is None:
         if None in pixel_size_mm or pixel_size_mm == (None, None, None):
@@ -595,11 +587,24 @@ def mask_with_cylinder(image, cylinder_radius, cylinder_offset):
     mask = create_cylinder_mask(image.shape, cylinder_radius, cylinder_offset)  # Example radius
     return mask
 
+def dtype_min_max(dtype):
+    if "float" in dtype.name:
+        max_value = np.finfo(dtype).max
+        min_value = np.finfo(dtype).min
+    elif "int" in dtype.name:
+        max_value = np.iinfo(dtype).max
+        min_value = np.iinfo(dtype).min
+    else:
+        raise ValueError(f"Unsupported dtype {dtype} is neither float or int.")
+
+    return min_value, max_value
+
 def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.0, 99.0), clip_range=(0.0, 1.0), mask=None, mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
 
+    input_dtype = image.dtype
+    dtype_min, dtype_max = dtype_min_max(input_dtype)  # get input dtype range
     image = image.astype(np.float32)  # convert to float
-
-    rescale(image)  # rescale to [0; 1]
+    image = minmax_scaler(image, dtype_min, dtype_max)  # rescale to dtype min/max
 
     if clip_range != (0.0, 1.0):
         clip_rescale(image, *clip_range)  # clip, then rescale to range
@@ -616,24 +621,21 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
 
     if mask is None:
         print("Performing percentile clipping...")
-        # Normalize the image and ensure range is between [0, 1]
-        # norm_std(image, standard_deviations=3, mode='rescale')
-        image = clip_percentile(image, lower, upper, mode='rescale')
-        # norm_hist(image, alpha=0.02, bins=1024, mode='rescale')
-
+        image = clip_percentile(image, lower, upper, dtype_min, dtype_max)
     else:
         print("Performing masked percentile clipping...")
-        # Normalize the image using values inside mask and ensure range is between [0, 1]
-        # masked_norm_std(image, mask, standard_deviations=3, mode='rescale', apply_mask=apply_mask)
-        image = masked_clip_percentile(image, mask, lower, upper, mode='rescale', apply_mask=apply_mask)
-        # masked_norm_hist(image, mask, alpha=0.02, bins=1024, mode='rescale', apply_mask=apply_mask)
+        image = masked_clip_percentile(image, mask, lower, upper, dtype_min, dtype_max)
+        if apply_mask:
+            apply_image_mask(image, mask)
+
+    image = image.astype(input_dtype)  # convert back to input dtype
 
     # plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=True)
     # plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=False, log_scale=False)
 
-    viz_orthogonal_slices(image, [min(image.shape) // 2, min(image.shape) // 3, image.shape[2] // 4], savefig=True)
-    viz_slices(image, [image.shape[0] // 2], savefig=True)
-    plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=False, log_scale=False)
+    # viz_orthogonal_slices(image, [min(image.shape) // 2, min(image.shape) // 3, image.shape[2] // 4], savefig=True)
+    # viz_slices(image, [image.shape[0] // 2], savefig=True)
+    # plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=False, log_scale=False)
 
     # Create image/mask pyramid
     image_pyramid = []
@@ -647,8 +649,7 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
     # Create pyramid images
     for depth in range(pyramid_depth - 1):
         print(f"Creating pyramid level: {depth + 1}/{pyramid_depth - 1}")
-        down = downscale_local_mean(image_pyramid[depth], (2, 2, 2)).astype(np.float32)
-        image_pyramid.append(down)
+        down = downscale_local_mean(image_pyramid[depth], (2, 2, 2)).astype(input_dtype)
 
         if depth == pyramid_depth - 2:
             plot_histogram(down, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {depth + 1}", save_fig=True)
@@ -658,13 +659,17 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
         if mask is None:
             if mask_method == 'threshold':
                 mask = mask_with_threshold(down, mask_threshold).astype(np.uint8)
+                apply_image_mask(down, mask)
             elif mask_method == 'cylinder':
                 offset = [(val / 2 ** (depth + 1)) for val in cylinder_offset]
                 radius = [(val / 2 ** (depth + 1)) for val in cylinder_radius]
                 mask = mask_with_cylinder(down, radius, offset).astype(np.uint8)
+                apply_image_mask(down, mask)
         else:
             mask = downscale_local_mean(mask_pyramid[depth], (2, 2, 2)).astype(np.uint8)
+            apply_image_mask(down, mask)
 
+        image_pyramid.append(down)
         mask_pyramid.append(mask)
 
     return image_pyramid, mask_pyramid, affines
@@ -688,7 +693,7 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
         # write_tiff(down, os.path.join(sample_path, filename + f"_down_{2**(i+1)}.tiff"))
         # np.save(os.path.join(out_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
         print(f"Writing pyramid image level: {i} with shape {image_pyramid[i].shape}")
-        write_nifti(image_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii.gz"), dtype=np.float32)
+        write_nifti(image_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii.gz"), dtype=image_pyramid[i].dtype)
 
     for i in range(0, len(mask_pyramid)):
         if mask_pyramid[i] is None:
@@ -696,4 +701,4 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
         # np.save(os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.npy"), mask)
         # write_tiff(mask, os.path.join(sample_path, filename + "_mask.tiff"))
         print(f"Writing pyramid mask level: {i} with shape {mask_pyramid[i].shape}")
-        write_nifti(mask_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.nii.gz"), dtype=np.uint8)
+        write_nifti(mask_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.nii.gz"), dtype=mask_pyramid[i].dtype)

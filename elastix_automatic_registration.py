@@ -3,9 +3,9 @@ import argparse
 import itk
 import numpy as np
 from utils.utils_elastix import elastix_coarse_registration_sweep, elastix_refined_registration
-from utils.utils_itk import create_itk_view, scale_spacing_and_origin, crop_itk_image
+from utils.utils_itk import create_itk_view, scale_spacing_and_origin, crop_itk_image, cast_itk
 from utils.utils_tiff import load_tiff, write_tiff
-from utils.utils_preprocess import apply_mask, compute_crop_bounds
+from utils.utils_preprocess import apply_image_mask, compute_crop_bounds, minmax_scaler
 
 
 # Define paths
@@ -98,8 +98,8 @@ if __name__ == "__main__":
         args.affine_transform_file = os.path.join(sample_path, args.affine_transform_file)
         print("Affine transform file: ", args.affine_transform_file)
 
-    # args.affine_transform_file = os.path.join(sample_path, "transform.txt")
-    # args.mask_path = mask_path
+    args.affine_transform_file = os.path.join(sample_path, "transform.txt") # REMOVE THIS
+    args.mask_path = mask_path # REMOVE THIS
 
     filename, file_extension = os.path.basename(moving_path).split('.', 1)
 
@@ -163,6 +163,10 @@ if __name__ == "__main__":
     center = args.center
     spacing = args.spacing
     size = args.size
+
+    # Convert to float for registration accuracy
+    fixed_image_sparse = cast_itk(fixed_image_sparse, input_dtype=itk.US, output_dtype=itk.F)
+    moving_image_sparse = cast_itk(moving_image_sparse, input_dtype=itk.US, output_dtype=itk.F)
 
     # Run coarse registration via sweep
     result_coarse, coarse_trans_obj, metric = elastix_coarse_registration_sweep(
@@ -230,10 +234,12 @@ if __name__ == "__main__":
 
     # Get array for normalization
     result_array = itk.array_view_from_image(result_image)  # .astype(np.float32)
+    minmax_scaler(result_array, vmin=0, vmax=65535)  #
+    result_array = result_array.astype(np.uint16)
 
-    # Enforce normalization to [0, 1]
+    # Apply fixed mask
     if args.mask_path is not None:
-        apply_mask(result_array, mask_array_sparse)  # zero values outside mask in-place
+        apply_image_mask(result_array, mask_array_sparse)  # zero values outside mask in-place
 
     # Convert to ITK image
     result_image = itk.image_view_from_array(result_array)

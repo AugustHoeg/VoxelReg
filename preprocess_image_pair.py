@@ -4,7 +4,7 @@ import argparse
 import numpy as np
 
 from utils.utils_plot import viz_slices, viz_multiple_images
-from utils.utils_preprocess import crop_to_roi, preprocess, get_image_and_affine, save_image_pyramid, get_image_pyramid, define_image_space
+from utils.utils_preprocess import crop_to_roi, preprocess, get_image_and_affine, save_image_pyramid, get_image_pyramid, define_image_space, get_dtype
 from utils.utils_nifti import voxel2world, set_origin
 
 # Define paths
@@ -48,6 +48,7 @@ def parse_arguments():
     parser.add_argument("--fixed_out_name", type=str, required=False, default="fixed", help="Output name for the processed image.")
 
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
+    parser.add_argument("--dtype", type=str, default="UINT16", help="Data type of fixed/moving input images")
 
     parser.add_argument("--moving_min_size", type=int, nargs=3, default=(0, 480, 480), help="Minimum size for cropping.")
     parser.add_argument("--moving_max_size", type=int, nargs=3, default=(9999, 1920, 1920), help="Maximum size for cropping.")
@@ -124,12 +125,16 @@ if __name__ == "__main__":
         fixed_out_path = os.path.join(sample_path, args.fixed_out_path)  # os.path.join(sample_path, args.out_name)
         print("Fixed output path: ", fixed_out_path)
 
+    visualize = False  # True
+    print("Visualization is set to: ", visualize)
 
     ##################### MOVING IMAGE ######################
 
     # Load moving image
-    # args.moving_pixel_size = (4, 4, 4) # REMOVE THIS
-    moving, moving_affine = get_image_and_affine(moving_path, custom_origin=(0, 0, 0), pixel_size_mm=args.moving_pixel_size)
+    args.moving_pixel_size = (4, 4, 4)  # REMOVE THIS
+    args.moving_divis_factor = 160  # REMOVE THIS
+    input_dtype = get_dtype(args.dtype)
+    moving, moving_affine = get_image_and_affine(moving_path, custom_origin=(0, 0, 0), pixel_size_mm=args.moving_pixel_size, dtype=input_dtype)
 
     # Define moving image space
     moving, moving_affine, moving_crop_start, moving_crop_end = define_image_space(moving, moving_affine, f=args.f,
@@ -158,8 +163,9 @@ if __name__ == "__main__":
 
 
     # Get & save moving image pyramid
-    # args.moving_mask_method = 'threshold' # REMOVE THIS
-    # args.moving_mask_threshold = 0 # REMOVE THIS
+    args.moving_mask_method = 'threshold' # REMOVE THIS
+    args.moving_mask_threshold = 100 # REMOVE THIS
+    args.apply_moving_mask = True # REMOVE THIS
     pyramid, mask_pyramid, affines = get_image_pyramid(moving, moving_affine,
                                                        args.moving_pyramid_depth,
                                                        args.moving_clip_percentiles,
@@ -175,11 +181,12 @@ if __name__ == "__main__":
     save_image_pyramid(pyramid, mask_pyramid, affines, moving_path, moving_out_path, args.moving_out_name)
 
     # Visualize
-    for i, image in enumerate(pyramid):
-        slices = [image.shape[0]//2, image.shape[1]//2, image.shape[2]//2]
-        viz_slices(image, slices[0], save_dir=moving_out_path, title=args.moving_out_name + f"_scale_{2 ** i}_pre_axis_0", axis=0)
-        viz_slices(image, slices[1], save_dir=moving_out_path, title=args.moving_out_name + f"_scale_{2 ** i}_pre_axis_1", axis=1)
-        viz_slices(image, slices[2], save_dir=moving_out_path, title=args.moving_out_name + f"_scale_{2 ** i}_pre_axis_2", axis=2)
+    if visualize:
+        for i, image in enumerate(pyramid):
+            slices = [image.shape[0]//2, image.shape[1]//2, image.shape[2]//2]
+            viz_slices(image, slices[0], save_dir=moving_out_path, title=args.moving_out_name + f"_scale_{2 ** i}_pre_axis_0", axis=0)
+            viz_slices(image, slices[1], save_dir=moving_out_path, title=args.moving_out_name + f"_scale_{2 ** i}_pre_axis_1", axis=1)
+            viz_slices(image, slices[2], save_dir=moving_out_path, title=args.moving_out_name + f"_scale_{2 ** i}_pre_axis_2", axis=2)
 
     # Record moving image top center position
     p1 = [moving.shape[0], moving.shape[1] / 2, moving.shape[2] / 2]
@@ -187,12 +194,12 @@ if __name__ == "__main__":
     # Clear memory
     del moving, pyramid, mask_pyramid
 
-
     ##################### FIXED IMAGE ######################
 
     # Load fixed image
-    # args.fixed_pixel_size = (1, 1, 1) # REMOVE THIS
-    fixed, fixed_affine = get_image_and_affine(fixed_path, custom_origin=(0, 0, 0), pixel_size_mm=args.fixed_pixel_size)
+    args.fixed_pixel_size = (1, 1, 1) # REMOVE THIS
+    args.fixed_divis_factor = 160  # REMOVE THIS
+    fixed, fixed_affine = get_image_and_affine(fixed_path, custom_origin=(0, 0, 0), pixel_size_mm=args.fixed_pixel_size, dtype=input_dtype)
 
     # Define fixed image space
     fixed, fixed_affine, fixed_crop_start, fixed_crop_end = define_image_space(fixed, fixed_affine, f=1,
@@ -227,8 +234,9 @@ if __name__ == "__main__":
 
 
     # Get & save moving image pyramid
-    # args.fixed_mask_method = 'threshold' # REMOVE THIS
-    # args.fixed_mask_threshold = 0 # REMOVE THIS
+    args.fixed_mask_method = 'threshold' # REMOVE THIS
+    args.fixed_mask_threshold = 100 # REMOVE THIS
+    args.apply_fixed_mask = True # REMOVE THIS
     pyramid, mask_pyramid, affines = get_image_pyramid(fixed, fixed_affine,
                                                        args.fixed_pyramid_depth,
                                                        args.fixed_clip_percentiles,
@@ -243,11 +251,12 @@ if __name__ == "__main__":
     print("Preparing to write fixed image pyramid...")
     save_image_pyramid(pyramid, mask_pyramid, affines, fixed_path, fixed_out_path, args.fixed_out_name)
 
-    # Visualize
-    for i, image in enumerate(pyramid):
-        slices = [image.shape[0] // 2, image.shape[1] // 2, image.shape[2] // 2]
-        viz_slices(image, slices[0], save_dir=fixed_out_path, title=args.fixed_out_name + f"_scale_{2 ** i}_pre_axis_0", axis=0)
-        viz_slices(image, slices[1], save_dir=fixed_out_path, title=args.fixed_out_name + f"_scale_{2 ** i}_pre_axis_1", axis=1)
-        viz_slices(image, slices[2], save_dir=fixed_out_path, title=args.fixed_out_name + f"_scale_{2 ** i}_pre_axis_2", axis=2)
+    # Visualize'
+    if visualize:
+        for i, image in enumerate(pyramid):
+            slices = [image.shape[0] // 2, image.shape[1] // 2, image.shape[2] // 2]
+            viz_slices(image, slices[0], save_dir=fixed_out_path, title=args.fixed_out_name + f"_scale_{2 ** i}_pre_axis_0", axis=0)
+            viz_slices(image, slices[1], save_dir=fixed_out_path, title=args.fixed_out_name + f"_scale_{2 ** i}_pre_axis_1", axis=1)
+            viz_slices(image, slices[2], save_dir=fixed_out_path, title=args.fixed_out_name + f"_scale_{2 ** i}_pre_axis_2", axis=2)
 
     print("Done")
