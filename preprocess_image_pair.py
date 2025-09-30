@@ -131,8 +131,9 @@ if __name__ == "__main__":
     ##################### MOVING IMAGE ######################
 
     # Load moving image
-    args.moving_pixel_size = (4, 4, 4)  # REMOVE THIS
-    args.moving_divis_factor = 160  # REMOVE THIS
+    # args.moving_pixel_size = (4, 4, 4)  # REMOVE THIS
+    # args.moving_divis_factor = 160  # REMOVE THIS
+
     input_dtype = get_dtype(args.dtype)
     moving, moving_affine = get_image_and_affine(moving_path, custom_origin=(0, 0, 0), pixel_size_mm=args.moving_pixel_size, dtype=input_dtype)
 
@@ -163,9 +164,9 @@ if __name__ == "__main__":
 
 
     # Get & save moving image pyramid
-    args.moving_mask_method = 'threshold' # REMOVE THIS
-    args.moving_mask_threshold = 100 # REMOVE THIS
-    args.apply_moving_mask = True # REMOVE THIS
+    # args.moving_mask_method = 'threshold' # REMOVE THIS
+    # args.moving_mask_threshold = 100 # REMOVE THIS
+    # args.apply_moving_mask = True # REMOVE THIS
     pyramid, mask_pyramid, affines = get_image_pyramid(moving, moving_affine,
                                                        args.moving_pyramid_depth,
                                                        args.moving_clip_percentiles,
@@ -197,8 +198,8 @@ if __name__ == "__main__":
     ##################### FIXED IMAGE ######################
 
     # Load fixed image
-    args.fixed_pixel_size = (1, 1, 1) # REMOVE THIS
-    args.fixed_divis_factor = 160  # REMOVE THIS
+    # args.fixed_pixel_size = (1, 1, 1) # REMOVE THIS
+    # args.fixed_divis_factor = 160  # REMOVE THIS
     fixed, fixed_affine = get_image_and_affine(fixed_path, custom_origin=(0, 0, 0), pixel_size_mm=args.fixed_pixel_size, dtype=input_dtype)
 
     # Define fixed image space
@@ -234,9 +235,9 @@ if __name__ == "__main__":
 
 
     # Get & save moving image pyramid
-    args.fixed_mask_method = 'threshold' # REMOVE THIS
-    args.fixed_mask_threshold = 100 # REMOVE THIS
-    args.apply_fixed_mask = True # REMOVE THIS
+    # args.fixed_mask_method = 'threshold' # REMOVE THIS
+    # args.fixed_mask_threshold = 100 # REMOVE THIS
+    # args.apply_fixed_mask = True # REMOVE THIS
     pyramid, mask_pyramid, affines = get_image_pyramid(fixed, fixed_affine,
                                                        args.fixed_pyramid_depth,
                                                        args.fixed_clip_percentiles,
