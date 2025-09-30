@@ -15,11 +15,17 @@ from utils.utils_preprocess import image_crop_pad
 from dask.diagnostics import ProgressBar
 from utils.utils_plot import viz_slices, viz_orthogonal_slices, viz_multiple_images
 
-def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648, 648, 648), cname='lz4'):
+def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648, 648, 648), shard_size=None, cname='lz4'):
 
     # Define the chunk sizes for each level
     chunk_shapes = [np.array(chunk_size) // (2**i) for i in range(len(image_pyramid))]
     print("Chunk shapes: ", chunk_shapes)
+
+    # Define the shard sizes for each level
+    shard_shapes = None
+    if shard_size is not None:
+        shard_shapes = [chunk_shapes[i] * np.array(shard_size) * (2 ** i) for i in range(len(image_pyramid))]
+        print("Shard shapes: ", shard_shapes)
 
     # Define storage options for each level
     # Compressions: LZ4(), Zstd(level=3)
@@ -30,6 +36,10 @@ def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648
         }
         for i in range(len(image_pyramid))
     ]
+
+    if shard_shapes is not None:
+        for i in range(len(storage_opts)):
+            storage_opts[i]["shards"] = shard_shapes[i].tolist()
 
     with ProgressBar(dt=1.0):
         # Write the image data to the Zarr group
@@ -90,14 +100,15 @@ def write_ome_datasample(out_name,
     if len(HR_paths) == 0:
         raise ValueError("HR image paths are required and cannot be empty.")
 
-    hr_vals = write_ome_group_resmatch(image_paths=HR_paths,
-                                          mask_paths=HR_mask_paths,
-                                          out_name=out_name,
-                                          group_name='HR',
-                                          split_axis=split_axis,
-                                          split_indices=HR_split_indices,
-                                          chunks=HR_chunks,
-                                          compression=compression)
+    hr_ref_dict = write_ome_group_resmatch(image_paths=HR_paths,
+                                           mask_paths=HR_mask_paths,
+                                           out_name=out_name,
+                                           group_name='HR',
+                                           split_axis=split_axis,
+                                           split_indices=HR_split_indices,
+                                           chunks=HR_chunks,
+                                           compression=compression,
+                                           return_levels=[2, 3])
 
     if len(LR_paths) == 0:
         print("No LR image paths provided, skipping LR group.")
@@ -114,7 +125,6 @@ def write_ome_datasample(out_name,
     if len(REG_paths) == 0:
         print("No REG image paths provided, skipping REG group.")
     else:
-        match_indices = {0: 2, 1: 3}  # match REG/0 with HR/2, and REG/1 with HR/3
         write_ome_group_resmatch(image_paths=REG_paths,
                         mask_paths=REG_mask_paths,
                         out_name=out_name,
@@ -123,8 +133,7 @@ def write_ome_datasample(out_name,
                         split_indices=REG_split_indices,
                         chunks=REG_chunks,
                         compression=compression,
-                        reference_val_list=hr_vals,
-                        match_indices=match_indices)
+                        reference_val_dict=hr_ref_dict)
 
     return 0
 
@@ -223,7 +232,7 @@ def write_ome_group(image_paths, mask_paths=None, out_name="", group_name='HR', 
     return reference_vals
 
 
-def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_name='HR', split_axis=0, split_indices=(), chunks=(160, 160, 160), compression='lz4', reference_val_list=None, match_indices=None):
+def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_name='HR', split_axis=0, split_indices=(), chunks=(160, 160, 160), compression='lz4', reference_val_dict={}, return_levels=()):
 
     if image_paths is None:
         raise ValueError("Image paths are required and cannot be empty.")
@@ -240,47 +249,52 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
         mask_pyramid = load_image_pyramid(mask_paths, dtype=np.uint8)
         print("Mask pyramid shapes:", [img.shape for img in mask_pyramid]) # ref_mask = load_image("../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Cardboard_A/fixed_scale_1_mask.nii.gz")
 
-    source_vals_list = []
-    for i in range(len(pyramid)):  # We don't have to save all, just the level corresponding with REG/0 and REG/1
-        source_vals = pyramid[i]
+    return_dict = {}
+    if group_name == "HR":
+        for level in return_levels:
+            if level < len(pyramid):
+                if mask_pyramid is not None:
+                    source_mask = mask_pyramid[level].astype(bool)
+                    source_vals = np.where(source_mask, pyramid[level], np.nan)
+                else:
+                    source_vals = pyramid[level]
+                return_dict[level] = source_vals
+
+    # match histograms for REG group
+    for i, level in enumerate(reference_val_dict):
+
+        # Get source
         if mask_pyramid is not None:
             source_mask = mask_pyramid[i].astype(bool)
-            # source_vals = source_vals[source_mask]
-            source_vals = np.where(source_mask, source_vals, np.nan)
-        source_vals_list.append(source_vals)
+            source_vals = np.where(source_mask, pyramid[i], np.nan)
+        else:
+            source_vals = pyramid[i]
 
-    # match histograms
-    for i in range(len(source_vals_list)):
-        if reference_val_list is None:
-            break
-        elif match_indices is None:
-            break
-        elif i in match_indices:
-            source_vals = source_vals_list[i]
-            reference_vals = reference_val_list[match_indices[i]]
-            print(f"Matching histogram level {i} with reference level {match_indices[i]}...")
+        # Get reference
+        reference_vals = reference_val_dict[level]
+        print(f"Matching histogram level {i} with reference level {level}...")
 
-            viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_raw")
+        viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_raw")
 
-            if mask_pyramid is not None:
-                for slice_idx in range(source_vals.shape[0]):
-                    if slice_idx % 100 == 0:
-                        print(f"Matching slice {slice_idx}/{source_vals.shape[0]}")
-                    matched_slice = match_histograms(source_vals[slice_idx], reference_vals[slice_idx])
-                    matched_slice = np.nan_to_num(matched_slice, nan=0)  # fill nans with 0
-                    pyramid[i][slice_idx] = matched_slice
-                #source_mask = mask_pyramid[i].astype(bool)
-                #matched_vals = match_histograms(source_vals, reference_vals)  # Do this slice-wise, or N-slice-wise!
-                #pyramid[i][source_mask] = matched_vals
-            else:
-                matched_vals = match_histograms(source_vals, reference_vals)
-                pyramid[i] = matched_vals
+        if mask_pyramid is not None:
+            for slice_idx in range(source_vals.shape[0]):
+                if slice_idx % 100 == 0:
+                    print(f"Matching slice {slice_idx}/{source_vals.shape[0]}")
+                matched_slice = match_histograms(source_vals[slice_idx], reference_vals[slice_idx])
+                matched_slice = np.nan_to_num(matched_slice, nan=0)  # fill nans with 0
+                pyramid[i][slice_idx] = matched_slice
+        else:
+            for slice_idx in range(source_vals.shape[0]):
+                if slice_idx % 100 == 0:
+                    print(f"Matching slice {slice_idx}/{source_vals.shape[0]}")
+                matched_slice = match_histograms(source_vals[slice_idx], reference_vals[slice_idx])
+                pyramid[i][slice_idx] = matched_slice
 
-            viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_matched")
+        viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_matched")
 
-            # # Optionally, save matched image for verification
-            from utils.utils_nifti import write_nifti
-            write_nifti(pyramid[i], output_path=out_name + f"_{group_name}_matched_level{i}.nii.gz", dtype=np.uint16)
+        # # Optionally, save matched image for verification
+        from utils.utils_nifti import write_nifti
+        write_nifti(pyramid[i], output_path=out_name + f"_{group_name}_matched_level{i}.nii.gz", dtype=np.uint16)
 
     ######
     # matched = match_histograms(pyramid[2], reference_image)
@@ -330,12 +344,13 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
             image_pyramid=pyramid_splits[i],
             label_pyramid=None,  # No labels
             chunk_size=chunks,
+            shard_size=(1, 1, 1),  # None if no shards
             cname=compression,  # Compression codec
         )
 
         print(f"Done writing OME-Zarr data to {out_path}/{group_name}")
 
-    return source_vals_list
+    return return_dict
 
 
 def load_image_pyramid(image_paths, dtype=np.uint16, nifti_backend="nibabel"):

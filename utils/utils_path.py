@@ -194,8 +194,7 @@ def write_image_categories(image_categories,
             image_pyramid = [image]
             for i in range(pyramid_levels - 1):
                 down = downscale_local_mean(image_pyramid[i], (2, 2, 2))
-                matched = match_histogram_3d_continuous(source=down, reference=image)
-                image_pyramid.append(matched)
+                image_pyramid.append(down)
 
             # Create Zarr store
             zarr_path = os.path.join(save_dir, f"{image_name}.zarr")
@@ -210,6 +209,7 @@ def write_image_categories(image_categories,
                 image_pyramid=image_pyramid,
                 label_pyramid=None,  # No labels for MRI
                 chunk_size=chunk_size,
+                shard_size=(1, 1, 1),
                 cname=cname  # Compression codec
             )
 
