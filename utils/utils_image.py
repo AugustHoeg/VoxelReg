@@ -102,10 +102,10 @@ def load_image(image_path,
         elif file_extension == "txm":
             if backend == "Dask":
                 print("Dask backend for .txm not supported. Loading full image and returning dask array...")
-                image, metadata = load_txm(image_path).astype(dtype)
+                image, metadata = load_txm(image_path, dtype=dtype)
                 image = da.from_array(image, chunks=chunk_shape)
             elif backend == "Numpy":
-                image, metadata = load_txm(image_path).astype(dtype)
+                image, metadata = load_txm(image_path, dtype=dtype)
 
         # NPY
         elif file_extension == "npy":
