@@ -6,19 +6,36 @@ import zarr
 from zarr.storage import LocalStore
 from skimage.exposure import match_histograms
 import dask.array as da
-from ome_zarr.writer import write_image, write_multiscale, write_multiscale_labels
+from ome_zarr.writer import write_image, write_multiscale, write_multiscale_labels, write_multiscales_metadata, write_label_metadata
 from ome_zarr.io import parse_url
-#from numcodecs import Zstd, Blosc, LZ4
+from numcodecs import Zstd, Blosc, LZ4
 from zarr.codecs import BloscCodec, BloscCname, BloscShuffle
 from utils.utils_image import load_image, normalize, normalize_std, normalize_std_dask, match_histogram_3d_continuous_sampled, compare_histograms
 from utils.utils_preprocess import image_crop_pad
 from dask.diagnostics import ProgressBar
 from utils.utils_plot import viz_slices, viz_orthogonal_slices, viz_multiple_images
 
+
+def write_ome_metadata(group, num_levels, scale=2):
+    datasets = [
+        {"path": f"{lvl}",
+         "coordinateTransformations": [
+             {"type": "scale", "scale": [scale**lvl, scale**lvl, scale**lvl]}]} for lvl in range(num_levels)
+         ]
+
+    write_multiscales_metadata(
+        group=group,
+        datasets=datasets,
+        axes=["z", "y", "x"],
+    )
+
+
+
 def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648, 648, 648), shard_size=None, cname='lz4'):
 
     # Define the chunk sizes for each level
-    chunk_shapes = [np.array(chunk_size) // (2**i) for i in range(len(image_pyramid))]
+    #chunk_shapes = [np.array(chunk_size) // (2**i) for i in range(len(image_pyramid))]
+    chunk_shapes = [np.array(chunk_size) for _ in range(len(image_pyramid))]
     print("Chunk shapes: ", chunk_shapes)
 
     # Define the shard sizes for each level
@@ -344,7 +361,7 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
             image_pyramid=pyramid_splits[i],
             label_pyramid=None,  # No labels
             chunk_size=chunks,
-            shard_size=(1, 1, 1),  # None if no shards
+            shard_size=None,  # None if no shards
             cname=compression,  # Compression codec
         )
 

@@ -1,6 +1,6 @@
 import os
 import numpy as np
-import torch
+import dask.array as da
 from skimage.transform import downscale_local_mean
 from skimage.filters import threshold_otsu
 
@@ -261,6 +261,21 @@ def minmax_scaler(image, vmin=0, vmax=1.0):
     return image
 
 
+def scale_n_clip(image, clip_range=None):
+    input_dtype = image.dtype
+    dtype_min, dtype_max = dtype_min_max(input_dtype)  # get input dtype range
+    image = image.astype(np.float32)  # convert to float
+    image = minmax_scaler(image, dtype_min, dtype_max)  # rescale to dtype min/max
+
+    if clip_range is None:
+        clip_range = (dtype_min, dtype_max)
+
+    if clip_range != (dtype_min, dtype_max):
+        clip_rescale(image, *clip_range)  # clip, then rescale to range
+
+    return image.astype(input_dtype)  # convert back to input dtype
+
+
 def clip_percentile(image, lower=1.0, upper=99.0, vmin=0, vmax=65535):
 
     image_filtered = image[(image > 0.025) | (image < 0.975)]  # filter low/high values
@@ -297,6 +312,14 @@ def masked_clip_percentile(image, mask, lower=1.0, upper=99.0, vmin=0, vmax=6553
     image[mask > 0] = masked_image
 
     return image
+
+def slice_percentiles(image, mask, slice_axis=0, lower=1.0, upper=99.0, vmin=0, vmax=65535):
+
+    masked_image = da.where(mask.astype(bool), image, da.nan)
+
+    low = da.nanpercentile(masked_image, lower, axis=[1, 2])
+    high = da.nanpercentile(masked_image, upper, axis=[1, 2])
+
 
 
 
@@ -599,14 +622,17 @@ def dtype_min_max(dtype):
 
     return min_value, max_value
 
-def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.0, 99.0), clip_range=(0.0, 1.0), mask=None, mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
+def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.0, 99.0), clip_range=None, mask=None, mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
 
     input_dtype = image.dtype
     dtype_min, dtype_max = dtype_min_max(input_dtype)  # get input dtype range
     image = image.astype(np.float32)  # convert to float
     image = minmax_scaler(image, dtype_min, dtype_max)  # rescale to dtype min/max
 
-    if clip_range != (0.0, 1.0):
+    if clip_range is None:
+        clip_range = (dtype_min, dtype_max)
+
+    if clip_range != (dtype_min, dtype_max):
         clip_rescale(image, *clip_range)  # clip, then rescale to range
 
     if mask is None:

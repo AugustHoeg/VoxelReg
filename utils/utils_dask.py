@@ -36,3 +36,7 @@ def downsample_dask(image, sigma_list, factor, output_path=None):
     image_ds = da.map_blocks(lambda x: zoom(x,1/factor), image, dtype=np.uint16, chunks=(block_size_ds,block_size_ds, block_size_ds))
 
     return image_ds
+
+def threshold_dask(image, threshold, high=1, low=0, dtype=np.uint8):
+    mask = da.where(image < threshold, low, high).astype(dtype)
+    return mask

@@ -2,10 +2,17 @@ import os
 import argparse
 
 import numpy as np
+import dask.array as da
+from dask.diagnostics import ProgressBar
+
+import zarr
+from ome_zarr.io import parse_url
 
 from utils.utils_plot import viz_slices, viz_multiple_images
-from utils.utils_preprocess import crop_to_roi, preprocess, get_image_and_affine, save_image_pyramid, get_image_pyramid, define_image_space, get_dtype
+from utils.utils_preprocess import get_image_and_affine, save_image_pyramid, get_image_pyramid, define_image_space, get_dtype, scale_n_clip, mask_with_threshold, mask_with_cylinder, dtype_min_max
 from utils.utils_nifti import voxel2world, set_origin
+from utils.utils_dask import threshold_dask
+from utils.utils_zarr import write_ome_metadata
 
 # Define paths
 project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/2022_QIM_52_Bone/"
@@ -131,11 +138,18 @@ if __name__ == "__main__":
     ##################### MOVING IMAGE ######################
 
     # Load moving image
-    #args.moving_pixel_size = (4, 4, 4)  # REMOVE THIS
-    #args.moving_divis_factor = 160  # REMOVE THIS
+    args.moving_pixel_size = (4, 4, 4)  # REMOVE THIS
+    args.moving_divis_factor = 160  # REMOVE THIS
+    args.moving_mask_method = 'threshold' # REMOVE THIS
+    args.moving_mask_threshold = 100 # REMOVE THIS
+    args.apply_moving_mask = True # REMOVE THIS
 
     input_dtype = get_dtype(args.dtype)
-    moving, moving_affine = get_image_and_affine(moving_path, custom_origin=(0, 0, 0), pixel_size_mm=args.moving_pixel_size, dtype=input_dtype)
+    moving, moving_affine = get_image_and_affine(moving_path,
+                                                 custom_origin=(0, 0, 0),
+                                                 pixel_size_mm=args.moving_pixel_size,
+                                                 dtype=input_dtype,
+                                                 backend="Dask")
 
     # Define moving image space
     moving, moving_affine, moving_crop_start, moving_crop_end = define_image_space(moving, moving_affine, f=args.f,
@@ -145,6 +159,43 @@ if __name__ == "__main__":
                                                                                    divis_factor=args.moving_divis_factor,
                                                                                    top_index=args.top_index)
 
+    # scale and clip
+    moving = scale_n_clip(moving, args.moving_clip_range)
+
+    # Test
+
+    moving_ome_path = os.path.join(moving_out_path, args.moving_out_name + "_ome.zarr")
+    # Create/open a Zarr array in write mode
+    store = parse_url(moving_ome_path, mode="w").store
+    # store = zarr.storage.LocalStore(moving_ome_path)
+    root = zarr.group(store=store)
+
+    group_name = "LR"
+    out_path = moving_ome_path
+    if os.path.exists(os.path.join(moving_ome_path, group_name)):
+        print(f"Group {group_name} already exists in {out_path}. Skipping...")
+    else:
+        # Create image group for the volume
+        image_group = root.create_group(group_name)
+
+        write_ome_metadata(group=image_group, num_levels=args.moving_pyramid_depth, scale=2)
+
+        group = image_group.create_group("0")
+        da.to_zarr(moving, group=group, overwrite=True)
+
+        print(f"Done writing OME-Zarr data to {out_path}/{group_name}")
+
+    # End test
+
+
+
+    # Create disk checkpoint to clean dask graph
+    with ProgressBar(dt=1):
+        path = os.path.join(moving_out_path, args.moving_out_name + ".zarr")
+        #moving = checkpoint_as_zarr(moving, path, chunks=(1, *moving.shape[1:]))
+        da.to_zarr(moving, path, overwrite=True)
+        moving = da.from_zarr(path, chunks=moving.chunksize)
+
     # Get moving image mask
     moving_mask = None
     if args.moving_mask_path is not None:
@@ -152,7 +203,8 @@ if __name__ == "__main__":
         moving_mask, moving_mask_affine = get_image_and_affine(moving_mask_path,
                                                              custom_origin=(0, 0, 0),
                                                              pixel_size_mm=args.moving_pixel_size,
-                                                             dtype=np.uint8)
+                                                             dtype=np.uint8,
+                                                             backend="Dask")
 
         moving_mask, _, _, _ = define_image_space(moving_mask, moving_mask_affine, f=1,
                                                  min_size=args.moving_min_size,
@@ -162,11 +214,31 @@ if __name__ == "__main__":
                                                  top_index=args.top_index)
         moving_mask_affine = moving_affine  # Defined, but currently unused
 
+    elif args.moving_mask_method == "threshold":
+        moving_mask = threshold_dask(moving, threshold=args.moving_mask_threshold, high=1, low=0, dtype=np.uint8)
+        #moving_mask = mask_with_threshold(moving, mask_threshold=args.moving_mask_threshold)
+
+    elif args.moving_mask_method == "cylinder":
+        print(f"Creating moving mask using method: {args.moving_mask_method}")
+        moving_mask = mask_with_cylinder(moving, cylinder_radius=args.moving_cylinder_radius, cylinder_offset=args.moving_cylinder_center_offset)
+    else:
+        print("No moving mask will be used.")
+
+    # scale and clip
+    moving_mask = scale_n_clip(moving_mask)
+
+    # Create disk checkpoint to clean dask graph
+    with ProgressBar(dt=1):
+        path = os.path.join(moving_out_path, args.moving_out_name + "_mask.zarr")
+        #moving_mask = checkpoint_as_zarr(moving, path, chunks=(1, *moving.shape[1:]))
+        da.to_zarr(moving_mask, path, overwrite=True)
+        moving_mask = da.from_zarr(path, chunks=moving_mask.chunksize)
+
 
     # Get & save moving image pyramid
-    #args.moving_mask_method = 'threshold' # REMOVE THIS
-    #args.moving_mask_threshold = 100 # REMOVE THIS
-    #args.apply_moving_mask = True # REMOVE THIS
+    # args.moving_mask_method = 'threshold' # REMOVE THIS
+    # args.moving_mask_threshold = 100 # REMOVE THIS
+    # args.apply_moving_mask = True # REMOVE THIS
     pyramid, mask_pyramid, affines = get_image_pyramid(moving, moving_affine,
                                                        args.moving_pyramid_depth,
                                                        args.moving_clip_percentiles,
@@ -198,8 +270,8 @@ if __name__ == "__main__":
     ##################### FIXED IMAGE ######################
 
     # Load fixed image
-    #args.fixed_pixel_size = (1, 1, 1) # REMOVE THIS
-    #args.fixed_divis_factor = 160  # REMOVE THIS
+    # args.fixed_pixel_size = (1, 1, 1) # REMOVE THIS
+    # args.fixed_divis_factor = 160  # REMOVE THIS
     fixed, fixed_affine = get_image_and_affine(fixed_path, custom_origin=(0, 0, 0), pixel_size_mm=args.fixed_pixel_size, dtype=input_dtype)
 
     # Define fixed image space
@@ -235,9 +307,9 @@ if __name__ == "__main__":
 
 
     # Get & save moving image pyramid
-    #args.fixed_mask_method = 'threshold' # REMOVE THIS
-    #args.fixed_mask_threshold = 100 # REMOVE THIS
-    #args.apply_fixed_mask = True # REMOVE THIS
+    # args.fixed_mask_method = 'threshold' # REMOVE THIS
+    # args.fixed_mask_threshold = 100 # REMOVE THIS
+    # args.apply_fixed_mask = True # REMOVE THIS
     pyramid, mask_pyramid, affines = get_image_pyramid(fixed, fixed_affine,
                                                        args.fixed_pyramid_depth,
                                                        args.fixed_clip_percentiles,
