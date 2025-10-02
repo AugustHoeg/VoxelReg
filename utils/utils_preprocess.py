@@ -224,16 +224,20 @@ def norm_hist(image, alpha=1e-4, bins=4096, smooth=True, mode='rescale'):
 
 def clip_rescale(image, a_min=0.0, a_max=1.0):
 
-    # in-place clipping
-    np.clip(image, a_min=a_min, a_max=a_max, out=image)
+    if isinstance(image, da.Array):
+        # If dask array, using da.clip
+        image = da.clip(image, a_min=a_min, a_max=a_max)
+    else:
+        # in-place clipping using np.clip
+        da.clip(image, a_min=a_min, a_max=a_max, out=image)
 
-    vmin = image.min(initial=0)
-    vmax = image.max(initial=1)
+    vmin = image.min()
+    vmax = image.max()
     if vmax > vmin:
         image -= vmin
         image /= (vmax - vmin)
     else:
-        image.fill(0)
+        raise ValueError("Image has no dynamic range after clipping.")
 
     return image
 
@@ -253,11 +257,20 @@ def rescale(image):
 
 
 def minmax_scaler(image, vmin=0, vmax=1.0):
-    image_min, image_max = image.min(), image.max()
-    image -= image_min
-    image /= (image_max - image_min)
-    image *= (vmax - vmin)
-    image += vmin
+
+    if isinstance(image, da.Array):
+        # If dask array, use standard operations
+        image_min = da.nanmin(image)
+        image_max = da.nanmax(image)
+        image = ((image - image_min) / (image_max - image_min)) * (vmax - vmin) + vmin
+    else:
+        # in-place scaling using np operations
+        image_min = np.nanmin(image)
+        image_max = np.nanmax(image)
+        image -= image_min
+        image /= (image_max - image_min)
+        image *= (vmax - vmin)
+        image += vmin
     return image
 
 

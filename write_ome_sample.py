@@ -49,12 +49,12 @@ if __name__ == "__main__":
     # # For testing, we set arguments here
     # args.base_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe"
     # args.sample_path = "Cardboard_A"
-    # args.HR_paths = ["fixed_scale_1.nii.gz", "fixed_scale_2.nii.gz", "fixed_scale_4.nii.gz"]
-    # args.LR_paths = ["moving_scale_1.nii.gz", "moving_scale_2.nii.gz", "moving_scale_4.nii.gz"]
-    # args.REG_paths = ["cardboard_registered.nii.gz"]
-    # args.HR_mask_paths = ["fixed_scale_1_mask.nii.gz", "fixed_scale_2_mask.nii.gz", "fixed_scale_4_mask.nii.gz"]
-    # args.LR_mask_paths = ["moving_scale_1_mask.nii.gz", "moving_scale_2_mask.nii.gz", "moving_scale_4_mask.nii.gz"]
-    # args.REG_mask_paths = ["fixed_scale_4_mask.nii.gz"]
+    # args.HR_paths = ["fixed_scale_1.nii.gz", "fixed_scale_2.nii.gz", "fixed_scale_4.nii.gz",  "fixed_scale_8.nii.gz"]
+    # args.LR_paths = ["moving_scale_1.nii.gz", "moving_scale_2.nii.gz", "moving_scale_4.nii.gz",  "moving_scale_8.nii.gz"]
+    # args.REG_paths = ["cardboard_registered.nii.gz", "cardboard_registered_scale_2.nii.gz"]
+    # args.HR_mask_paths = ["fixed_scale_1_mask.nii.gz", "fixed_scale_2_mask.nii.gz", "fixed_scale_4_mask.nii.gz", "fixed_scale_8_mask.nii.gz"]
+    # args.LR_mask_paths = ["moving_scale_1_mask.nii.gz", "moving_scale_2_mask.nii.gz", "moving_scale_4_mask.nii.gz", "moving_scale_8_mask.nii.gz"]
+    # args.REG_mask_paths = ["fixed_scale_4_mask.nii.gz", "fixed_scale_8_mask.nii.gz"]
     # args.out_path = ""
     # args.out_name = "Cardboard_A_test"
     # args.HR_chunks = (40, 40, 40)

@@ -9,7 +9,7 @@ import zarr
 from ome_zarr.io import parse_url
 
 from utils.utils_plot import viz_slices, viz_multiple_images
-from utils.utils_preprocess import get_image_and_affine, save_image_pyramid, get_image_pyramid, define_image_space, get_dtype, scale_n_clip, mask_with_threshold, mask_with_cylinder, dtype_min_max
+from utils.utils_preprocess import get_image_and_affine, save_image_pyramid, get_image_pyramid, define_image_space, get_dtype, scale_n_clip, clip_rescale, mask_with_cylinder, dtype_min_max, minmax_scaler
 from utils.utils_nifti import voxel2world, set_origin
 from utils.utils_dask import threshold_dask
 from utils.utils_zarr import write_ome_metadata
@@ -162,39 +162,40 @@ if __name__ == "__main__":
     # scale and clip
     moving = scale_n_clip(moving, args.moving_clip_range)
 
-    # Test
+    if False:
+        # Test
+        moving_ome_path = os.path.join(moving_out_path, args.moving_out_name + "_ome.zarr")
+        # Create/open a Zarr array in write mode
+        store = parse_url(moving_ome_path, mode="w").store
+        # store = zarr.storage.LocalStore(moving_ome_path)
+        root = zarr.group(store=store)
 
-    moving_ome_path = os.path.join(moving_out_path, args.moving_out_name + "_ome.zarr")
-    # Create/open a Zarr array in write mode
-    store = parse_url(moving_ome_path, mode="w").store
-    # store = zarr.storage.LocalStore(moving_ome_path)
-    root = zarr.group(store=store)
+        group_name = "LR"
+        out_path = moving_ome_path
+        if os.path.exists(os.path.join(moving_ome_path, group_name)):
+            print(f"Group {group_name} already exists in {out_path}. Skipping...")
+        else:
+            # Create image group for the volume
+            image_group = root.create_group(group_name)
 
-    group_name = "LR"
-    out_path = moving_ome_path
-    if os.path.exists(os.path.join(moving_ome_path, group_name)):
-        print(f"Group {group_name} already exists in {out_path}. Skipping...")
-    else:
-        # Create image group for the volume
-        image_group = root.create_group(group_name)
+            write_ome_metadata(group=image_group, num_levels=args.moving_pyramid_depth, scale=2)
 
-        write_ome_metadata(group=image_group, num_levels=args.moving_pyramid_depth, scale=2)
+            with ProgressBar(dt=1):
+                da.to_zarr(moving,
+                           url=store,
+                           component=f"{group_name}/0",
+                           overwrite=True,
+                           zarr_format=3)
 
-        group = image_group.create_group("0")
-        da.to_zarr(moving, group=group, overwrite=True)
-
-        print(f"Done writing OME-Zarr data to {out_path}/{group_name}")
-
+            moving = da.from_zarr(moving_ome_path, chunks=moving.chunksize)
     # End test
 
-
-
     # Create disk checkpoint to clean dask graph
-    with ProgressBar(dt=1):
-        path = os.path.join(moving_out_path, args.moving_out_name + ".zarr")
-        #moving = checkpoint_as_zarr(moving, path, chunks=(1, *moving.shape[1:]))
-        da.to_zarr(moving, path, overwrite=True)
-        moving = da.from_zarr(path, chunks=moving.chunksize)
+    # with ProgressBar(dt=1):
+    #     path = os.path.join(moving_out_path, args.moving_out_name + ".zarr")
+    #     #moving = checkpoint_as_zarr(moving, path, chunks=(1, *moving.shape[1:]))
+    #     da.to_zarr(moving, path, overwrite=True)
+    #     moving = da.from_zarr(path, chunks=moving.chunksize)
 
     # Get moving image mask
     moving_mask = None
@@ -227,12 +228,115 @@ if __name__ == "__main__":
     # scale and clip
     moving_mask = scale_n_clip(moving_mask)
 
-    # Create disk checkpoint to clean dask graph
     with ProgressBar(dt=1):
         path = os.path.join(moving_out_path, args.moving_out_name + "_mask.zarr")
-        #moving_mask = checkpoint_as_zarr(moving, path, chunks=(1, *moving.shape[1:]))
         da.to_zarr(moving_mask, path, overwrite=True)
         moving_mask = da.from_zarr(path, chunks=moving_mask.chunksize)
+
+    viz_slices(moving_mask, [200, 400, 600], savefig=False)
+    print(f"min = {moving_mask[100, :, :].min().compute()}, max = {moving_mask[100, :, :].max().compute()}")
+
+    moving = da.where(moving_mask.astype(bool), moving, da.nan)
+
+    hist, bins = da.histogram(moving, bins=65535, range=(0, 65535))
+    with ProgressBar(dt=1):
+        print("Computing histogram for percentile clipping...")
+        hist = hist.compute()  # to numpy
+        cdf = np.cumsum(hist) / np.sum(hist)
+        lower, upper = args.moving_clip_percentiles
+        low = np.searchsorted(cdf, lower / 100)
+        high = np.searchsorted(cdf, upper / 100)
+    print(f"Percentile clipping values: low = {low}, high = {high}")
+
+    moving = da.clip(moving, low, high)
+    moving = minmax_scaler(moving, vmin=0, vmax=65535)
+    moving = da.where(moving_mask.astype(bool), moving, 0)
+
+    # masked_image = da.where(moving_mask.astype(bool), moving, da.nan)
+    #
+    # hist, bins = da.histogram(masked_image, bins=65535, range=(0, 65535), density=True)
+    #
+    # lower, upper = args.moving_clip_percentiles
+    # low = da.percentile(hist, lower)
+    # high = da.percentile(hist, upper)
+    #
+    # masked_image = da.clip(masked_image, low, high)
+    # moving = minmax_scaler(masked_image, vmin=0, vmax=65535)
+    # moving = da.where(moving_mask.astype(bool), 0, moving)
+
+    with ProgressBar(dt=1):
+        path = os.path.join(moving_out_path, args.moving_out_name + ".zarr")
+        da.to_zarr(moving, path, overwrite=True)
+        moving = da.from_zarr(path, chunks=moving.chunksize)
+
+    viz_slices(moving, [200, 400, 600], savefig=False)
+
+    with ProgressBar(dt=1):
+        print("Moving image min and max after clipping and scaling:")
+        print(f"min = {moving[100, :, :].min().compute()}, max = {moving[100, :, :].max().compute()}")
+
+    if True:
+        # Test
+        moving_ome_path = os.path.join(moving_out_path, args.moving_out_name + "_ome.zarr")
+        # Create/open a Zarr array in write mode
+        store = parse_url(moving_ome_path, mode="w").store
+        # store = zarr.storage.LocalStore(moving_ome_path)
+        root = zarr.group(store=store)
+
+        group_name = "LR"
+        out_path = moving_ome_path
+        if os.path.exists(os.path.join(moving_ome_path, group_name)):
+            print(f"Group {group_name} already exists in {out_path}. Skipping...")
+        else:
+            # Create image group for the volume
+            image_group = root.create_group(group_name)
+
+            write_ome_metadata(group=image_group, num_levels=args.moving_pyramid_depth, scale=2)
+
+            with ProgressBar(dt=1):
+                da.to_zarr(moving,
+                           url=store,
+                           component=f"{group_name}/0",
+                           overwrite=True,
+                           zarr_format=3)
+
+            moving = da.from_zarr(moving_ome_path, chunks=moving.chunksize)
+
+
+
+
+
+
+
+    # use mask to perform percentile clipping:
+    masked_image = da.where(moving_mask.astype(bool), moving, da.nan)
+
+    imin = da.nanmin(masked_image)
+    imax = da.nanmax(masked_image)
+    mask_keep = (masked_image > 0.025 * imin) | (masked_image < 0.975 * imax)
+    masked_image = da.where(mask_keep, masked_image, da.nan)
+
+    lower, upper = args.moving_clip_percentiles
+    low = da.nanpercentile(masked_image, lower, axis=[1, 2])
+    high = da.nanpercentile(masked_image, upper, axis=[1, 2])
+
+    def clip_block(block, low, high):
+        return da.clip(block, low, high)
+
+    # 5. Clip + rescale slice-wise
+    masked_image = da.map_blocks(clip_block, masked_image, low, high, dtype=masked_image.dtype)
+
+    scaled = minmax_scaler(masked_image, vmin=0, vmax=65535)
+
+    # 6. Restore into original image
+    result = da.where(moving_mask.astype(bool), scaled, image)
+
+    # Create disk checkpoint to clean dask graph
+    # with ProgressBar(dt=1):
+    #     path = os.path.join(moving_out_path, args.moving_out_name + "_mask.zarr")
+    #     #moving_mask = checkpoint_as_zarr(moving, path, chunks=(1, *moving.shape[1:]))
+    #     da.to_zarr(moving_mask, path, overwrite=True)
+    #     moving_mask = da.from_zarr(path, chunks=moving_mask.chunksize)
 
 
     # Get & save moving image pyramid

@@ -14,6 +14,7 @@ from utils.utils_image import load_image, normalize, normalize_std, normalize_st
 from utils.utils_preprocess import image_crop_pad
 from dask.diagnostics import ProgressBar
 from utils.utils_plot import viz_slices, viz_orthogonal_slices, viz_multiple_images
+from utils.utils_nifti import write_nifti
 
 
 def write_ome_metadata(group, num_levels, scale=2):
@@ -259,7 +260,8 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
     print("Image pyramid shapes:", [img.shape for img in pyramid])
 
     if group_name != "REG":
-        viz_slices(pyramid[2], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_raw")
+        viz_slices(pyramid[-2], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_scale_{len(pyramid) - 2}_raw")
+        viz_slices(pyramid[-1], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_scale_{len(pyramid) - 1}_raw")
 
     mask_pyramid = None
     if mask_paths is not None:
@@ -291,7 +293,7 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
         reference_vals = reference_val_dict[level]
         print(f"Matching histogram level {i} with reference level {level}...")
 
-        viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_raw")
+        viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_scale_{i}_raw")
 
         if mask_pyramid is not None:
             for slice_idx in range(source_vals.shape[0]):
@@ -307,11 +309,10 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
                 matched_slice = match_histograms(source_vals[slice_idx], reference_vals[slice_idx])
                 pyramid[i][slice_idx] = matched_slice
 
-        viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_matched")
+        viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_scale_{i}_matched")
 
-        # # Optionally, save matched image for verification
-        from utils.utils_nifti import write_nifti
-        write_nifti(pyramid[i], output_path=out_name + f"_{group_name}_matched_level{i}.nii.gz", dtype=np.uint16)
+        # Optionally, save matched image for verification
+        write_nifti(pyramid[i], output_path=out_name + f"_{group_name}_matched_scale_{i}.nii.gz", dtype=np.uint16)
 
     ######
     # matched = match_histograms(pyramid[2], reference_image)
