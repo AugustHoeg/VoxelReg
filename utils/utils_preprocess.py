@@ -8,7 +8,7 @@ from utils.utils_plot import viz_slices, viz_multiple_images
 from utils.utils_tiff import load_tiff, write_tiff, center_crop, top_center_crop
 from utils.utils_nifti import write_nifti, get_crop_origin, set_origin, set_affine_scale, compute_affine_scale, compute_affine_crop
 from utils.utils_txm import load_txm, get_affine_txm
-from utils.utils_image import load_image, create_cylinder_mask, normalize_std, plot_histogram
+from utils.utils_image import load_image, create_cylinder_mask, normalize_std, calc_histogram
 from utils.utils_plot import viz_orthogonal_slices
 
 
@@ -624,10 +624,10 @@ def mask_with_cylinder(image, cylinder_radius, cylinder_offset):
     return mask
 
 def dtype_min_max(dtype):
-    if "float" in dtype.name:
+    if np.issubdtype(dtype, np.floating):
         max_value = np.finfo(dtype).max
         min_value = np.finfo(dtype).min
-    elif "int" in dtype.name:
+    elif np.issubdtype(dtype, np.integer):
         max_value = np.iinfo(dtype).max
         min_value = np.iinfo(dtype).min
     else:
@@ -637,8 +637,7 @@ def dtype_min_max(dtype):
 
 def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.0, 99.0), clip_range=None, mask=None, mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
 
-    input_dtype = image.dtype
-    dtype_min, dtype_max = dtype_min_max(input_dtype)  # get input dtype range
+    dtype_min, dtype_max = dtype_min_max(np.uint16)  # get output dtype range
     image = image.astype(np.float32)  # convert to float
     image = minmax_scaler(image, dtype_min, dtype_max)  # rescale to dtype min/max
 
@@ -667,7 +666,7 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
         if apply_mask:
             apply_image_mask(image, mask)
 
-    image = image.astype(input_dtype)  # convert back to input dtype
+    image = image.astype(np.uint16)  # convert back to input dtype
 
     # plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=True)
     # plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=False, log_scale=False)
@@ -691,7 +690,7 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
         down = downscale_local_mean(image_pyramid[depth], (2, 2, 2)).astype(input_dtype)
 
         if depth == pyramid_depth - 2:
-            plot_histogram(down, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {depth + 1}", save_fig=True)
+            calc_histogram(down, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {depth + 1}", savefig=True, show_plot=True)
 
         affines.append(compute_affine_scale(affines[depth], scale=2))
 

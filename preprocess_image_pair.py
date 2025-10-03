@@ -21,15 +21,15 @@ out_name = "f_001_prepropress"  # Name of the output file
 # args.moving_cylinder_center_offset = (50, 200)
 # args.apply_moving_mask = True
 
-#project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Oak_A/"
-#sample_path = project_path
-#moving_path = sample_path + "Oak_A_bin1x1_LFOV_retake_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_pos1_Stitch_scale_4.tif"
-#fixed_path = sample_path + "Oak_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_Stitch_scale_4.tif"
-
-project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Cardboard_A/"
+project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Oak_A/"
 sample_path = project_path
-moving_path = sample_path + "Cardboard_A_LFOV_80kV_7W_air_4s_8mu_bin1_pos1_Stitch_scale_4.tif"
-fixed_path = sample_path + "Cardboard_A_4X_80kV_7W_air_3s_2mu_bin1_pos1_Stitch_scale_4.tif"
+moving_path = sample_path + "Oak_A_bin1x1_LFOV_retake_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_pos1_Stitch_cropped.tif"
+fixed_path = sample_path + "Oak_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_Stitch_cropped.tif"
+
+#project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Cardboard_A/"
+#sample_path = project_path
+#moving_path = sample_path + "Cardboard_A_LFOV_80kV_7W_air_4s_8mu_bin1_pos1_Stitch_scale_4.tif"
+#fixed_path = sample_path + "Cardboard_A_4X_80kV_7W_air_3s_2mu_bin1_pos1_Stitch_scale_4.tif"
 
 out_name = "test"  # Name of the output file
 
@@ -48,7 +48,7 @@ def parse_arguments():
     parser.add_argument("--fixed_out_name", type=str, required=False, default="fixed", help="Output name for the processed image.")
 
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
-    parser.add_argument("--dtype", type=str, default="UINT16", help="Data type of fixed/moving input images")
+    parser.add_argument("--input_dtype", type=str, default="UINT16", help="Data type of fixed/moving input images")
 
     parser.add_argument("--moving_min_size", type=int, nargs=3, default=(0, 480, 480), help="Minimum size for cropping.")
     parser.add_argument("--moving_max_size", type=int, nargs=3, default=(9999, 1920, 1920), help="Maximum size for cropping.")
@@ -128,13 +128,24 @@ if __name__ == "__main__":
     visualize = False  # True
     print("Visualization is set to: ", visualize)
 
+    #####
+    # # Load moving image
+    # args.moving_pixel_size = (4, 4, 4)  # REMOVE THIS
+    # args.moving_divis_factor = 160  # REMOVE THIS
+    # args.moving_mask_method = 'threshold' # REMOVE THIS
+    # args.moving_mask_threshold = 100 # REMOVE THIS
+    # args.apply_moving_mask = True # REMOVE THIS
+    #
+    # args.fixed_pixel_size = (1, 1, 1) # REMOVE THIS
+    # args.fixed_divis_factor = 160  # REMOVE THIS
+    # args.fixed_mask_method = 'threshold' # REMOVE THIS
+    # args.fixed_mask_threshold = 100 # REMOVE THIS
+    # args.apply_fixed_mask = True # REMOVE THIS
+    #####
+
     ##################### MOVING IMAGE ######################
 
-    # Load moving image
-    #args.moving_pixel_size = (4, 4, 4)  # REMOVE THIS
-    #args.moving_divis_factor = 160  # REMOVE THIS
-
-    input_dtype = get_dtype(args.dtype)
+    input_dtype = get_dtype(args.input_dtype)
     moving, moving_affine = get_image_and_affine(moving_path, custom_origin=(0, 0, 0), pixel_size_mm=args.moving_pixel_size, dtype=input_dtype)
 
     # Define moving image space
@@ -164,9 +175,6 @@ if __name__ == "__main__":
 
 
     # Get & save moving image pyramid
-    #args.moving_mask_method = 'threshold' # REMOVE THIS
-    #args.moving_mask_threshold = 100 # REMOVE THIS
-    #args.apply_moving_mask = True # REMOVE THIS
     pyramid, mask_pyramid, affines = get_image_pyramid(moving, moving_affine,
                                                        args.moving_pyramid_depth,
                                                        args.moving_clip_percentiles,
@@ -198,8 +206,6 @@ if __name__ == "__main__":
     ##################### FIXED IMAGE ######################
 
     # Load fixed image
-    #args.fixed_pixel_size = (1, 1, 1) # REMOVE THIS
-    #args.fixed_divis_factor = 160  # REMOVE THIS
     fixed, fixed_affine = get_image_and_affine(fixed_path, custom_origin=(0, 0, 0), pixel_size_mm=args.fixed_pixel_size, dtype=input_dtype)
 
     # Define fixed image space
@@ -235,9 +241,6 @@ if __name__ == "__main__":
 
 
     # Get & save moving image pyramid
-    #args.fixed_mask_method = 'threshold' # REMOVE THIS
-    #args.fixed_mask_threshold = 100 # REMOVE THIS
-    #args.apply_fixed_mask = True # REMOVE THIS
     pyramid, mask_pyramid, affines = get_image_pyramid(fixed, fixed_affine,
                                                        args.fixed_pyramid_depth,
                                                        args.fixed_clip_percentiles,

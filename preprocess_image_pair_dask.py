@@ -4,6 +4,7 @@ import argparse
 import numpy as np
 import dask.array as da
 from dask.diagnostics import ProgressBar
+import matplotlib.pyplot as plt
 
 import zarr
 from ome_zarr.io import parse_url
@@ -12,7 +13,7 @@ from utils.utils_plot import viz_slices, viz_multiple_images
 from utils.utils_preprocess import get_image_and_affine, save_image_pyramid, get_image_pyramid, define_image_space, get_dtype, scale_n_clip, clip_rescale, mask_with_cylinder, dtype_min_max, minmax_scaler
 from utils.utils_nifti import voxel2world, set_origin
 from utils.utils_dask import threshold_dask
-from utils.utils_zarr import write_ome_metadata
+from utils.utils_zarr import create_ome_group
 
 # Define paths
 project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/2022_QIM_52_Bone/"
@@ -33,10 +34,15 @@ out_name = "f_001_prepropress"  # Name of the output file
 #moving_path = sample_path + "Oak_A_bin1x1_LFOV_retake_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_pos1_Stitch_scale_4.tif"
 #fixed_path = sample_path + "Oak_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_Stitch_scale_4.tif"
 
-project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Cardboard_A/"
+project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Oak_A/"
 sample_path = project_path
-moving_path = sample_path + "Cardboard_A_LFOV_80kV_7W_air_4s_8mu_bin1_pos1_Stitch_scale_4.tif"
-fixed_path = sample_path + "Cardboard_A_4X_80kV_7W_air_3s_2mu_bin1_pos1_Stitch_scale_4.tif"
+moving_path = sample_path + "Oak_A_bin1x1_LFOV_retake_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_pos1_Stitch_cropped.tif"
+fixed_path = sample_path + "Oak_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_Stitch_cropped.tif"
+
+#project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Cardboard_A/"
+#sample_path = project_path
+#moving_path = sample_path + "Cardboard_A_LFOV_80kV_7W_air_4s_8mu_bin1_pos1_Stitch_scale_4.tif"
+#fixed_path = sample_path + "Cardboard_A_4X_80kV_7W_air_3s_2mu_bin1_pos1_Stitch_scale_4.tif"
 
 out_name = "test"  # Name of the output file
 
@@ -228,10 +234,38 @@ if __name__ == "__main__":
     # scale and clip
     moving_mask = scale_n_clip(moving_mask)
 
-    with ProgressBar(dt=1):
-        path = os.path.join(moving_out_path, args.moving_out_name + "_mask.zarr")
-        da.to_zarr(moving_mask, path, overwrite=True)
-        moving_mask = da.from_zarr(path, chunks=moving_mask.chunksize)
+    # rechunk mask
+    moving_mask = moving_mask.rechunk((160, 160, 160))
+
+    # with ProgressBar(dt=1):
+    #     path = os.path.join(moving_out_path, args.moving_out_name + "_mask.zarr")
+    #     da.to_zarr(moving_mask, path, overwrite=True)
+    #     moving_mask = da.from_zarr(path, chunks=moving_mask.chunksize)
+
+    # Write moving image ome-zarr level 0
+    group_name = "LR_mask"
+    moving_ome_path = os.path.join(moving_out_path, args.moving_out_name + "_ome.zarr")
+    store, group = create_ome_group(moving_ome_path, group_name=group_name, pyramid_depth=args.moving_pyramid_depth)
+
+    mask_pyramid = [moving_mask]
+    for level in range(args.moving_pyramid_depth):
+        with ProgressBar(dt=1):
+            print(f"Writing moving mask pyramid level {level}...")
+            da.to_zarr(mask_pyramid[level],
+                       url=store,
+                       component=f"{group_name}/{level}",
+                       overwrite=True,
+                       zarr_format=3)
+
+        mask_pyramid[level] = da.from_zarr(moving_ome_path, component=f"{group_name}/{level}")
+
+        if level < args.moving_pyramid_depth - 1:
+            mask_pyramid.append(da.coarsen(np.mean, mask_pyramid[level], {0: 2, 1: 2, 2: 2}, trim_excess=True).astype(np.uint8))
+
+    moving_mask = mask_pyramid[0]  # refresh full resolution mask
+
+    # from ome_zarr.writer import write_label_metadata
+    # write_label_metadata(group, 'LR')
 
     viz_slices(moving_mask, [200, 400, 600], savefig=False)
     print(f"min = {moving_mask[100, :, :].min().compute()}, max = {moving_mask[100, :, :].max().compute()}")
@@ -252,60 +286,54 @@ if __name__ == "__main__":
     moving = minmax_scaler(moving, vmin=0, vmax=65535)
     moving = da.where(moving_mask.astype(bool), moving, 0)
 
-    # masked_image = da.where(moving_mask.astype(bool), moving, da.nan)
-    #
-    # hist, bins = da.histogram(masked_image, bins=65535, range=(0, 65535), density=True)
-    #
-    # lower, upper = args.moving_clip_percentiles
-    # low = da.percentile(hist, lower)
-    # high = da.percentile(hist, upper)
-    #
-    # masked_image = da.clip(masked_image, low, high)
-    # moving = minmax_scaler(masked_image, vmin=0, vmax=65535)
-    # moving = da.where(moving_mask.astype(bool), 0, moving)
+    moving = moving.rechunk((160, 160, 160))
 
-    with ProgressBar(dt=1):
-        path = os.path.join(moving_out_path, args.moving_out_name + ".zarr")
-        da.to_zarr(moving, path, overwrite=True)
-        moving = da.from_zarr(path, chunks=moving.chunksize)
+    # Write moving image ome-zarr level 0
+    group_name = "LR"
+    moving_ome_path = os.path.join(moving_out_path, args.moving_out_name + "_ome.zarr")
+    store, group = create_ome_group(moving_ome_path, group_name=group_name, pyramid_depth=args.moving_pyramid_depth)
 
-    viz_slices(moving, [200, 400, 600], savefig=False)
+    moving_pyramid = [moving]
+    for level in range(args.moving_pyramid_depth):
+        with ProgressBar(dt=1):
+            print(f"Writing moving pyramid level {level}...")
+            da.to_zarr(moving_pyramid[level],
+                       url=store,
+                       component=f"{group_name}/{level}",
+                       overwrite=True,
+                       zarr_format=3)
+
+        moving_pyramid[level] = da.from_zarr(moving_ome_path, component=f"{group_name}/{level}")
+
+        if level < args.moving_pyramid_depth - 1:
+            down = da.coarsen(np.mean, moving_pyramid[level], {0: 2, 1: 2, 2: 2}, trim_excess=True).astype(input_dtype)
+
+            # apply mask
+            down = da.where(mask_pyramid[level + 1].astype(bool), down, 0)
+            moving_pyramid.append(down)
+
+    moving = moving_pyramid[0]  # refresh full resolution mask
+
+    # with ProgressBar(dt=1):
+    #     path = os.path.join(moving_out_path, args.moving_out_name + ".zarr")
+    #     da.to_zarr(moving, path, overwrite=True)
+    #     moving = da.from_zarr(path, chunks=moving.chunksize)
+
+    slices = [moving.shape[0] // 4, moving.shape[0] // 3, moving.shape[0] // 2]
+    for i, image in enumerate(moving_pyramid):
+        print(f"Level {i} shape: {image.shape}, chunks: {image.chunksize}")
+        slice_indices = np.array(slices) // 2**i
+        viz_slices(image, slice_indices=slice_indices.tolist(), savefig=False)
+
+    # Save to nifti for registration here
+
+
+    from utils.utils_image import plot_histogram
+    plot_histogram(hist, bins, savefig=False)
 
     with ProgressBar(dt=1):
         print("Moving image min and max after clipping and scaling:")
         print(f"min = {moving[100, :, :].min().compute()}, max = {moving[100, :, :].max().compute()}")
-
-    if True:
-        # Test
-        moving_ome_path = os.path.join(moving_out_path, args.moving_out_name + "_ome.zarr")
-        # Create/open a Zarr array in write mode
-        store = parse_url(moving_ome_path, mode="w").store
-        # store = zarr.storage.LocalStore(moving_ome_path)
-        root = zarr.group(store=store)
-
-        group_name = "LR"
-        out_path = moving_ome_path
-        if os.path.exists(os.path.join(moving_ome_path, group_name)):
-            print(f"Group {group_name} already exists in {out_path}. Skipping...")
-        else:
-            # Create image group for the volume
-            image_group = root.create_group(group_name)
-
-            write_ome_metadata(group=image_group, num_levels=args.moving_pyramid_depth, scale=2)
-
-            with ProgressBar(dt=1):
-                da.to_zarr(moving,
-                           url=store,
-                           component=f"{group_name}/0",
-                           overwrite=True,
-                           zarr_format=3)
-
-            moving = da.from_zarr(moving_ome_path, chunks=moving.chunksize)
-
-
-
-
-
 
 
     # use mask to perform percentile clipping:

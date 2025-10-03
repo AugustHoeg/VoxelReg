@@ -32,6 +32,49 @@ def write_ome_metadata(group, num_levels, scale=2):
 
 
 
+def create_ome_group(path, group_name='HR', pyramid_depth=4, scale=2, **kwargs):
+
+    # Create/open a Zarr array in write mode
+    store = parse_url(path, mode="w").store
+    root = zarr.group(store=store)
+
+    out_path = path
+    if os.path.exists(os.path.join(path, group_name)):
+        print(f"Group {group_name} already exists in {out_path}. Skipping...")
+        image_group = None
+    else:
+        # Create image group for the volume
+        image_group = root.create_group(group_name)
+
+        write_ome_metadata(group=image_group, num_levels=pyramid_depth, scale=scale)
+        print(f"Created OME-Zarr group at {os.path.basename(out_path)}/{group_name}")
+
+    return store, image_group
+
+# def write_ome_pyramid(image, store, group_name, pyramid_depth=4, scale=2):
+#     # Write moving image ome-zarr level 0
+#     pyramid = [image]
+#     for level in range(pyramid_depth):
+#         with ProgressBar(dt=1):
+#             print(f"Writing moving pyramid level {level}...")
+#             da.to_zarr(pyramid[level],
+#                        url=store,
+#                        component=f"{group_name}/{level}",
+#                        overwrite=True,
+#                        zarr_format=3)
+#
+#         pyramid[level] = da.from_zarr(store.root, component=f"{group_name}/{level}")
+#
+#         if level < pyramid_depth - 1:
+#             down = da.coarsen(np.mean, pyramid[level], {0: 2, 1: 2, 2: 2}, trim_excess=True).astype(image.dtype)
+#
+#             # apply mask
+#             down = da.where(mask_pyramid[level + 1].astype(bool), down, 0)
+#             pyramid.append(down)
+#
+#     image = pyramid[0]  # refresh full resolution mask
+
+
 def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648, 648, 648), shard_size=None, cname='lz4'):
 
     # Define the chunk sizes for each level
