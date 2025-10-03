@@ -33,7 +33,8 @@ def parse_arguments():
     parser.add_argument("--LR_split_indices", type=int, nargs='*', default=(), help="Indices along the split axis for low-res images.")
     parser.add_argument("--REG_split_indices", type=int, nargs='*', default=(), help="Indices along the split axis for registered images.")
     parser.add_argument("--split_axis", type=int, default=0, help="Axis along which to split the image data (0 for depth, 1 for height, 2 for width).")
-    parser.add_argument("--norm_method", default=None, help="Method used for image normalization, default is None")
+
+    parser.add_argument("--match_REG", action="store_true", help="If set, match the REG slices to the HR slices.")
 
     args = parser.parse_args()
     return args
@@ -122,6 +123,7 @@ if __name__ == "__main__":
                          args.REG_split_indices,
                          split_axis=args.split_axis,
                          compression='lz4',
+                         match_REG=args.match_REG,
                          )
 
     print("Done writing OME-Zarr data sample")

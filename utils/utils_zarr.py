@@ -139,7 +139,8 @@ def write_ome_datasample(out_name,
                          LR_split_indices=(),
                          REG_split_indices=(),
                          split_axis=0,
-                         compression='lz4'):
+                         compression='lz4',
+                         match_REG=True):
 
     """
     We need these images:
@@ -194,7 +195,8 @@ def write_ome_datasample(out_name,
                         split_indices=REG_split_indices,
                         chunks=REG_chunks,
                         compression=compression,
-                        reference_val_dict=hr_ref_dict)
+                        reference_val_dict=hr_ref_dict,
+                        match_slices=match_REG)
 
     return 0
 
@@ -293,7 +295,7 @@ def write_ome_group(image_paths, mask_paths=None, out_name="", group_name='HR', 
     return reference_vals
 
 
-def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_name='HR', split_axis=0, split_indices=(), chunks=(160, 160, 160), compression='lz4', reference_val_dict={}, return_levels=()):
+def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_name='HR', split_axis=0, split_indices=(), chunks=(160, 160, 160), compression='lz4', reference_val_dict={}, return_levels=(), match_slices=False):
 
     if image_paths is None:
         raise ValueError("Image paths are required and cannot be empty.")
@@ -322,40 +324,41 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
                     source_vals = pyramid[level]
                 return_dict[level] = source_vals
 
-    # match histograms for REG group
-    for i, level in enumerate(reference_val_dict):
+    if match_slices:
+        # match histograms for REG group
+        for i, level in enumerate(reference_val_dict):
 
-        # Get source
-        if mask_pyramid is not None:
-            source_mask = mask_pyramid[i].astype(bool)
-            source_vals = np.where(source_mask, pyramid[i], np.nan)
-        else:
-            source_vals = pyramid[i]
+            # Get source
+            if mask_pyramid is not None:
+                source_mask = mask_pyramid[i].astype(bool)
+                source_vals = np.where(source_mask, pyramid[i], np.nan)
+            else:
+                source_vals = pyramid[i]
 
-        # Get reference
-        reference_vals = reference_val_dict[level]
-        print(f"Matching histogram level {i} with reference level {level}...")
+            # Get reference
+            reference_vals = reference_val_dict[level]
+            print(f"Matching histogram level {i} with reference level {level}...")
 
-        viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_scale_{i}_raw")
+            viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_scale_{i}_raw")
 
-        if mask_pyramid is not None:
-            for slice_idx in range(source_vals.shape[0]):
-                if slice_idx % 100 == 0:
-                    print(f"Matching slice {slice_idx}/{source_vals.shape[0]}")
-                matched_slice = match_histograms(source_vals[slice_idx], reference_vals[slice_idx])
-                matched_slice = np.nan_to_num(matched_slice, nan=0)  # fill nans with 0
-                pyramid[i][slice_idx] = matched_slice
-        else:
-            for slice_idx in range(source_vals.shape[0]):
-                if slice_idx % 100 == 0:
-                    print(f"Matching slice {slice_idx}/{source_vals.shape[0]}")
-                matched_slice = match_histograms(source_vals[slice_idx], reference_vals[slice_idx])
-                pyramid[i][slice_idx] = matched_slice
+            if mask_pyramid is not None:
+                for slice_idx in range(source_vals.shape[0]):
+                    if slice_idx % 100 == 0:
+                        print(f"Matching slice {slice_idx}/{source_vals.shape[0]}")
+                    matched_slice = match_histograms(source_vals[slice_idx], reference_vals[slice_idx])
+                    matched_slice = np.nan_to_num(matched_slice, nan=0)  # fill nans with 0
+                    pyramid[i][slice_idx] = matched_slice
+            else:
+                for slice_idx in range(source_vals.shape[0]):
+                    if slice_idx % 100 == 0:
+                        print(f"Matching slice {slice_idx}/{source_vals.shape[0]}")
+                    matched_slice = match_histograms(source_vals[slice_idx], reference_vals[slice_idx])
+                    pyramid[i][slice_idx] = matched_slice
 
-        viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_scale_{i}_matched")
+            viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_scale_{i}_matched")
 
-        # Optionally, save matched image for verification
-        write_nifti(pyramid[i], output_path=out_name + f"_{group_name}_matched_scale_{i}.nii.gz", dtype=np.uint16)
+            # Optionally, save matched image for verification
+            write_nifti(pyramid[i], output_path=out_name + f"_{group_name}_matched_scale_{i}.nii.gz", dtype=np.uint16)
 
     ######
     # matched = match_histograms(pyramid[2], reference_image)
