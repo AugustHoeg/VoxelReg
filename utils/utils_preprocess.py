@@ -637,7 +637,8 @@ def dtype_min_max(dtype):
 
 def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.0, 99.0), clip_range=None, mask=None, mask_method='threshold', mask_threshold=None, cylinder_radius=None, cylinder_offset=(0, 0), apply_mask=False):
 
-    dtype_min, dtype_max = dtype_min_max(np.uint16)  # get output dtype range
+    output_dtype = np.uint16
+    dtype_min, dtype_max = dtype_min_max(output_dtype)  # get output dtype range
     image = image.astype(np.float32)  # convert to float
     image = minmax_scaler(image, dtype_min, dtype_max)  # rescale to dtype min/max
 
@@ -666,7 +667,7 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
         if apply_mask:
             apply_image_mask(image, mask)
 
-    image = image.astype(np.uint16)  # convert back to input dtype
+    image = image.astype(output_dtype)  # convert back to input dtype
 
     # plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=True)
     # plot_histogram(image, num_bins=256, title=f"Histogram level {0}", save_fig=False, log_scale=False)
@@ -687,7 +688,7 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
     # Create pyramid images
     for depth in range(pyramid_depth - 1):
         print(f"Creating pyramid level: {depth + 1}/{pyramid_depth - 1}")
-        down = downscale_local_mean(image_pyramid[depth], (2, 2, 2)).astype(input_dtype)
+        down = downscale_local_mean(image_pyramid[depth], (2, 2, 2)).astype(output_dtype)
 
         if depth == pyramid_depth - 2:
             calc_histogram(down, data_min=0.0, data_max=1.0, num_bins=256, title=f"Histogram level {depth + 1}", savefig=True, show_plot=True)
