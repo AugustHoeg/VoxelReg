@@ -18,9 +18,9 @@ def parse_arguments():
     parser.add_argument("--LR_paths", type=str, nargs='*', required=False, default=(), help="Path to LR.")
     parser.add_argument("--REG_paths", type=str, nargs='*', required=False, default=(), help="Path to REG.")
 
-    parser.add_argument("--HR_mask_paths", type=str, nargs='*', required=False, default=(), help="Path to HR mask.")
-    parser.add_argument("--LR_mask_paths", type=str, nargs='*', required=False, default=(), help="Path to LR mask.")
-    parser.add_argument("--REG_mask_paths", type=str, nargs='*', required=False, default=(), help="Path to REG mask.")
+    parser.add_argument("--HR_mask_paths", type=str, nargs='*', required=False, default=None, help="Path to HR mask.")
+    parser.add_argument("--LR_mask_paths", type=str, nargs='*', required=False, default=None, help="Path to LR mask.")
+    parser.add_argument("--REG_mask_paths", type=str, nargs='*', required=False, default=None, help="Path to REG mask.")
 
     parser.add_argument("--out_path", type=str, required=False, help="Path to the output file.")
     parser.add_argument("--out_name", type=str, required=False, help="Output name for the registered output image.")
