@@ -12,11 +12,11 @@ def parse_arguments():
 
     # Set up argument parser
     parser = argparse.ArgumentParser(description="Preprocess 3D image data for registration.")
-    parser.add_argument("--base_path", type=str, required=False, help="Path to the base directory. Other paths will be relative to this path.")
-    parser.add_argument("--sample_path", type=str, required=False, help="Path to the sample directory relative to the base path.")
-    parser.add_argument("--HR_paths", type=str, nargs='*', required=False, default=(), help="Path to HR.")
-    parser.add_argument("--LR_paths", type=str, nargs='*', required=False, default=(), help="Path to LR.")
-    parser.add_argument("--REG_paths", type=str, nargs='*', required=False, default=(), help="Path to REG.")
+    parser.add_argument("--base_path", type=str, required=False, default=None, help="Path to the base directory. Other paths will be relative to this path.")
+    parser.add_argument("--sample_path", type=str, required=False, default=None, help="Path to the sample directory relative to the base path.")
+    parser.add_argument("--HR_paths", type=str, nargs='*', required=False, default=None, help="Path to HR.")
+    parser.add_argument("--LR_paths", type=str, nargs='*', required=False, default=None, help="Path to LR.")
+    parser.add_argument("--REG_paths", type=str, nargs='*', required=False, default=None, help="Path to REG.")
 
     parser.add_argument("--HR_mask_paths", type=str, nargs='*', required=False, default=None, help="Path to HR mask.")
     parser.add_argument("--LR_mask_paths", type=str, nargs='*', required=False, default=None, help="Path to LR mask.")
@@ -69,36 +69,36 @@ if __name__ == "__main__":
 
     # Assign image paths
     if args.sample_path is not None:
-        sample_path = os.path.join(args.base_path, args.sample_path)
-        print("Sample path: ", sample_path)
+        args.sample_path = os.path.join(args.base_path, args.sample_path)
+        print("Sample path: ", args.sample_path)
     if args.HR_paths is not None:
-        HR_paths = [os.path.join(sample_path, path) for path in args.HR_paths]
-        print("HR paths: ", HR_paths)
+        args.HR_paths = [os.path.join(args.sample_path, path) for path in args.HR_paths]
+        print("HR paths: ", args.HR_paths)
     if args.LR_paths is not None:
-        LR_paths = [os.path.join(sample_path, path) for path in args.LR_paths]
-        print("LR paths: ", LR_paths)
+        args.LR_paths = [os.path.join(args.sample_path, path) for path in args.LR_paths]
+        print("LR paths: ", args.LR_paths)
     if args.REG_paths is not None:
-        REG_paths = [os.path.join(sample_path, path) for path in args.REG_paths]
-        print("REG paths: ", REG_paths)
+        args.REG_paths = [os.path.join(args.sample_path, path) for path in args.REG_paths]
+        print("REG paths: ", args.REG_paths)
 
     # Assign mask paths
     if args.HR_mask_paths is not None:
-        HR_mask_paths = [os.path.join(sample_path, path) for path in args.HR_mask_paths]
-        print("HR mask paths: ", HR_mask_paths)
+        args.HR_mask_paths = [os.path.join(args.sample_path, path) for path in args.HR_mask_paths]
+        print("HR mask paths: ", args.HR_mask_paths)
     if args.LR_mask_paths is not None:
-        LR_mask_paths = [os.path.join(sample_path, path) for path in args.LR_mask_paths]
-        print("LR mask paths: ", LR_mask_paths)
+        args.LR_mask_paths = [os.path.join(args.sample_path, path) for path in args.LR_mask_paths]
+        print("LR mask paths: ", args.LR_mask_paths)
     if args.REG_mask_paths is not None:
-        REG_mask_paths = [os.path.join(sample_path, path) for path in args.REG_mask_paths]
-        print("REG mask paths: ", REG_mask_paths)
+        args.REG_mask_paths = [os.path.join(args.sample_path, path) for path in args.REG_mask_paths]
+        print("REG mask paths: ", args.REG_mask_paths)
 
     if args.out_path is not None:
-        out_path = os.path.join(sample_path, args.out_path)
+        args.out_path = os.path.join(args.sample_path, args.out_path)
     if args.out_name is not None:
-        out_path = os.path.join(out_path, args.out_name)  # out_name = os.path.join(sample_path, args.out_name)
+        args.out_path = os.path.join(args.out_path, args.out_name)  # out_name = os.path.join(sample_path, args.out_name)
         print("Output name: ", args.out_name)
 
-    print("Output path: ", out_path)
+    print("Output path: ", args.out_path)
 
     # if args.mask_path is not None:
     #     mask_path = os.path.join(sample_path, args.mask_path)
@@ -108,13 +108,13 @@ if __name__ == "__main__":
     print("LR split indices: ", args.LR_split_indices)
     print("REG split indices: ", args.REG_split_indices)
 
-    write_ome_datasample(out_path,
-                         HR_paths,
-                         HR_mask_paths,
-                         LR_paths,
-                         LR_mask_paths,
-                         REG_paths,
-                         REG_mask_paths,
+    write_ome_datasample(args.out_path,
+                         args.HR_paths,
+                         args.HR_mask_paths,
+                         args.LR_paths,
+                         args.LR_mask_paths,
+                         args.REG_paths,
+                         args.REG_mask_paths,
                          args.HR_chunks,
                          args.LR_chunks,
                          args.REG_chunks,
