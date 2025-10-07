@@ -209,7 +209,7 @@ def write_image_categories(image_categories,
                 image_pyramid=image_pyramid,
                 label_pyramid=None,  # No labels for MRI
                 chunk_size=chunk_size,
-                shard_size=(1, 1, 1),
+                shard_size=None,
                 cname=cname  # Compression codec
             )
 
