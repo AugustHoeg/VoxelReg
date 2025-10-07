@@ -15,7 +15,7 @@ from skimage.transform import downscale_local_mean
 
 from utils.utils_image import load_image, plot_histogram, compare_histograms, match_histogram_3d_continuous
 from utils.utils_plot import viz_slices
-from utils.utils_preprocess import image_crop_pad, clip_percentile
+from utils.utils_preprocess import image_crop_pad, clip_percentile, dtype_min_max, minmax_scaler
 
 
 def get_orient_transform(axcodes="RAS", transpose_indices=(0, 1, 2)):
@@ -145,7 +145,8 @@ def write_image_categories(image_categories,
                            chunk_size=None,
                            pyramid_levels=3,
                            cname='lz4',
-                           group_name='HR'):
+                           group_name='HR',
+                           output_dtype=np.uint16):
 
     for category in image_categories:
 
@@ -176,13 +177,14 @@ def write_image_categories(image_categories,
                 image, start_coords, end_coords = image_crop_pad(image, roi=(min_slices, *slice_shape), top_index='first')
             print(f"After cropping, scan shape is {image.shape}")
 
-            # image = normalize_std(image, standard_deviations=3, mode='rescale')
-            # plot_histogram(image)
-            image = clip_percentile(image, lower=0.5, upper=99.5)
+            dtype_min, dtype_max = dtype_min_max(output_dtype)  # get output dtype range
+            image = minmax_scaler(image, dtype_min, dtype_max)  # rescale to dtype min/max
+            image = clip_percentile(image, lower=0.1, upper=99.9, vmin=0, vmax=65535)
+            image = image.astype(np.uint16)
 
             if i % 10 == 0:
                 slices = [image.shape[0] // 2, image.shape[0] // 3, image.shape[0] // 4]
-                viz_slices(image, slice_indices=slices, savefig=True, title=os.path.join(os.path.dirname(image_path), f"{image_name}_slices"), save_dir="")
+                viz_slices(image, slice_indices=slices, savefig=False, title=os.path.join(os.path.dirname(image_path), f"{image_name}_slices"), save_dir="")
 
             # Convert to C-order
             image = np.ascontiguousarray(image)
@@ -193,7 +195,7 @@ def write_image_categories(image_categories,
             # Create image pyramid using downscale_local_mean
             image_pyramid = [image]
             for i in range(pyramid_levels - 1):
-                down = downscale_local_mean(image_pyramid[i], (2, 2, 2))
+                down = downscale_local_mean(image_pyramid[i], (2, 2, 2)).astype(np.uint16)
                 image_pyramid.append(down)
 
             # Create Zarr store

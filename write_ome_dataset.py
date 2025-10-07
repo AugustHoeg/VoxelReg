@@ -108,6 +108,7 @@ if __name__ == "__main__":
                            args.chunk_size,
                            pyramid_levels=args.pyramid_levels,
                            cname='lz4',
-                           group_name='HR')
+                           group_name='HR',
+                           output_dtype=np.uint16)
 
     print(f"Done writing OME-Zarr data samples to {out_path}")
