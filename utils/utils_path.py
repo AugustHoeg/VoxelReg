@@ -178,7 +178,7 @@ def write_image_categories(image_categories,
 
             # image = normalize_std(image, standard_deviations=3, mode='rescale')
             # plot_histogram(image)
-            image = clip_percentile(image, lower=0.5, upper=99.5, mode='rescale')
+            image = clip_percentile(image, lower=0.5, upper=99.5)
 
             if i % 10 == 0:
                 slices = [image.shape[0] // 2, image.shape[0] // 3, image.shape[0] // 4]
