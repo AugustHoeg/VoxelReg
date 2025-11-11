@@ -112,6 +112,9 @@ def categorize_image_directories(base_dirs, slice_splits=None, axis=0) -> Dict[s
     bins.append(f"{slice_splits[-1]}")
     categorized_images = {label: [] for label in bins}
 
+    min_slices = np.inf
+    max_slices = 0
+
     for dir in base_dirs:
         # DICOM: check if directory contains .dcm files
 
@@ -119,6 +122,11 @@ def categorize_image_directories(base_dirs, slice_splits=None, axis=0) -> Dict[s
 
         if slice_count == 0:
             continue
+
+        if slice_count < min_slices:
+            min_slices = slice_count
+        if slice_count > max_slices:
+            max_slices = slice_count
 
         # Assign to bin
         if slice_count < slice_splits[0]:
@@ -130,6 +138,8 @@ def categorize_image_directories(base_dirs, slice_splits=None, axis=0) -> Dict[s
                 if slice_splits[i] <= slice_count < slice_splits[i+1]:
                     categorized_images[bins[i+1]].append(scan_path)
                     break
+
+    print(f"Minimum slices: {min_slices}, Maximum slices: {max_slices}")
 
     return categorized_images
 
