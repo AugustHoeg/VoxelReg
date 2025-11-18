@@ -311,7 +311,7 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
         viz_slices(pyramid[-1], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_scale_{len(pyramid) - 1}_raw")
 
         # save single slices before matching
-        image = Image.fromarray(pyramid[2][100])
+        image = Image.fromarray(pyramid[2][100].astype(np.uint16))
         image.save(f"figures/{group_name}_{100}_matched.png")
 
     mask_pyramid = None
@@ -347,9 +347,10 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
 
             viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_scale_{i}_raw")
 
-            # save single slices before matching
-            image = Image.fromarray(pyramid[0][100])
-            image.save(f"figures/{group_name}_{100}_unmatched.png")
+            if i == 0:
+                # save single slices before matching
+                image = Image.fromarray(pyramid[0][100].astype(np.uint16))
+                image.save(f"figures/{group_name}_{100}_unmatched.png")
 
             if mask_pyramid is not None:
                 for slice_idx in range(source_vals.shape[0]):
@@ -367,9 +368,13 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
 
             viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_scale_{i}_matched")
 
-            # save single slices before matching
-            image = Image.fromarray(pyramid[0][100])
-            image.save(f"figures/{group_name}_{100}_matched.png")
+            if i == 0:
+                # save single slices before matching
+                image = Image.fromarray(pyramid[0][100].astype(np.uint16))
+                image.save(f"figures/{group_name}_{100}_matched.png")
+                np.save(f"figures/source_vals_{100}.npy", source_vals[100])
+                np.save(f"figures/reference_vals_{100}.npy", reference_vals[100])
+                np.save(f"figures/matched_vals_{100}.npy",  pyramid[i][100])
 
             # Optionally, save matched image for verification
             write_nifti(pyramid[i], output_path=out_name + f"_{group_name}_matched_scale_{i}.nii.gz", dtype=np.uint16)
