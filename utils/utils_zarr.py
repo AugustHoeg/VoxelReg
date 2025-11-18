@@ -10,6 +10,8 @@ from ome_zarr.writer import write_image, write_multiscale, write_multiscale_labe
 from ome_zarr.io import parse_url
 from numcodecs import Zstd, Blosc, LZ4
 from zarr.codecs import BloscCodec, BloscCname, BloscShuffle
+from PIL import Image
+
 from utils.utils_image import load_image, normalize, normalize_std, normalize_std_dask, match_histogram_3d_continuous_sampled, compare_histograms
 from utils.utils_preprocess import image_crop_pad
 from dask.diagnostics import ProgressBar
@@ -308,6 +310,10 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
         viz_slices(pyramid[-2], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_scale_{len(pyramid) - 2}_raw")
         viz_slices(pyramid[-1], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_scale_{len(pyramid) - 1}_raw")
 
+        # save single slices before matching
+        image = Image.fromarray(pyramid[2][100])
+        image.save(f"figures/{group_name}_{100}_matched.png")
+
     mask_pyramid = None
     if mask_paths is not None:
         mask_pyramid = load_image_pyramid(mask_paths, dtype=np.uint8)
@@ -341,6 +347,10 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
 
             viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_scale_{i}_raw")
 
+            # save single slices before matching
+            image = Image.fromarray(pyramid[0][100])
+            image.save(f"figures/{group_name}_{100}_unmatched.png")
+
             if mask_pyramid is not None:
                 for slice_idx in range(source_vals.shape[0]):
                     if slice_idx % 100 == 0:
@@ -356,6 +366,10 @@ def write_ome_group_resmatch(image_paths, mask_paths=None, out_name="", group_na
                     pyramid[i][slice_idx] = matched_slice
 
             viz_slices(pyramid[i], [10, 20, 30], savefig=True, vmin=0, vmax=65535, axis=0, save_dir="", title=out_name + f"_{group_name}_scale_{i}_matched")
+
+            # save single slices before matching
+            image = Image.fromarray(pyramid[0][100])
+            image.save(f"figures/{group_name}_{100}_matched.png")
 
             # Optionally, save matched image for verification
             write_nifti(pyramid[i], output_path=out_name + f"_{group_name}_matched_scale_{i}.nii.gz", dtype=np.uint16)

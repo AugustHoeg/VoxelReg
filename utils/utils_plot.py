@@ -13,12 +13,12 @@ def viz_slices(array, slice_indices, title="output", axis=0, savefig=True, save_
     for slice in slice_indices:
         plt.subplot(1, len(slice_indices), slice_indices.index(slice) + 1)
         if axis == 1:
-            plt.imshow(array[:, slice, :], vmin=vmin, vmax=vmax)
+            plt.imshow(array[:, slice, :], vmin=vmin, vmax=vmax, cmap='gray')
         elif axis == 2:
-            plt.imshow(array[:, :, slice], vmin=vmin, vmax=vmax)
+            plt.imshow(array[:, :, slice], vmin=vmin, vmax=vmax, cmap='gray')
         else:
             # Default to axis 0
-            plt.imshow(array[slice, :, :], vmin=vmin, vmax=vmax)
+            plt.imshow(array[slice, :, :], vmin=vmin, vmax=vmax, cmap='gray')
         plt.title(f"Slice: {slice}, axis: {axis}", fontsize=16)
 
     if savefig:
