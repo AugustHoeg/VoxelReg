@@ -1,5 +1,5 @@
 import numpy as np
-import qim3d as qim
+#import qim3d as qim
 
 def load_txm(input_path, dtype=np.float32):
     print(f"Reading input file: {input_path}")

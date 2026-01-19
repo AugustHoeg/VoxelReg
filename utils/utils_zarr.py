@@ -9,7 +9,7 @@ import dask.array as da
 from ome_zarr.writer import write_image, write_multiscale, write_multiscale_labels, write_multiscales_metadata, write_label_metadata
 from ome_zarr.io import parse_url
 from numcodecs import Zstd, Blosc, LZ4
-from zarr.codecs import BloscCodec, BloscCname, BloscShuffle
+from zarr.codecs import BytesCodec, BloscCodec, BloscCname, BloscShuffle
 from PIL import Image
 
 from utils.utils_image import load_image, normalize, normalize_std, normalize_std_dask, match_histogram_3d_continuous_sampled, compare_histograms
@@ -20,6 +20,8 @@ from utils.utils_nifti import write_nifti
 
 
 def write_ome_metadata(group, num_levels, scale=2):
+    # coordinate transforms are currently experimental in ome-zarr, see:
+    # https://ngff-spec.readthedocs.io/en/latest/#affine-md
     datasets = [
         {"path": f"{lvl}",
          "coordinateTransformations": [
@@ -75,6 +77,70 @@ def create_ome_group(path, group_name='HR', pyramid_depth=4, scale=2, **kwargs):
 #             pyramid.append(down)
 #
 #     image = pyramid[0]  # refresh full resolution mask
+
+
+# # Test
+# moving_ome_path = os.path.join(moving_out_path, args.moving_out_name + "_ome.zarr")
+# # Create/open a Zarr array in write mode
+# store = parse_url(moving_ome_path, mode="w").store
+# # store = zarr.storage.LocalStore(moving_ome_path)
+# root = zarr.group(store=store)
+#
+# group_name = "LR"
+# out_path = moving_ome_path
+# if os.path.exists(os.path.join(moving_ome_path, group_name)):
+#     print(f"Group {group_name} already exists in {out_path}. Skipping...")
+# else:
+#     # Create image group for the volume
+#     image_group = root.create_group(group_name)
+#
+#     write_ome_metadata(group=image_group, num_levels=args.moving_pyramid_depth, scale=2)
+#
+#     with ProgressBar(dt=1):
+#         da.to_zarr(moving,
+#                    url=store,
+#                    component=f"{group_name}/0",
+#                    overwrite=True,
+#                    zarr_format=3)
+#
+#     moving = da.from_zarr(moving_ome_path, chunks=moving.chunksize)
+
+
+def write_ome_level(image, store, group_name, level=0, chunk_size=None, cname='lz4', clevel=3):
+
+    if chunk_size is not None:
+        if chunk_size != image.chunksize:
+            image = image.rechunk(chunk_size)
+
+    codecs = (
+        BytesCodec(),
+        BloscCodec(
+            cname=BloscCname[cname],
+            clevel=clevel,
+            shuffle=BloscShuffle.shuffle
+        )
+    )
+
+    component = f"{group_name}/{level}"
+
+    with ProgressBar(dt=1):
+        print(f"Writing OME level to {group_name}/{level}")
+
+        # Calls to zarr.api.asynchronous.create under the hood, currently shards not supported...
+        # https://zarr.readthedocs.io/en/stable/api/zarr/api/asynchronous/#zarr.api.asynchronous.create
+        da.to_zarr(image,
+                   url=store,
+                   component=component,
+                   overwrite=True,
+                   zarr_format=3,
+                   codecs=codecs,
+                   )
+
+    # Reload the written image level (clears dask graph)
+    image = da.from_zarr(store, component=f"{group_name}/{level}")
+
+    return image
+
 
 
 def write_ome_pyramid(image_group, image_pyramid, label_pyramid, chunk_size=(648, 648, 648), shard_size=None, cname='lz4'):

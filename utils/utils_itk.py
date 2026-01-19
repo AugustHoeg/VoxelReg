@@ -113,6 +113,27 @@ def create_itk_view(array):
 
     return itk_image
 
+def set_itk_metadata_from_affine(image, affine, convention='LPS'):
+
+    # convert to LPS
+    if convention == 'RAS':
+        M = np.diag([1, -1, -1, 1])
+    elif convention == 'LPS':
+        M = np.diag([-1, -1, 1, 1])
+    else:
+        M = np.diag([1, 1, 1, 1])
+
+    affine = M @ affine
+
+    origin = affine[:3, 3]  # Origin
+    R = affine[:3, :3]  # Extract rotation+scale
+    spacing = np.linalg.norm(R, axis=0)  # Spacing = column norms
+    spacing[spacing == 0] = 1.0  # Avoid division by zero
+    direction = R / spacing  # Direction = normalized columns
+
+    set_itk_metadata(image, origin, spacing, direction)
+    return image
+
 
 def resample_image_sitk(image, scale_factor, interpolator=sitk.sitkLinear):
     """

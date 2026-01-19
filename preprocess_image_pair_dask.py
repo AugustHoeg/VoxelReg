@@ -1,19 +1,22 @@
 import os
 import argparse
+import shutil
 
 import numpy as np
 import dask.array as da
 from dask.diagnostics import ProgressBar
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
-import zarr
-from ome_zarr.io import parse_url
+#import zarr
+#from ome_zarr.io import parse_url
+#from zarr.codecs import BytesCodec, BloscCodec, BloscCname, BloscShuffle
 
+from utils.utils_image import plot_histogram
 from utils.utils_plot import viz_slices, viz_multiple_images
-from utils.utils_preprocess import get_image_and_affine, save_image_pyramid, get_image_pyramid, define_image_space, get_dtype, scale_n_clip, clip_rescale, mask_with_cylinder, dtype_min_max, minmax_scaler
+from utils.utils_preprocess import get_image_and_affine, save_image_pyramid, get_image_pyramid, define_image_space, get_dtype, scale_n_clip, clip_rescale, mask_with_cylinder, dtype_min_max, minmax_scaler, compute_affine_scale
 from utils.utils_nifti import voxel2world, set_origin
-from utils.utils_dask import threshold_dask
-from utils.utils_zarr import create_ome_group
+from utils.utils_dask import threshold_dask, otsu_threshold_dask
+from utils.utils_zarr import create_ome_group, write_ome_level
 
 # Define paths
 project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/2022_QIM_52_Bone/"
@@ -34,17 +37,17 @@ out_name = "f_001_prepropress"  # Name of the output file
 #moving_path = sample_path + "Oak_A_bin1x1_LFOV_retake_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_pos1_Stitch_scale_4.tif"
 #fixed_path = sample_path + "Oak_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_Stitch_scale_4.tif"
 
-project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Oak_A/"
+project_path = "../../Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Oak_A/"
 sample_path = project_path
-moving_path = sample_path + "Oak_A_bin1x1_LFOV_retake_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_pos1_Stitch_cropped.tif"
-fixed_path = sample_path + "Oak_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_Stitch_cropped.tif"
+moving_path = sample_path + "Oak_A_bin1x1_LFOV_retake_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_pos1_Stitch_scale_4.tif"
+fixed_path = sample_path + "Oak_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_Stitch_scale_4.tif"
 
-#project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Cardboard_A/"
+out_name = "Oak_A"  # Name of the output file
+
+#project_path = "../../Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Cardboard_A/"
 #sample_path = project_path
 #moving_path = sample_path + "Cardboard_A_LFOV_80kV_7W_air_4s_8mu_bin1_pos1_Stitch_scale_4.tif"
 #fixed_path = sample_path + "Cardboard_A_4X_80kV_7W_air_3s_2mu_bin1_pos1_Stitch_scale_4.tif"
-
-out_name = "test"  # Name of the output file
 
 def parse_arguments():
 
@@ -55,8 +58,10 @@ def parse_arguments():
     parser.add_argument("--moving_path", type=str, required=False, help="Path to the scan file.")
     parser.add_argument("--fixed_path", type=str, required=False, help="Path to the scan file.")
 
-    parser.add_argument("--moving_out_path", type=str, required=False, default="", help="Path to the output file.")
-    parser.add_argument("--fixed_out_path", type=str, required=False, default="", help="Path to the output file.")
+    parser.add_argument("--out_path", type=str, required=False, default="", help="Path to the output file.")
+    #parser.add_argument("--moving_out_path", type=str, required=False, default="", help="Path to the output file.")
+    #parser.add_argument("--fixed_out_path", type=str, required=False, default="", help="Path to the output file.")
+    parser.add_argument("--out_name", type=str, required=False, default="output", help="Output name for the processed image.")
     parser.add_argument("--moving_out_name", type=str, required=False, default="moving", help="Output name for the processed image.")
     parser.add_argument("--fixed_out_name", type=str, required=False, default="fixed", help="Output name for the processed image.")
 
@@ -131,12 +136,9 @@ if __name__ == "__main__":
     if args.fixed_mask_path is not None:
         fixed_mask_path = os.path.join(sample_path, args.fixed_mask_path)
         print("Fixed mask path: ", fixed_mask_path)
-    if args.moving_out_path is not None:
-        moving_out_path = os.path.join(sample_path, args.moving_out_path)  # os.path.join(sample_path, args.out_name)
-        print("Moving output path: ", moving_out_path)
-    if args.fixed_out_path is not None:
-        fixed_out_path = os.path.join(sample_path, args.fixed_out_path)  # os.path.join(sample_path, args.out_name)
-        print("Fixed output path: ", fixed_out_path)
+    if args.out_path is not None:
+        out_path = os.path.join(sample_path, args.out_path)  # os.path.join(sample_path, args.out_name)
+        print("Output path: ", out_path)
 
     visualize = False  # True
     print("Visualization is set to: ", visualize)
@@ -147,8 +149,8 @@ if __name__ == "__main__":
     args.moving_pixel_size = (4, 4, 4)  # REMOVE THIS
     args.moving_divis_factor = 160  # REMOVE THIS
     args.moving_mask_method = 'threshold' # REMOVE THIS
-    args.moving_mask_threshold = 100 # REMOVE THIS
-    args.apply_moving_mask = True # REMOVE THIS
+    args.moving_mask_threshold = 'otsu' # REMOVE THIS  #TODO ADD THRESHOLD EXPLORER!
+    # args.apply_fixed_mask = True # REMOVE THIS
 
     input_dtype = get_dtype(args.dtype)
     moving, moving_affine = get_image_and_affine(moving_path,
@@ -165,43 +167,27 @@ if __name__ == "__main__":
                                                                                    divis_factor=args.moving_divis_factor,
                                                                                    top_index=args.top_index)
 
+    # Scale moving affines
+    moving_affines = [moving_affine]
+    for depth in range(0, args.moving_pyramid_depth - 1):
+        affine = compute_affine_scale(moving_affines[depth], scale=2)
+        moving_affines.append(affine)
+
     # scale and clip
     moving = scale_n_clip(moving, args.moving_clip_range)
 
-    if False:
-        # Test
-        moving_ome_path = os.path.join(moving_out_path, args.moving_out_name + "_ome.zarr")
-        # Create/open a Zarr array in write mode
-        store = parse_url(moving_ome_path, mode="w").store
-        # store = zarr.storage.LocalStore(moving_ome_path)
-        root = zarr.group(store=store)
+    # rechunk moving
+    moving = moving.rechunk((160, 160, 160))
 
-        group_name = "LR"
-        out_path = moving_ome_path
-        if os.path.exists(os.path.join(moving_ome_path, group_name)):
-            print(f"Group {group_name} already exists in {out_path}. Skipping...")
-        else:
-            # Create image group for the volume
-            image_group = root.create_group(group_name)
+    # Define moving path
+    group_name = "LR_tmp"
+    ome_path = os.path.join(out_path, args.out_name + "_ome.zarr")
 
-            write_ome_metadata(group=image_group, num_levels=args.moving_pyramid_depth, scale=2)
+    # Create OME group with metadata
+    store, group = create_ome_group(ome_path, group_name=group_name, pyramid_depth=args.moving_pyramid_depth)
 
-            with ProgressBar(dt=1):
-                da.to_zarr(moving,
-                           url=store,
-                           component=f"{group_name}/0",
-                           overwrite=True,
-                           zarr_format=3)
-
-            moving = da.from_zarr(moving_ome_path, chunks=moving.chunksize)
-    # End test
-
-    # Create disk checkpoint to clean dask graph
-    # with ProgressBar(dt=1):
-    #     path = os.path.join(moving_out_path, args.moving_out_name + ".zarr")
-    #     #moving = checkpoint_as_zarr(moving, path, chunks=(1, *moving.shape[1:]))
-    #     da.to_zarr(moving, path, overwrite=True)
-    #     moving = da.from_zarr(path, chunks=moving.chunksize)
+    # Write moving to level 0
+    moving = write_ome_level(moving, store, group_name, level=0)
 
     # Get moving image mask
     moving_mask = None
@@ -219,10 +205,12 @@ if __name__ == "__main__":
                                                  margin_percent=0.0,
                                                  divis_factor=args.moving_divis_factor,
                                                  top_index=args.top_index)
-        moving_mask_affine = moving_affine  # Defined, but currently unused
 
     elif args.moving_mask_method == "threshold":
-        moving_mask = threshold_dask(moving, threshold=args.moving_mask_threshold, high=1, low=0, dtype=np.uint8)
+        moving_threshold = args.moving_mask_threshold
+        if moving_threshold == "otsu":
+            moving_threshold = otsu_threshold_dask(moving, bins=65535, value_range=(0, 65535), remove_zero_bin=False)
+        moving_mask = threshold_dask(moving, threshold=moving_threshold, high=1, low=0, dtype=np.uint8)
         #moving_mask = mask_with_threshold(moving, mask_threshold=args.moving_mask_threshold)
 
     elif args.moving_mask_method == "cylinder":
@@ -231,180 +219,110 @@ if __name__ == "__main__":
     else:
         print("No moving mask will be used.")
 
+    moving_mask_affines = moving_affines
+
     # scale and clip
     moving_mask = scale_n_clip(moving_mask)
 
     # rechunk mask
     moving_mask = moving_mask.rechunk((160, 160, 160))
 
-    # with ProgressBar(dt=1):
-    #     path = os.path.join(moving_out_path, args.moving_out_name + "_mask.zarr")
-    #     da.to_zarr(moving_mask, path, overwrite=True)
-    #     moving_mask = da.from_zarr(path, chunks=moving_mask.chunksize)
-
-    # Write moving image ome-zarr level 0
+    # Write moving mask
     group_name = "LR_mask"
-    moving_ome_path = os.path.join(moving_out_path, args.moving_out_name + "_ome.zarr")
-    store, group = create_ome_group(moving_ome_path, group_name=group_name, pyramid_depth=args.moving_pyramid_depth)
+    store, group_tmp = create_ome_group(ome_path, group_name=group_name, pyramid_depth=args.moving_pyramid_depth)
 
     mask_pyramid = [moving_mask]
     for level in range(args.moving_pyramid_depth):
-        with ProgressBar(dt=1):
-            print(f"Writing moving mask pyramid level {level}...")
-            da.to_zarr(mask_pyramid[level],
-                       url=store,
-                       component=f"{group_name}/{level}",
-                       overwrite=True,
-                       zarr_format=3)
 
-        mask_pyramid[level] = da.from_zarr(moving_ome_path, component=f"{group_name}/{level}")
+        mask_pyramid[level] = write_ome_level(mask_pyramid[level], store, group_name, level=level, cname='lz4')
 
         if level < args.moving_pyramid_depth - 1:
-            mask_pyramid.append(da.coarsen(np.mean, mask_pyramid[level], {0: 2, 1: 2, 2: 2}, trim_excess=True).astype(np.uint8))
+            down = da.coarsen(np.mean, mask_pyramid[level], {0: 2, 1: 2, 2: 2}, trim_excess=True).astype(np.uint8)
+            down = da.where(down < 255, 0, 255)  # ensure mask is binary
+            down = down.rechunk((160, 160, 160))
 
-    moving_mask = mask_pyramid[0]  # refresh full resolution mask
+            mask_pyramid.append(down)
 
     # from ome_zarr.writer import write_label_metadata
     # write_label_metadata(group, 'LR')
 
-    viz_slices(moving_mask, [200, 400, 600], savefig=False)
+    viz_slices(moving_mask, [200, 400, 600], save_dir=out_path, title=args.out_name + f"_moving_mask", axis=0, vmin=0, vmax=255)
     print(f"min = {moving_mask[100, :, :].min().compute()}, max = {moving_mask[100, :, :].max().compute()}")
 
-    moving = da.where(moving_mask.astype(bool), moving, da.nan)
+    # moving = da.where(moving_mask.astype(bool), moving, da.nan)
+    moving = da.where(moving_mask.astype(bool), moving, 0)  # Avoids promotion to float due to nan
 
     hist, bins = da.histogram(moving, bins=65535, range=(0, 65535))
     with ProgressBar(dt=1):
         print("Computing histogram for percentile clipping...")
         hist = hist.compute()  # to numpy
+        hist, bins = hist[1:], bins[1:]  # remove zero bin
         cdf = np.cumsum(hist) / np.sum(hist)
         lower, upper = args.moving_clip_percentiles
         low = np.searchsorted(cdf, lower / 100)
         high = np.searchsorted(cdf, upper / 100)
+        plot_histogram(hist, bins, low=low, high=high, save_dir=out_path, title=args.out_name + f"_moving_histogram")
     print(f"Percentile clipping values: low = {low}, high = {high}")
 
-    moving = da.clip(moving, low, high)
-    moving = minmax_scaler(moving, vmin=0, vmax=65535)
+    moving = da.clip(moving, low, high, dtype=np.float32)  # clip, and promote to float for scaling
+    moving = minmax_scaler(moving, vmin=0, vmax=65535).astype(input_dtype)  # scale and convert back to input dtype
     moving = da.where(moving_mask.astype(bool), moving, 0)
 
-    moving = moving.rechunk((160, 160, 160))
+    # moving = moving.rechunk((160, 160, 160))
 
     # Write moving image ome-zarr level 0
     group_name = "LR"
-    moving_ome_path = os.path.join(moving_out_path, args.moving_out_name + "_ome.zarr")
-    store, group = create_ome_group(moving_ome_path, group_name=group_name, pyramid_depth=args.moving_pyramid_depth)
+    store, group = create_ome_group(ome_path, group_name=group_name, pyramid_depth=args.moving_pyramid_depth)
 
     moving_pyramid = [moving]
     for level in range(args.moving_pyramid_depth):
-        with ProgressBar(dt=1):
-            print(f"Writing moving pyramid level {level}...")
-            da.to_zarr(moving_pyramid[level],
-                       url=store,
-                       component=f"{group_name}/{level}",
-                       overwrite=True,
-                       zarr_format=3)
 
-        moving_pyramid[level] = da.from_zarr(moving_ome_path, component=f"{group_name}/{level}")
+        moving_pyramid[level] = write_ome_level(moving_pyramid[level], store, group_name, level=level, cname='lz4')
 
         if level < args.moving_pyramid_depth - 1:
             down = da.coarsen(np.mean, moving_pyramid[level], {0: 2, 1: 2, 2: 2}, trim_excess=True).astype(input_dtype)
+            down = down.rechunk((160, 160, 160))
 
             # apply mask
             down = da.where(mask_pyramid[level + 1].astype(bool), down, 0)
             moving_pyramid.append(down)
 
-    moving = moving_pyramid[0]  # refresh full resolution mask
-
-    # with ProgressBar(dt=1):
-    #     path = os.path.join(moving_out_path, args.moving_out_name + ".zarr")
-    #     da.to_zarr(moving, path, overwrite=True)
-    #     moving = da.from_zarr(path, chunks=moving.chunksize)
-
-    slices = [moving.shape[0] // 4, moving.shape[0] // 3, moving.shape[0] // 2]
-    for i, image in enumerate(moving_pyramid):
-        print(f"Level {i} shape: {image.shape}, chunks: {image.chunksize}")
-        slice_indices = np.array(slices) // 2**i
-        viz_slices(image, slice_indices=slice_indices.tolist(), savefig=False)
-
-    # Save to nifti for registration here
-
-
-    from utils.utils_image import plot_histogram
-    plot_histogram(hist, bins, savefig=False)
-
     with ProgressBar(dt=1):
         print("Moving image min and max after clipping and scaling:")
         print(f"min = {moving[100, :, :].min().compute()}, max = {moving[100, :, :].max().compute()}")
 
+    # slices = [moving.shape[0] // 4, moving.shape[0] // 3, moving.shape[0] // 2]
+    for i, image in enumerate(moving_pyramid):
+        print(f"Level {i} shape: {image.shape}, chunks: {image.chunksize}")
+        slices = [image.shape[0] // 2, image.shape[1] // 2, image.shape[2] // 2]
+        viz_slices(image, slices[0], save_dir=out_path, title=args.out_name + f"_scale_{2 ** i}_pre_axis_0", axis=0, vmin=0, vmax=65535)
+        viz_slices(image, slices[1], save_dir=out_path, title=args.out_name + f"_scale_{2 ** i}_pre_axis_1", axis=1, vmin=0, vmax=65535)
+        viz_slices(image, slices[2], save_dir=out_path, title=args.out_name + f"_scale_{2 ** i}_pre_axis_2", axis=2, vmin=0, vmax=65535)
 
-    # use mask to perform percentile clipping:
-    masked_image = da.where(moving_mask.astype(bool), moving, da.nan)
+    # Remove LR_tmp group
+    shutil.rmtree(os.path.join(ome_path, "LR_tmp"))
 
-    imin = da.nanmin(masked_image)
-    imax = da.nanmax(masked_image)
-    mask_keep = (masked_image > 0.025 * imin) | (masked_image < 0.975 * imax)
-    masked_image = da.where(mask_keep, masked_image, da.nan)
-
-    lower, upper = args.moving_clip_percentiles
-    low = da.nanpercentile(masked_image, lower, axis=[1, 2])
-    high = da.nanpercentile(masked_image, upper, axis=[1, 2])
-
-    def clip_block(block, low, high):
-        return da.clip(block, low, high)
-
-    # 5. Clip + rescale slice-wise
-    masked_image = da.map_blocks(clip_block, masked_image, low, high, dtype=masked_image.dtype)
-
-    scaled = minmax_scaler(masked_image, vmin=0, vmax=65535)
-
-    # 6. Restore into original image
-    result = da.where(moving_mask.astype(bool), scaled, image)
-
-    # Create disk checkpoint to clean dask graph
-    # with ProgressBar(dt=1):
-    #     path = os.path.join(moving_out_path, args.moving_out_name + "_mask.zarr")
-    #     #moving_mask = checkpoint_as_zarr(moving, path, chunks=(1, *moving.shape[1:]))
-    #     da.to_zarr(moving_mask, path, overwrite=True)
-    #     moving_mask = da.from_zarr(path, chunks=moving_mask.chunksize)
-
-
-    # Get & save moving image pyramid
-    # args.moving_mask_method = 'threshold' # REMOVE THIS
-    # args.moving_mask_threshold = 100 # REMOVE THIS
-    # args.apply_moving_mask = True # REMOVE THIS
-    pyramid, mask_pyramid, affines = get_image_pyramid(moving, moving_affine,
-                                                       args.moving_pyramid_depth,
-                                                       args.moving_clip_percentiles,
-                                                       args.moving_clip_range,
-                                                       moving_mask,
-                                                       args.moving_mask_method,
-                                                       args.moving_mask_threshold,
-                                                       args.moving_cylinder_radius,
-                                                       args.moving_cylinder_center_offset,
-                                                       args.apply_moving_mask)
-
+    # Save to nifti for registration here
     print("Preparing to write moving image pyramid...")
-    save_image_pyramid(pyramid, mask_pyramid, affines, moving_path, moving_out_path, args.moving_out_name)
-
-    # Visualize
-    if visualize:
-        for i, image in enumerate(pyramid):
-            slices = [image.shape[0]//2, image.shape[1]//2, image.shape[2]//2]
-            viz_slices(image, slices[0], save_dir=moving_out_path, title=args.moving_out_name + f"_scale_{2 ** i}_pre_axis_0", axis=0)
-            viz_slices(image, slices[1], save_dir=moving_out_path, title=args.moving_out_name + f"_scale_{2 ** i}_pre_axis_1", axis=1)
-            viz_slices(image, slices[2], save_dir=moving_out_path, title=args.moving_out_name + f"_scale_{2 ** i}_pre_axis_2", axis=2)
+    save_image_pyramid(moving_pyramid, mask_pyramid, moving_affines, moving_path, out_path, args.moving_out_name, start_level=0)
 
     # Record moving image top center position
     p1 = [moving.shape[0], moving.shape[1] / 2, moving.shape[2] / 2]
 
-    # Clear memory
-    del moving, pyramid, mask_pyramid
-
     ##################### FIXED IMAGE ######################
 
-    # Load fixed image
-    # args.fixed_pixel_size = (1, 1, 1) # REMOVE THIS
-    # args.fixed_divis_factor = 160  # REMOVE THIS
-    fixed, fixed_affine = get_image_and_affine(fixed_path, custom_origin=(0, 0, 0), pixel_size_mm=args.fixed_pixel_size, dtype=input_dtype)
+    # Load moving image
+    args.fixed_pixel_size = (1, 1, 1)  # REMOVE THIS
+    args.fixed_divis_factor = 160  # REMOVE THIS
+    args.fixed_mask_method = 'threshold'  # REMOVE THIS
+    args.fixed_mask_threshold = 0  # REMOVE THIS #TODO ADD THRESHOLD EXPLORER!
+    # args.apply_moving_mask = True  # REMOVE THIS
+
+    fixed, fixed_affine = get_image_and_affine(fixed_path,
+                                               custom_origin=(0, 0, 0),
+                                               pixel_size_mm=args.fixed_pixel_size,
+                                               dtype=input_dtype,
+                                               backend="Dask")
 
     # Define fixed image space
     fixed, fixed_affine, fixed_crop_start, fixed_crop_end = define_image_space(fixed, fixed_affine, f=1,
@@ -420,6 +338,28 @@ if __name__ == "__main__":
     set_origin(fixed_affine, new_origin=pos_diff)
     print("nifti affine after set pos\n", fixed_affine)
 
+    # Scale fixed affines
+    fixed_affines = [fixed_affine]
+    for depth in range(0, args.fixed_pyramid_depth - 1):
+        affine = compute_affine_scale(fixed_affines[depth], scale=2)
+        fixed_affines.append(affine)
+
+    # scale and clip
+    fixed = scale_n_clip(fixed, args.fixed_clip_range)
+
+    # rechunk fixed
+    fixed = fixed.rechunk((160, 160, 160))
+
+    # Define fixed path
+    group_name = "HR_tmp"
+    #fixed_ome_path = os.path.join(fixed_out_path, args.fixed_out_name + "_ome.zarr")
+
+    # Create OME group with metadata
+    store, group = create_ome_group(ome_path, group_name=group_name, pyramid_depth=args.fixed_pyramid_depth)
+
+    # Write fixed to level 0
+    fixed = write_ome_level(fixed, store, group_name, level=0)
+
     # Get fixed image mask
     fixed_mask = None
     if args.fixed_mask_path is not None:
@@ -427,7 +367,8 @@ if __name__ == "__main__":
         fixed_mask, fixed_mask_affine = get_image_and_affine(fixed_mask_path,
                                                              custom_origin=(0, 0, 0),
                                                              pixel_size_mm=args.fixed_pixel_size,
-                                                             dtype=np.uint8)
+                                                             dtype=np.uint8,
+                                                             backend="Dask")
 
         fixed_mask, _, _, _ = define_image_space(fixed_mask, fixed_mask_affine, f=1,
                                                  min_size=args.fixed_min_size,
@@ -435,33 +376,104 @@ if __name__ == "__main__":
                                                  margin_percent=0.0,
                                                  divis_factor=args.fixed_divis_factor,
                                                  top_index=args.top_index)
-        fixed_mask_affine = fixed_affine  # Defined, but currently unused
 
+    elif args.fixed_mask_method == "threshold":
+        fixed_threshold = args.fixed_mask_threshold
+        if fixed_threshold == "otsu":
+            fixed_threshold = otsu_threshold_dask(fixed, bins=65535, value_range=(0, 65535), remove_zero_bin=False)
+        fixed_mask = threshold_dask(fixed, threshold=fixed_threshold, high=1, low=0, dtype=np.uint8)
 
-    # Get & save moving image pyramid
-    # args.fixed_mask_method = 'threshold' # REMOVE THIS
-    # args.fixed_mask_threshold = 100 # REMOVE THIS
-    # args.apply_fixed_mask = True # REMOVE THIS
-    pyramid, mask_pyramid, affines = get_image_pyramid(fixed, fixed_affine,
-                                                       args.fixed_pyramid_depth,
-                                                       args.fixed_clip_percentiles,
-                                                       args.fixed_clip_range,
-                                                       fixed_mask,
-                                                       args.fixed_mask_method,
-                                                       args.fixed_mask_threshold,
-                                                       args.fixed_cylinder_radius,
-                                                       args.fixed_cylinder_center_offset,
-                                                       args.apply_fixed_mask)
+    elif args.fixed_mask_method == "cylinder":
+        print(f"Creating fixed mask using method: {args.fixed_mask_method}")
+        fixed_mask = mask_with_cylinder(fixed, cylinder_radius=args.fixed_cylinder_radius, cylinder_offset=args.fixed_cylinder_center_offset)
+    else:
+        print("No fixed mask will be used.")
 
+    fixed_mask_affines = fixed_affines
+
+    # scale and clip
+    fixed_mask = scale_n_clip(fixed_mask)
+
+    # rechunk mask
+    fixed_mask = fixed_mask.rechunk((160, 160, 160))
+
+    # Write fixed mask
+    group_name = "HR_mask"
+    # fixed_ome_path = os.path.join(fixed_out_path, args.fixed_out_name + "_ome.zarr")
+    store, group_tmp = create_ome_group(ome_path, group_name=group_name, pyramid_depth=args.fixed_pyramid_depth)
+
+    mask_pyramid = [fixed_mask]
+    for level in range(args.fixed_pyramid_depth):
+
+        mask_pyramid[level] = write_ome_level(mask_pyramid[level], store, group_name, level=level, cname='lz4')
+
+        if level < args.fixed_pyramid_depth - 1:
+            down = da.coarsen(np.mean, mask_pyramid[level], {0: 2, 1: 2, 2: 2}, trim_excess=True).astype(np.uint8)
+            down = da.where(down < 255, 0, 255)  # ensure mask is binary
+            down = down.rechunk((160, 160, 160))
+
+            mask_pyramid.append(down)
+
+    # from ome_zarr.writer import write_label_metadata
+    # write_label_metadata(group, 'LR')
+
+    viz_slices(fixed_mask, [200, 400, 600], save_dir=out_path, title=args.out_name + f"_fixed_mask", axis=0, vmin=0, vmax=255)
+    print(f"min = {fixed_mask[100, :, :].min().compute()}, max = {fixed_mask[100, :, :].max().compute()}")
+
+    fixed = da.where(fixed_mask.astype(bool), fixed, 0)  # Avoids promotion to float due to nan
+
+    hist, bins = da.histogram(fixed, bins=65535, range=(0, 65535))
+    with ProgressBar(dt=1):
+        print("Computing histogram for percentile clipping...")
+        hist = hist.compute()  # to numpy
+        hist, bins = hist[1:], bins[1:]  # remove zero bin
+        cdf = np.cumsum(hist) / np.sum(hist)
+        lower, upper = args.fixed_clip_percentiles
+        low = np.searchsorted(cdf, lower / 100)
+        high = np.searchsorted(cdf, upper / 100)
+        plot_histogram(hist, bins, low=low, high=high, save_dir=out_path, title=args.out_name + f"_fixed_histogram")
+    print(f"Percentile clipping values: low = {low}, high = {high}")
+
+    fixed = da.clip(fixed, low, high, dtype=np.float32)  # clip, and promote to float for scaling
+    fixed = minmax_scaler(fixed, vmin=0, vmax=65535).astype(input_dtype)  # scale and convert back to input dtype
+    fixed = da.where(fixed_mask.astype(bool), fixed, 0)
+
+    # fixed = fixed.rechunk((160, 160, 160))
+
+    # Write fixed image ome-zarr level 0
+    group_name = "HR"
+    # fixed_ome_path = os.path.join(fixed_out_path, args.fixed_out_name + "_ome.zarr")
+    store, group = create_ome_group(ome_path, group_name=group_name, pyramid_depth=args.fixed_pyramid_depth)
+
+    fixed_pyramid = [fixed]
+    for level in range(args.fixed_pyramid_depth):
+
+        fixed_pyramid[level] = write_ome_level(fixed_pyramid[level], store, group_name, level=level, cname='lz4')
+
+        if level < args.fixed_pyramid_depth - 1:
+            down = da.coarsen(np.mean, fixed_pyramid[level], {0: 2, 1: 2, 2: 2}, trim_excess=True).astype(input_dtype)
+            down = down.rechunk((160, 160, 160))
+
+            # apply mask
+            down = da.where(mask_pyramid[level + 1].astype(bool), down, 0)
+            fixed_pyramid.append(down)
+
+    with ProgressBar(dt=1):
+        print("fixed image min and max after clipping and scaling:")
+        print(f"min = {fixed[100, :, :].min().compute()}, max = {fixed[100, :, :].max().compute()}")
+
+    for i, image in enumerate(fixed_pyramid):
+        print(f"Level {i} shape: {image.shape}, chunks: {image.chunksize}")
+        slices = [image.shape[0] // 2, image.shape[1] // 2, image.shape[2] // 2]
+        viz_slices(image, slices[0], save_dir=out_path, title=args.fixed_out_name + f"_scale_{2 ** i}_pre_axis_0", axis=0, vmin=0, vmax=65535)
+        viz_slices(image, slices[1], save_dir=out_path, title=args.fixed_out_name + f"_scale_{2 ** i}_pre_axis_1", axis=1, vmin=0, vmax=65535)
+        viz_slices(image, slices[2], save_dir=out_path, title=args.fixed_out_name + f"_scale_{2 ** i}_pre_axis_2", axis=2, vmin=0, vmax=65535)
+
+    # Remove HR_tmp group here
+    shutil.rmtree(os.path.join(ome_path, "HR_tmp"))
+
+    # Save to nifti for registration here
     print("Preparing to write fixed image pyramid...")
-    save_image_pyramid(pyramid, mask_pyramid, affines, fixed_path, fixed_out_path, args.fixed_out_name)
-
-    # Visualize'
-    if visualize:
-        for i, image in enumerate(pyramid):
-            slices = [image.shape[0] // 2, image.shape[1] // 2, image.shape[2] // 2]
-            viz_slices(image, slices[0], save_dir=fixed_out_path, title=args.fixed_out_name + f"_scale_{2 ** i}_pre_axis_0", axis=0)
-            viz_slices(image, slices[1], save_dir=fixed_out_path, title=args.fixed_out_name + f"_scale_{2 ** i}_pre_axis_1", axis=1)
-            viz_slices(image, slices[2], save_dir=fixed_out_path, title=args.fixed_out_name + f"_scale_{2 ** i}_pre_axis_2", axis=2)
+    save_image_pyramid(fixed_pyramid, mask_pyramid, fixed_affines, fixed_path, out_path, args.fixed_out_name, start_level=2)
 
     print("Done")

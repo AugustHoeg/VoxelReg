@@ -44,8 +44,10 @@ if __name__ == "__main__":
         scan_path = os.path.join(args.base_path, args.scan_path)
         print("Scan path: ", scan_path)
 
-    scan_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Vertebrae_B/fixed_scale_4.nii.gz"
-    mask_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Vertebrae_B/fixed_scale_4_mask.nii.gz"
+    #scan_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Vertebrae_B/fixed_scale_4.nii.gz"
+    #mask_path = "../Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Vertebrae_B/fixed_scale_4_mask.nii.gz"
+
+    scan_path = "../Vedrana_master_project/3D_datasets/datasets/LITS/train/volume-125.nii.gz"
 
     print(f"Loading {scan_path}")
 

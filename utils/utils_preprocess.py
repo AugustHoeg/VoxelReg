@@ -260,8 +260,8 @@ def minmax_scaler(image, vmin=0, vmax=1.0):
 
     if isinstance(image, da.Array):
         # If dask array, use standard operations
-        image_min = da.nanmin(image)
-        image_max = da.nanmax(image)
+        image_min = da.min(image)
+        image_max = da.max(image)
         image = ((image - image_min) / (image_max - image_min)) * (vmax - vmin) + vmin
     else:
         # in-place scaling using np operations
@@ -714,7 +714,7 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
     return image_pyramid, mask_pyramid, affines
 
 
-def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path, out_name):
+def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path, out_name, start_level=0):
 
     filename, file_extension = os.path.basename(scan_path).split('.', 1)
     if out_name is None:
@@ -725,7 +725,7 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
         out_path = os.path.join(os.path.dirname(scan_path), "processed")
     os.makedirs(out_path, exist_ok=True)
 
-    for i in range(0, len(image_pyramid)):
+    for i in range(start_level, len(image_pyramid)):
         if image_pyramid[i] is None:
             continue
         # Save downscaled images
@@ -734,7 +734,7 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
         print(f"Writing pyramid image level: {i} with shape {image_pyramid[i].shape}")
         write_nifti(image_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii.gz"), dtype=image_pyramid[i].dtype)
 
-    for i in range(0, len(mask_pyramid)):
+    for i in range(start_level, len(mask_pyramid)):
         if mask_pyramid[i] is None:
             continue
         # np.save(os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.npy"), mask)

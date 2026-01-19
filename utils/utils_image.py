@@ -292,23 +292,32 @@ def calc_histogram(image, data_min=None, data_max=None, num_bins=256, title="His
 
     return hist, bin_edges
 
-def plot_histogram(hist, bin_edges, title="Histogram", color="darkgray", savefig=False, log_scale=False):
-    # Normalize histogram to probabilities (optional, looks cleaner)
-    hist = hist.astype(float) / hist.sum()
+def plot_histogram(hist, bin_edges, title="Histogram", save_dir="figures", color="darkgray", savefig=True, log_scale=False, density=False, low=None, high=None):
+
+    if density:  # Normalize histogram to probabilities (optional, looks cleaner)
+        hist = hist.astype(float) / hist.sum()
 
     # Plot
     plt.figure(figsize=(16, 10))
-    plt.bar(bin_edges[:-1], hist, width=np.diff(bin_edges), align="edge", color=color, alpha=0.7)
+    # plt.bar(bin_edges[:-1], hist, width=np.diff(bin_edges), align="edge", color=color, alpha=0.7)
+    plt.step(bin_edges[:-1], hist, where="mid", color=color, linewidth=2, alpha=0.7, label='Histogram')
+    plt.fill_between(bin_edges[:-1], hist, step="mid", alpha=0.3, color=color)
+
     plt.title(title, fontsize=14, weight="bold")
     plt.xlabel("Intensity", fontsize=12)
     plt.ylabel("Probability", fontsize=12)
+    if low is not None:
+        plt.axvline(x=low, color='red', linestyle='--', label='Low Threshold')
+    if high is not None:
+        plt.axvline(x=high, color='green', linestyle='--', label='High Threshold')
     if log_scale:
         plt.yscale('log')
     plt.grid(axis="y", linestyle="--", alpha=0.6)
     plt.tight_layout()
+    plt.legend(fontsize=14)
 
     if savefig:
-        plt.savefig(f"figures/{title}.pdf", dpi=300, bbox_inches='tight')
+        plt.savefig(os.path.join(save_dir, f"{title}.pdf"), dpi=300, bbox_inches='tight')
     else:
         plt.show()
 

@@ -387,7 +387,7 @@ def elastix_coarse_registration(fixed_image_sparse, moving_image_sparse, center_
 
 def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, center_mm, initial_rotation_angles=(0.0, 0.0, 0.0), initial_scale=1.0, affine_transform_file=None, grid_spacing_mm=(1, 1, 1), grid_size=(2, 2, 2),
                                       resolutions=4, max_iterations=1024, metric='AdvancedMattesMutualInformation', no_registration_samples=4096, write_result_image=True,
-                                      log_mode=None, visualize=False, fig_name=None):
+                                      log_mode=None, visualize=False, fig_name=None, save_dir="figures"):
 
     print("Running coarse registration")
 
@@ -445,7 +445,7 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
             dim = min(fixed_image_sparse.shape[axis], best_result.shape[axis])
             off = int(dim * 0.05)  # offset for visualization
             diff = fixed_image_sparse[:] - best_result[:]
-            viz_multiple_images([fixed_image_sparse, best_result, diff], [dim-i*off-5 for i in range(3)], savefig=True, title=fig_name + "_coarse", axis=axis)
+            viz_multiple_images([fixed_image_sparse, best_result, diff], [dim-i*off-5 for i in range(3)], savefig=True, save_dir=save_dir, title=fig_name + "_coarse", axis=axis)
             #viz_registration(fixed_image_sparse, best_result, [dim-i*off-1 for i in range(3)])
 
     return best_result, best_transform_object, best_metric
@@ -454,7 +454,7 @@ def elastix_coarse_registration_sweep(fixed_image_sparse, moving_image_sparse, c
 
 def elastix_refined_registration(fixed_image_sparse, moving_image_sparse, coarse_transform_object, registration_models, resolution_list,
                                  max_iteration_list, write_result_image_list, metric_list='AdvancedMattesMutualInformation',
-                                 no_registration_samples_list=None, log_mode=None, visualize=False, fig_name=None):
+                                 no_registration_samples_list=None, log_mode=None, visualize=False, fig_name=None, save_dir="figures"):
 
     print("Running refined registration with models: ", registration_models)
 
@@ -477,8 +477,8 @@ def elastix_refined_registration(fixed_image_sparse, moving_image_sparse, coarse
         dim = min(fixed_image_sparse.shape[axis], result_image_small_refined.shape[axis])
         off = int(dim * 0.05)  # offset for visualization
         diff = fixed_image_sparse[:] - result_image_small_refined[:]
-        viz_multiple_images([fixed_image_sparse, result_image_small_refined, diff], [dim-i*off-5 for i in range(3)], axis=axis, savefig=True, title=fig_name + "_refined")
-        viz_registration(fixed_image_sparse, result_image_small_refined, [dim-i*off-5 for i in range(3)], axis=axis, savefig=True, title=fig_name + "_eval")
+        viz_multiple_images([fixed_image_sparse, result_image_small_refined, diff], [dim-i*off-5 for i in range(3)], axis=axis, savefig=True, save_dir=save_dir, title=fig_name + "_refined")
+        viz_registration(fixed_image_sparse, result_image_small_refined, [dim-i*off-5 for i in range(3)], axis=axis, savefig=True, save_dir=save_dir, title=fig_name + "_eval")
 
     return result_image_small_refined, result_transform_parameters
 
