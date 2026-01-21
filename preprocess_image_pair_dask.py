@@ -146,11 +146,11 @@ if __name__ == "__main__":
     ##################### MOVING IMAGE ######################
 
     # Load moving image
-    args.moving_pixel_size = (4, 4, 4)  # REMOVE THIS
-    args.moving_divis_factor = 160  # REMOVE THIS
-    args.moving_mask_method = 'threshold' # REMOVE THIS
-    args.moving_mask_threshold = 'otsu' # REMOVE THIS  #TODO ADD THRESHOLD EXPLORER!
-    # args.apply_fixed_mask = True # REMOVE THIS
+    # args.moving_pixel_size = (4, 4, 4)  # REMOVE THIS
+    # args.moving_divis_factor = 160  # REMOVE THIS
+    # args.moving_mask_method = None # 'threshold' # REMOVE THIS
+    # args.moving_mask_threshold = 'otsu' # REMOVE THIS  #TODO ADD THRESHOLD EXPLORER!
+    # # args.apply_fixed_mask = True # REMOVE THIS
 
     input_dtype = get_dtype(args.dtype)
     moving, moving_affine = get_image_and_affine(moving_path,
@@ -191,6 +191,7 @@ if __name__ == "__main__":
 
     # Get moving image mask
     moving_mask = None
+    mask_pyramid = None
     if args.moving_mask_path is not None:
         print(f"Using moving mask from: {moving_mask_path}")
         moving_mask, moving_mask_affine = get_image_and_affine(moving_mask_path,
@@ -219,38 +220,40 @@ if __name__ == "__main__":
     else:
         print("No moving mask will be used.")
 
-    moving_mask_affines = moving_affines
+    # Write mask only if it exists
+    if moving_mask is not None:
+        moving_mask_affines = moving_affines
 
-    # scale and clip
-    moving_mask = scale_n_clip(moving_mask)
+        # scale and clip
+        moving_mask = scale_n_clip(moving_mask)
 
-    # rechunk mask
-    moving_mask = moving_mask.rechunk((160, 160, 160))
+        # rechunk mask
+        moving_mask = moving_mask.rechunk((160, 160, 160))
 
-    # Write moving mask
-    group_name = "LR_mask"
-    store, group_tmp = create_ome_group(ome_path, group_name=group_name, pyramid_depth=args.moving_pyramid_depth)
+        # Write moving mask
+        group_name = "LR_mask"
+        store, group_tmp = create_ome_group(ome_path, group_name=group_name, pyramid_depth=args.moving_pyramid_depth)
 
-    mask_pyramid = [moving_mask]
-    for level in range(args.moving_pyramid_depth):
+        mask_pyramid = [moving_mask]
+        for level in range(args.moving_pyramid_depth):
 
-        mask_pyramid[level] = write_ome_level(mask_pyramid[level], store, group_name, level=level, cname='lz4')
+            mask_pyramid[level] = write_ome_level(mask_pyramid[level], store, group_name, level=level, cname='lz4')
 
-        if level < args.moving_pyramid_depth - 1:
-            down = da.coarsen(np.mean, mask_pyramid[level], {0: 2, 1: 2, 2: 2}, trim_excess=True).astype(np.uint8)
-            down = da.where(down < 255, 0, 255)  # ensure mask is binary
-            down = down.rechunk((160, 160, 160))
+            if level < args.moving_pyramid_depth - 1:
+                down = da.coarsen(np.mean, mask_pyramid[level], {0: 2, 1: 2, 2: 2}, trim_excess=True).astype(np.uint8)
+                down = da.where(down < 255, 0, 255)  # ensure mask is binary
+                down = down.rechunk((160, 160, 160))
 
-            mask_pyramid.append(down)
+                mask_pyramid.append(down)
 
-    # from ome_zarr.writer import write_label_metadata
-    # write_label_metadata(group, 'LR')
+        # from ome_zarr.writer import write_label_metadata
+        # write_label_metadata(group, 'LR')
 
-    viz_slices(moving_mask, [200, 400, 600], save_dir=out_path, title=args.out_name + f"_moving_mask", axis=0, vmin=0, vmax=255)
-    print(f"min = {moving_mask[100, :, :].min().compute()}, max = {moving_mask[100, :, :].max().compute()}")
+        viz_slices(moving_mask, [200, 400, 600], save_dir=out_path, title=args.out_name + f"_moving_mask", axis=0, vmin=0, vmax=255)
+        print(f"min = {moving_mask[100, :, :].min().compute()}, max = {moving_mask[100, :, :].max().compute()}")
 
-    # moving = da.where(moving_mask.astype(bool), moving, da.nan)
-    moving = da.where(moving_mask.astype(bool), moving, 0)  # Avoids promotion to float due to nan
+        # moving = da.where(moving_mask.astype(bool), moving, da.nan)
+        moving = da.where(moving_mask.astype(bool), moving, 0)  # Avoids promotion to float due to nan
 
     hist, bins = da.histogram(moving, bins=65535, range=(0, 65535))
     with ProgressBar(dt=1):
@@ -266,7 +269,9 @@ if __name__ == "__main__":
 
     moving = da.clip(moving, low, high, dtype=np.float32)  # clip, and promote to float for scaling
     moving = minmax_scaler(moving, vmin=0, vmax=65535).astype(input_dtype)  # scale and convert back to input dtype
-    moving = da.where(moving_mask.astype(bool), moving, 0)
+
+    if moving_mask is not None:
+        moving = da.where(moving_mask.astype(bool), moving, 0)
 
     # moving = moving.rechunk((160, 160, 160))
 
@@ -284,7 +289,8 @@ if __name__ == "__main__":
             down = down.rechunk((160, 160, 160))
 
             # apply mask
-            down = da.where(mask_pyramid[level + 1].astype(bool), down, 0)
+            if mask_pyramid is not None:
+                down = da.where(mask_pyramid[level + 1].astype(bool), down, 0)
             moving_pyramid.append(down)
 
     with ProgressBar(dt=1):
@@ -312,11 +318,11 @@ if __name__ == "__main__":
     ##################### FIXED IMAGE ######################
 
     # Load moving image
-    args.fixed_pixel_size = (1, 1, 1)  # REMOVE THIS
-    args.fixed_divis_factor = 160  # REMOVE THIS
-    args.fixed_mask_method = 'threshold'  # REMOVE THIS
-    args.fixed_mask_threshold = 0  # REMOVE THIS #TODO ADD THRESHOLD EXPLORER!
-    # args.apply_moving_mask = True  # REMOVE THIS
+    # args.fixed_pixel_size = (1, 1, 1)  # REMOVE THIS
+    # args.fixed_divis_factor = 160  # REMOVE THIS
+    # args.fixed_mask_method = None  # 'threshold'  # REMOVE THIS
+    # args.fixed_mask_threshold = 0  # REMOVE THIS #TODO ADD THRESHOLD EXPLORER!
+    # # args.apply_moving_mask = True  # REMOVE THIS
 
     fixed, fixed_affine = get_image_and_affine(fixed_path,
                                                custom_origin=(0, 0, 0),
@@ -362,6 +368,7 @@ if __name__ == "__main__":
 
     # Get fixed image mask
     fixed_mask = None
+    mask_pyramid = None
     if args.fixed_mask_path is not None:
         print(f"Using fixed mask from: {fixed_mask_path}")
         fixed_mask, fixed_mask_affine = get_image_and_affine(fixed_mask_path,
@@ -391,36 +398,38 @@ if __name__ == "__main__":
 
     fixed_mask_affines = fixed_affines
 
-    # scale and clip
-    fixed_mask = scale_n_clip(fixed_mask)
+    # Write mask only if it exists
+    if fixed_mask is not None:
+        # scale and clip
+        fixed_mask = scale_n_clip(fixed_mask)
 
-    # rechunk mask
-    fixed_mask = fixed_mask.rechunk((160, 160, 160))
+        # rechunk mask
+        fixed_mask = fixed_mask.rechunk((160, 160, 160))
 
-    # Write fixed mask
-    group_name = "HR_mask"
-    # fixed_ome_path = os.path.join(fixed_out_path, args.fixed_out_name + "_ome.zarr")
-    store, group_tmp = create_ome_group(ome_path, group_name=group_name, pyramid_depth=args.fixed_pyramid_depth)
+        # Write fixed mask
+        group_name = "HR_mask"
+        # fixed_ome_path = os.path.join(fixed_out_path, args.fixed_out_name + "_ome.zarr")
+        store, group_tmp = create_ome_group(ome_path, group_name=group_name, pyramid_depth=args.fixed_pyramid_depth)
 
-    mask_pyramid = [fixed_mask]
-    for level in range(args.fixed_pyramid_depth):
+        mask_pyramid = [fixed_mask]
+        for level in range(args.fixed_pyramid_depth):
 
-        mask_pyramid[level] = write_ome_level(mask_pyramid[level], store, group_name, level=level, cname='lz4')
+            mask_pyramid[level] = write_ome_level(mask_pyramid[level], store, group_name, level=level, cname='lz4')
 
-        if level < args.fixed_pyramid_depth - 1:
-            down = da.coarsen(np.mean, mask_pyramid[level], {0: 2, 1: 2, 2: 2}, trim_excess=True).astype(np.uint8)
-            down = da.where(down < 255, 0, 255)  # ensure mask is binary
-            down = down.rechunk((160, 160, 160))
+            if level < args.fixed_pyramid_depth - 1:
+                down = da.coarsen(np.mean, mask_pyramid[level], {0: 2, 1: 2, 2: 2}, trim_excess=True).astype(np.uint8)
+                down = da.where(down < 255, 0, 255)  # ensure mask is binary
+                down = down.rechunk((160, 160, 160))
 
-            mask_pyramid.append(down)
+                mask_pyramid.append(down)
 
-    # from ome_zarr.writer import write_label_metadata
-    # write_label_metadata(group, 'LR')
+        # from ome_zarr.writer import write_label_metadata
+        # write_label_metadata(group, 'LR')
 
-    viz_slices(fixed_mask, [200, 400, 600], save_dir=out_path, title=args.out_name + f"_fixed_mask", axis=0, vmin=0, vmax=255)
-    print(f"min = {fixed_mask[100, :, :].min().compute()}, max = {fixed_mask[100, :, :].max().compute()}")
+        viz_slices(fixed_mask, [200, 400, 600], save_dir=out_path, title=args.out_name + f"_fixed_mask", axis=0, vmin=0, vmax=255)
+        print(f"min = {fixed_mask[100, :, :].min().compute()}, max = {fixed_mask[100, :, :].max().compute()}")
 
-    fixed = da.where(fixed_mask.astype(bool), fixed, 0)  # Avoids promotion to float due to nan
+        fixed = da.where(fixed_mask.astype(bool), fixed, 0)  # Avoids promotion to float due to nan
 
     hist, bins = da.histogram(fixed, bins=65535, range=(0, 65535))
     with ProgressBar(dt=1):
@@ -436,7 +445,9 @@ if __name__ == "__main__":
 
     fixed = da.clip(fixed, low, high, dtype=np.float32)  # clip, and promote to float for scaling
     fixed = minmax_scaler(fixed, vmin=0, vmax=65535).astype(input_dtype)  # scale and convert back to input dtype
-    fixed = da.where(fixed_mask.astype(bool), fixed, 0)
+
+    if fixed_mask is not None:
+        fixed = da.where(fixed_mask.astype(bool), fixed, 0)
 
     # fixed = fixed.rechunk((160, 160, 160))
 
@@ -455,7 +466,8 @@ if __name__ == "__main__":
             down = down.rechunk((160, 160, 160))
 
             # apply mask
-            down = da.where(mask_pyramid[level + 1].astype(bool), down, 0)
+            if mask_pyramid is not None:
+                down = da.where(mask_pyramid[level + 1].astype(bool), down, 0)
             fixed_pyramid.append(down)
 
     with ProgressBar(dt=1):
