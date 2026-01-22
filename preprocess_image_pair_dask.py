@@ -94,14 +94,14 @@ def parse_arguments():
 
     parser.add_argument("--moving_mask_path", default=None, help="Path to moving mask image, default is None.")
     parser.add_argument("--moving_mask_method", default=None, help="Method for creating moving mask. Currently supports 'threshold' and 'cylinder'. Default is None, which skips mask creation.")
-    parser.add_argument("--moving_mask_threshold", default=None, help="Threshold for binary mask image. If unspecified, otsu thresholding will be used. default is None.")
+    parser.add_argument("--moving_mask_threshold", default=None, type=int, help="Threshold for binary mask image. If unspecified, otsu thresholding will be used. default is None.")
     parser.add_argument("--moving_cylinder_radius", type=int, default=None, help="Radius of the cylinder for moving mask in voxels.")
     parser.add_argument("--moving_cylinder_center_offset", type=int, nargs=2, default=(0, 0), help="Offset for the center of the cylinder mask in voxels, default is 0 (centered in H, W).")
     parser.add_argument("--apply_moving_mask", action="store_true", help="Apply moving mask to the image.")
 
     parser.add_argument("--fixed_mask_path", default=None, help="Path to fixed mask image, default is None.")
     parser.add_argument("--fixed_mask_method", default=None, help="Method for creating fixed mask. Currently supports 'threshold' and 'cylinder'. Default is None, which skips mask creation.")
-    parser.add_argument("--fixed_mask_threshold", default=None, help="Threshold for binary mask image, default is None.")
+    parser.add_argument("--fixed_mask_threshold", default=None, type=int, help="Threshold for binary mask image, default is None.")
     parser.add_argument("--fixed_cylinder_radius", type=int, default=None, help="Radius of the cylinder for fixed mask in voxels.")
     parser.add_argument("--fixed_cylinder_center_offset", type=int, nargs=2, default=(0, 0), help="Offset for the center of the cylinder mask in voxels, default is 0 (centered in H, W).")
     parser.add_argument("--apply_fixed_mask", action="store_true", help="Apply fixed mask to the image.")
@@ -210,6 +210,7 @@ if __name__ == "__main__":
 
     elif args.moving_mask_method == "threshold":
         moving_threshold = args.moving_mask_threshold
+        print(f"Creating moving mask with threshold = {moving_threshold}")
         if moving_threshold == "otsu":
             moving_threshold = otsu_threshold_dask(moving, bins=65535, value_range=(0, 65535), remove_zero_bin=False)
         moving_mask = threshold_dask(moving, threshold=moving_threshold, high=1, low=0, dtype=np.uint8)
@@ -387,6 +388,7 @@ if __name__ == "__main__":
 
     elif args.fixed_mask_method == "threshold":
         fixed_threshold = args.fixed_mask_threshold
+        print(f"Creating fixed mask with threshold = {fixed_threshold}")
         if fixed_threshold == "otsu":
             fixed_threshold = otsu_threshold_dask(fixed, bins=65535, value_range=(0, 65535), remove_zero_bin=False)
         fixed_mask = threshold_dask(fixed, threshold=fixed_threshold, high=1, low=0, dtype=np.uint8)
