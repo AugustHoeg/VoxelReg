@@ -1,13 +1,16 @@
-import tifffile
+import os
+import glob
+import datetime
 import numpy as np
-from scipy.ndimage import zoom
+import tifffile
 import argparse
+import zarr
 from dask import delayed
 import dask.array as da
-import os
-from multiprocessing.pool import ThreadPool, Pool
+from scipy.ndimage import zoom
+import multiprocessing as mp
 from natsort import natsorted
-import glob
+from zarr.codecs import BytesCodec, BloscCodec, BloscCname, BloscShuffle
 
 def crop_tiff_slice(tiff_slice, start_row, end_row, start_col, end_col):
 
@@ -29,7 +32,7 @@ def parallel_crop_tiff(tiff_path, start_row, end_row, start_col, end_col, start_
         image_stack = ...
 
         # Create multiprocessing pool
-        with Pool(n_proc) as pool:
+        with mp.Pool(n_proc) as pool:
 
             # Start N workers
             results_async = [
@@ -213,7 +216,6 @@ def write_downsampled_tiff(image, output_path, factor, ret=False):
     if ret:
         return image
 
-
 def write_tiff(image, output_path, dtype=None, ret=False):
 
     if dtype is not None:
@@ -224,6 +226,99 @@ def write_tiff(image, output_path, dtype=None, ret=False):
 
     if ret:
         return image
+
+
+def read_and_write_slice_tiff(
+    tifffile_path,
+    frame_idx,
+    read_window,
+    zarr_path,
+    group_name,
+    dtype=np.uint16
+):
+
+    # read tiff slice
+    with tifffile.TiffFile(tifffile_path) as tif:
+        raw = tif.pages[frame_idx].asarray()
+
+    sl = raw[read_window].astype(dtype)
+
+    # write to zarr chunk (ONLY THREADSAFE FOR CHUNKS = SLICES)
+    z = zarr.open(os.path.join(zarr_path, group_name), mode='a')
+    z[frame_idx, :, :] = sl
+
+    return frame_idx
+
+
+def timestamp():
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def tiff2zarr(
+        tiff_path,
+        nworkers,
+        read_window=np.s_[:, :],
+        zarr_path="data.zarr",
+        group_name="raw",
+        slice_shape=None,
+        dtype=np.uint16,
+        cname="lz4",
+        clevel=3,
+        return_as_dask=True):
+
+    with tifffile.TiffFile(tiff_path) as tif:
+        page = tif.pages[0]
+        dtype = page.dtype
+        n_frames = len(tif.pages)
+        slice_shape = page.shape
+
+    print("n_frames", n_frames)
+
+    # ---- create zarr array ----
+    store = zarr.storage.LocalStore(zarr_path)
+    group = zarr.group(store=store)
+
+    if os.path.exists(os.path.join(store.root, group_name)):
+        print(f"OME level {group_name} already exists, skipping write.")
+
+    else:
+        group.create_dataset(
+            name=group_name,
+            shape=(n_frames, slice_shape[0], slice_shape[1]),
+            chunks=(1, slice_shape[0], slice_shape[1]),
+            dtype=dtype,
+            compressors=BloscCodec(cname=BloscCname[cname], clevel=3, shuffle=BloscShuffle.bitshuffle)
+        )
+
+        print(f"Created zarr store: {zarr_path}")
+        print(f"Shape: {(n_frames, slice_shape[0], slice_shape[1])}")
+
+        # ---- multiprocessing ----
+        pool = mp.Pool(nworkers)
+        results = []
+
+        for frame_idx in range(n_frames):
+            args = (tiff_path, frame_idx, read_window, zarr_path, group_name)
+            results.append(pool.apply_async(read_and_write_slice_tiff, args))
+
+        pool.close()
+
+        # ---- progress ----
+        write_count = 0
+        for r in results:
+            frame_idx = r.get()
+            write_count += 1
+            print(f"{timestamp()} – Frame {frame_idx + 1}/{n_frames}", end="\r")
+
+        pool.join()
+
+        print("\nwrite_count", write_count)
+
+    if return_as_dask:
+        image = da.from_zarr(store, component=group_name)
+        return image
+    else:
+        return store, group
 
 
 if __name__ == "__main__":

@@ -149,10 +149,17 @@ if __name__ == "__main__":
 
     from dask.distributed import LocalCluster, Client
 
-    cluster = LocalCluster(n_workers=16,
+    if args.run_type == "HOME PC":
+        n_workers = 8
+        memory_limit = '32GB'
+    else:
+        n_workers = 32
+        memory_limit = '256GB'
+
+    cluster = LocalCluster(n_workers,
                            threads_per_worker=2,
                            memory_target_fraction=0.95,
-                           memory_limit='256GB')
+                           memory_limit=memory_limit)
     client = Client(cluster)
 
 
