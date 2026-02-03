@@ -106,7 +106,7 @@ def create_ome_group(path, group_name='HR', pyramid_depth=4, scale=2, **kwargs):
 #     moving = da.from_zarr(moving_ome_path, chunks=moving.chunksize)
 
 
-def write_ome_level(image, store, group_name, level=0, chunk_size=None, cname='lz4', clevel=3, overwrite=False):
+def write_ome_level(image, store, group_name, level=0, chunk_size=None, cname='lz4', clevel=3):
 
     if chunk_size is not None:
         if chunk_size != image.chunksize:
@@ -123,18 +123,22 @@ def write_ome_level(image, store, group_name, level=0, chunk_size=None, cname='l
 
     component = f"{group_name}/{level}"
 
-    with ProgressBar(dt=1):
-        print(f"Writing OME level to {group_name}/{level}, overwrite={overwrite}...")
+    # if already exists, skip
+    if component not in store:
+        with ProgressBar(dt=1):
+            print(f"Writing OME level to {group_name}/{level}")
 
-        # Calls to zarr.api.asynchronous.create under the hood, currently shards not supported...
-        # https://zarr.readthedocs.io/en/stable/api/zarr/api/asynchronous/#zarr.api.asynchronous.create
-        da.to_zarr(image,
-                   url=store,
-                   component=component,
-                   overwrite=overwrite,
-                   zarr_format=3,
-                   codecs=codecs,
-                   )
+            # Calls to zarr.api.asynchronous.create under the hood, currently shards not supported...
+            # https://zarr.readthedocs.io/en/stable/api/zarr/api/asynchronous/#zarr.api.asynchronous.create
+            da.to_zarr(image,
+                       url=store,
+                       component=component,
+                       overwrite=True,
+                       zarr_format=3,
+                       codecs=codecs,
+                       )
+    else:
+        print(f"OME level {group_name}/{level} already exists, skipping write.")
 
     # Reload the written image level (clears dask graph)
     image = da.from_zarr(store, component=f"{group_name}/{level}")
