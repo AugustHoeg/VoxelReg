@@ -124,7 +124,7 @@ def write_ome_level(image, store, group_name, level=0, chunk_size=None, cname='l
     component = f"{group_name}/{level}"
 
     with ProgressBar(dt=1):
-        print(f"Writing OME level to {group_name}/{level}")
+        print(f"Writing OME level to {group_name}/{level}, overwrite={overwrite}...")
 
         # Calls to zarr.api.asynchronous.create under the hood, currently shards not supported...
         # https://zarr.readthedocs.io/en/stable/api/zarr/api/asynchronous/#zarr.api.asynchronous.create
