@@ -2,6 +2,8 @@ import tifffile
 import numpy as np
 from scipy.ndimage import zoom
 import argparse
+from dask import delayed
+import dask.array as da
 import os
 from multiprocessing.pool import ThreadPool, Pool
 from natsort import natsorted
@@ -59,6 +61,28 @@ def load_tiff(input_path, dtype=np.float32, image_sequence=False):
     print(f"tiff shape: {image.shape}")
     return image
 
+def bigtiff2dask(scan_path):
+
+    with tifffile.TiffFile(scan_path) as tif:
+        page = tif.pages[0]
+        dtype = page.dtype
+        n_frames = len(tif.pages)
+        vol_shape = (n_frames, *page.shape)
+        print(vol_shape)
+
+    def read_single_frame(path, page_idx):
+        with tifffile.TiffFile(path) as tif:
+            page = tif.pages[page_idx]
+            return page.asarray()
+
+    lazy_frames = []
+    for i in range(n_frames):
+        d = delayed(read_single_frame)(scan_path, i)
+        frame = da.from_delayed(d, shape=vol_shape[1:], dtype=dtype)
+        lazy_frames.append(frame)
+
+    dask_stack = da.stack(lazy_frames, axis=0)
+    return dask_stack
 
 def center_crop(image, target_shape):
 

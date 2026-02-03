@@ -42,13 +42,14 @@ project_path = "../../Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuR
 sample_path = project_path
 moving_path = sample_path + "Oak_A_bin1x1_LFOV_retake_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_pos1_Stitch_scale_4.tif"
 fixed_path = sample_path + "Oak_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_Stitch_scale_4.tif"
-
 out_name = "Oak_A"  # Name of the output file
 
-#project_path = "../../Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/Cardboard_A/"
-#sample_path = project_path
-#moving_path = sample_path + "Cardboard_A_LFOV_80kV_7W_air_4s_8mu_bin1_pos1_Stitch_scale_4.tif"
-#fixed_path = sample_path + "Cardboard_A_4X_80kV_7W_air_3s_2mu_bin1_pos1_Stitch_scale_4.tif"
+project_path = "../../Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/forams_A/"
+sample_path = project_path
+moving_path = sample_path + "forams_A_LR.tiff"
+fixed_path = sample_path + "forams_A_LR.tiff"
+out_name = "forams_A"  # Name of the output file
+
 
 def parse_arguments():
 

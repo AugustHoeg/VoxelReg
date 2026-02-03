@@ -502,6 +502,7 @@ def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), pixel_size_mm=(None
     print("Nifti affine: \n", nifti_affine)
     return image, nifti_affine
 
+
 def compute_crop_bounds(image, roi, top_index="last", slice_axis=0):
     start_crop = [0] * image.ndim
     end_crop = [0] * image.ndim

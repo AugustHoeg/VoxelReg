@@ -7,13 +7,14 @@ import nibabel as nib
 import dask_image.imread
 import zarr
 import h5py
+import tifffile
 import dask.array as da
 from monai.transforms import LoadImage
 import matplotlib.pyplot as plt
 import ants
 import SimpleITK as sitk
 
-from utils.utils_tiff import load_tiff
+from utils.utils_tiff import load_tiff, bigtiff2dask
 from utils.utils_txm import load_txm
 
 def load_image(image_path,
@@ -94,7 +95,13 @@ def load_image(image_path,
         # TIFF
         elif file_extension in ("tiff", "tif"):
             if backend == "Dask":
-                image = dask_image.imread.imread(image_path, nframes=1).astype(dtype)
+                file = tifffile.TiffFile(image_path)
+                if file.is_bigtiff:
+                    image = bigtiff2dask(image_path)
+                else:
+                    image = dask_image.imread.imread(image_path, nframes=1).astype(dtype)
+                    # from dask.array.image import imread as da_imread
+                    # image = da_imread(image_path)
             elif backend == "Numpy":
                 image = load_tiff(image_path, dtype=dtype)
 
