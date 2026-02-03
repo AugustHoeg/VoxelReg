@@ -124,7 +124,10 @@ def write_ome_level(image, store, group_name, level=0, chunk_size=None, cname='l
     component = f"{group_name}/{level}"
 
     # if already exists, skip
-    if component not in store:
+    if os.path.exists(os.path.join(store.root, group_name, f"{level}")):
+        print(f"OME level {group_name}/{level} already exists, skipping write.")
+
+    else:
         with ProgressBar(dt=1):
             print(f"Writing OME level to {group_name}/{level}")
 
@@ -137,8 +140,6 @@ def write_ome_level(image, store, group_name, level=0, chunk_size=None, cname='l
                        zarr_format=3,
                        codecs=codecs,
                        )
-    else:
-        print(f"OME level {group_name}/{level} already exists, skipping write.")
 
     # Reload the written image level (clears dask graph)
     image = da.from_zarr(store, component=f"{group_name}/{level}")
