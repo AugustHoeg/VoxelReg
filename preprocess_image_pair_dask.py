@@ -145,6 +145,17 @@ if __name__ == "__main__":
     visualize = False  # True
     print("Visualization is set to: ", visualize)
 
+    ##################### DASK CLUSTER ######################
+
+    from dask.distributed import LocalCluster, Client
+
+    cluster = LocalCluster(n_workers=16,
+                           threads_per_worker=2,
+                           memory_target_fraction=0.95,
+                           memory_limit='256GB')
+    client = Client(cluster)
+
+
     ##################### MOVING IMAGE ######################
 
     # Load moving image
@@ -313,7 +324,7 @@ if __name__ == "__main__":
 
     # Save to nifti for registration here
     print("Preparing to write moving image pyramid...")
-    save_image_pyramid(moving_pyramid, mask_pyramid, moving_affines, moving_path, out_path, args.moving_out_name, start_level=0)
+    # save_image_pyramid(moving_pyramid, mask_pyramid, moving_affines, moving_path, out_path, args.moving_out_name, start_level=0)
 
     # Record moving image top center position
     p1 = [moving.shape[0], moving.shape[1] / 2, moving.shape[2] / 2]
@@ -490,6 +501,6 @@ if __name__ == "__main__":
 
     # Save to nifti for registration here
     print("Preparing to write fixed image pyramid...")
-    save_image_pyramid(fixed_pyramid, mask_pyramid, fixed_affines, fixed_path, out_path, args.fixed_out_name, start_level=2)
+    # save_image_pyramid(fixed_pyramid, mask_pyramid, fixed_affines, fixed_path, out_path, args.fixed_out_name, start_level=2)
 
     print("Done")
