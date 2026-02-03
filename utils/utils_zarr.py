@@ -106,7 +106,7 @@ def create_ome_group(path, group_name='HR', pyramid_depth=4, scale=2, **kwargs):
 #     moving = da.from_zarr(moving_ome_path, chunks=moving.chunksize)
 
 
-def write_ome_level(image, store, group_name, level=0, chunk_size=None, cname='lz4', clevel=3):
+def write_ome_level(image, store, group_name, level=0, chunk_size=None, cname='lz4', clevel=3, overwrite=False):
 
     if chunk_size is not None:
         if chunk_size != image.chunksize:
@@ -131,7 +131,7 @@ def write_ome_level(image, store, group_name, level=0, chunk_size=None, cname='l
         da.to_zarr(image,
                    url=store,
                    component=component,
-                   overwrite=True,
+                   overwrite=overwrite,
                    zarr_format=3,
                    codecs=codecs,
                    )
