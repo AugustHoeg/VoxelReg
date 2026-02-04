@@ -717,8 +717,8 @@ def get_image_pyramid(image, nifti_affine, pyramid_depth=3, clip_percentiles=(1.
 
 def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path, out_name, start_level=0):
 
-    filename, file_extension = os.path.basename(scan_path).split('.', 1)
     if out_name is None:
+        filename, file_extension = os.path.basename(scan_path).split('.', 1)
         out_name = filename
 
     # Define output directory
