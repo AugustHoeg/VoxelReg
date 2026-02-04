@@ -476,16 +476,16 @@ def preprocess(scan_path, out_path, out_name, f, margin_percent, divis_factor, m
 
 
 def get_image_and_affine(scan_path, custom_origin=(0, 0, 0), pixel_size_mm=(None, None, None), backend="Numpy", dtype=np.uint16):
-    filename, file_extension = os.path.basename(scan_path).split('.', 1)
-    print("file name: ", filename)
-    print("file extension: ", file_extension)
+    # filename, file_extension = os.path.basename(scan_path).split('.', 1)
+    # print("file name: ", filename)
+    # print("file extension: ", file_extension)
 
     image, metadata = load_image(scan_path, backend=backend, dtype=dtype, return_metadata=True)
 
     nifti_affine = None
-    if file_extension == "txm":
+    if ".txm" in scan_path:
         nifti_affine = get_affine_txm(metadata, custom_origin)
-    elif file_extension == "nii" or file_extension == "nii.gz":
+    elif ".nii" in scan_path or ".nii.gz" in scan_path:
         nifti_affine = metadata.affine
 
     if backend == "Numpy":

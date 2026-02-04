@@ -4,12 +4,8 @@ import shutil
 
 import numpy as np
 import dask.array as da
+from dask.distributed import LocalCluster, Client
 from dask.diagnostics import ProgressBar
-#import matplotlib.pyplot as plt
-
-#import zarr
-#from ome_zarr.io import parse_url
-#from zarr.codecs import BytesCodec, BloscCodec, BloscCname, BloscShuffle
 
 from utils.utils_image import plot_histogram
 from utils.utils_plot import viz_slices, viz_multiple_images
@@ -46,8 +42,8 @@ out_name = "Oak_A"  # Name of the output file
 
 project_path = "../../Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/forams_A/"
 sample_path = project_path
-moving_path = sample_path + "forams_A_LR.tiff"
-fixed_path = sample_path + "forams_A_LR.tiff"
+moving_path = sample_path + "forams_A_LR.zarr/raw"
+fixed_path = sample_path + "forams_A_LR.zarr/raw"
 out_name = "forams_A"  # Name of the output file
 
 
@@ -70,10 +66,10 @@ def parse_arguments():
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
     parser.add_argument("--dtype", type=str, default="UINT16", help="Data type of fixed/moving input images")
 
-    parser.add_argument("--moving_min_size", type=int, nargs=3, default=(0, 480, 480), help="Minimum size for cropping.")
-    parser.add_argument("--moving_max_size", type=int, nargs=3, default=(9999, 1920, 1920), help="Maximum size for cropping.")
-    parser.add_argument("--fixed_min_size", type=int, nargs=3, default=(0, 480, 480), help="Minimum size for cropping.")
-    parser.add_argument("--fixed_max_size", type=int, nargs=3, default=(9999, 1920, 1920), help="Maximum size for cropping.")
+    parser.add_argument("--moving_min_size", type=int, nargs=3, default=(0, 0, 0), help="Minimum size for cropping.")
+    parser.add_argument("--moving_max_size", type=int, nargs=3, default=(9999, 9999, 9999), help="Maximum size for cropping.")
+    parser.add_argument("--fixed_min_size", type=int, nargs=3, default=(0, 0, 0), help="Minimum size for cropping.")
+    parser.add_argument("--fixed_max_size", type=int, nargs=3, default=(9999, 9999, 9999), help="Maximum size for cropping.")
 
     parser.add_argument("--moving_pixel_size", type=float, nargs=3, default=(None, None, None), help="Pixel size in mm for moving image.")
     parser.add_argument("--fixed_pixel_size", type=float, nargs=3, default=(None, None, None), help="Pixel size in mm for fixed image.")
@@ -86,7 +82,7 @@ def parse_arguments():
     parser.add_argument("--moving_pyramid_depth", type=int, default=4, help="Depth of saved image pyramid.")
     parser.add_argument("--fixed_pyramid_depth", type=int, default=4, help="Depth of saved image pyramid.")
 
-    parser.add_argument("--f", type=int, default=4, help="LR resolution factor.")
+    parser.add_argument("--f", type=int, default=1, help="LR resolution factor.")
     parser.add_argument("--moving_clip_percentiles", type=float, nargs=2, default=(1.0, 99.0), help="Lower and upper percentiles for image normalization")
     parser.add_argument("--fixed_clip_percentiles", type=float, nargs=2, default=(1.0, 99.0), help="Lower and upper percentiles for image normalization")
 
@@ -108,6 +104,10 @@ def parse_arguments():
     parser.add_argument("--apply_fixed_mask", action="store_true", help="Apply fixed mask to the image.")
 
     parser.add_argument("--top_index", type=str, default="last", help="Index for the top slice of the image, default is 'last'")
+    parser.add_argument("--write_nifti", type=bool, default=True, help="Write preprocessed images to nifti files for registration (note: very slow).")
+
+    parser.add_argument("--num_workers", type=int, default=32, help="Number of workers for Dask cluster.")
+    parser.add_argument("--memory_limit", type=str, default="8GB", help="Memory limit for each Dask worker.")
 
     args = parser.parse_args()
     return args
@@ -146,20 +146,10 @@ if __name__ == "__main__":
     print("Visualization is set to: ", visualize)
 
     ##################### DASK CLUSTER ######################
-
-    from dask.distributed import LocalCluster, Client
-
-    if args.run_type == "HOME PC":
-        n_workers = 8
-        memory_limit = '32GB'
-    else:
-        n_workers = 32
-        memory_limit = '256GB'
-
-    cluster = LocalCluster(n_workers,
-                           threads_per_worker=2,
+    cluster = LocalCluster(args.num_workers,
+                           threads_per_worker=1,
                            memory_target_fraction=0.95,
-                           memory_limit=memory_limit)
+                           memory_limit=args.memory_limit)
     client = Client(cluster)
 
 
@@ -294,7 +284,7 @@ if __name__ == "__main__":
     if moving_mask is not None:
         moving = da.where(moving_mask.astype(bool), moving, 0)
 
-    # moving = moving.rechunk((160, 160, 160))
+    moving = moving.rechunk((160, 160, 160))
 
     # Write moving image ome-zarr level 0
     group_name = "LR"
@@ -330,8 +320,9 @@ if __name__ == "__main__":
     shutil.rmtree(os.path.join(ome_path, "LR_tmp"))
 
     # Save to nifti for registration here
-    print("Preparing to write moving image pyramid...")
-    # save_image_pyramid(moving_pyramid, mask_pyramid, moving_affines, moving_path, out_path, args.moving_out_name, start_level=0)
+    if args.write_nifti:
+        print("Preparing to write moving image pyramid...")
+        save_image_pyramid(moving_pyramid, mask_pyramid, moving_affines, moving_path, out_path, args.moving_out_name, start_level=0)
 
     # Record moving image top center position
     p1 = [moving.shape[0], moving.shape[1] / 2, moving.shape[2] / 2]
@@ -471,7 +462,7 @@ if __name__ == "__main__":
     if fixed_mask is not None:
         fixed = da.where(fixed_mask.astype(bool), fixed, 0)
 
-    # fixed = fixed.rechunk((160, 160, 160))
+    fixed = fixed.rechunk((160, 160, 160))
 
     # Write fixed image ome-zarr level 0
     group_name = "HR"
@@ -507,7 +498,8 @@ if __name__ == "__main__":
     shutil.rmtree(os.path.join(ome_path, "HR_tmp"))
 
     # Save to nifti for registration here
-    print("Preparing to write fixed image pyramid...")
-    # save_image_pyramid(fixed_pyramid, mask_pyramid, fixed_affines, fixed_path, out_path, args.fixed_out_name, start_level=2)
+    if args.write_nifti:
+        print("Preparing to write fixed image pyramid...")
+        save_image_pyramid(fixed_pyramid, mask_pyramid, fixed_affines, fixed_path, out_path, args.fixed_out_name, start_level=2)
 
     print("Done")

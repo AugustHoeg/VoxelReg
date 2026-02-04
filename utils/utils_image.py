@@ -50,8 +50,16 @@ def load_image(image_path,
     image = None
     metadata = None
 
+    # Zarr
+    if "zarr" in image_path:
+        zarr_data = zarr.open(image_path, mode='r')
+        if backend == "Dask":
+            image = da.from_zarr(zarr_data, chunks=chunk_shape).astype(dtype)
+        elif backend == "Numpy":
+            image = np.array(zarr_data, dtype=dtype)
+
     # DICOM folder (no file extension)
-    if '.' not in os.path.basename(image_path):
+    elif '.' not in os.path.basename(image_path):
         if glob.glob(os.path.join(image_path, '*.dcm')):
             if backend == "Dask":
                 print("Dask backend for DICOM not supported. Loading full image and returning dask array...")
@@ -122,15 +130,6 @@ def load_image(image_path,
                 image = da.from_array(image, chunks=chunk_shape)
             if backend == "Numpy":
                 image = np.load(image_path).astype(dtype)
-
-
-        # Zarr
-        elif file_extension == "zarr":
-            zarr_data = zarr.open(image_path, mode='r')
-            if backend == "Dask":
-                image = da.from_zarr(zarr_data, chunks=chunk_shape).astype(dtype)
-            elif backend == "Numpy":
-                image = np.array(zarr_data, dtype=dtype)
 
         # HDF5
         elif file_extension == "h5":
