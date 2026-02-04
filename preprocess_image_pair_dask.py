@@ -104,7 +104,7 @@ def parse_arguments():
     parser.add_argument("--apply_fixed_mask", action="store_true", help="Apply fixed mask to the image.")
 
     parser.add_argument("--top_index", type=str, default="last", help="Index for the top slice of the image, default is 'last'")
-    parser.add_argument("--write_nifti", type=bool, default=True, help="Write preprocessed images to nifti files for registration (note: very slow).")
+    parser.add_argument("--write_nifti", action="store_true", help="Write preprocessed images to nifti files for registration (note: very slow).")
 
     parser.add_argument("--num_workers", type=int, default=32, help="Number of workers for Dask cluster.")
     parser.add_argument("--memory_limit", type=str, default="12GB", help="Memory limit for each Dask worker.")
@@ -146,10 +146,10 @@ if __name__ == "__main__":
     print("Visualization is set to: ", visualize)
 
     ##################### DASK CLUSTER ######################
-    cluster = LocalCluster(args.num_workers,
-                           threads_per_worker=1,
-                           memory_limit=args.memory_limit)
-    client = Client(cluster)
+    # cluster = LocalCluster(args.num_workers,
+    #                        threads_per_worker=1,
+    #                        memory_limit=args.memory_limit)
+    # client = Client(cluster)
 
 
     ##################### MOVING IMAGE ######################

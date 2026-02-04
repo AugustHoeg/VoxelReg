@@ -52,10 +52,10 @@ def load_image(image_path,
 
     # Zarr
     if "zarr" in image_path:
-        zarr_data = zarr.open(image_path, mode='r')
         if backend == "Dask":
-            image = da.from_zarr(zarr_data, chunks=chunk_shape).astype(dtype)
+            image = da.from_zarr(image_path, chunks=chunk_shape).astype(dtype)
         elif backend == "Numpy":
+            zarr_data = zarr.open(image_path, mode='r')
             image = np.array(zarr_data, dtype=dtype)
 
     # DICOM folder (no file extension)
