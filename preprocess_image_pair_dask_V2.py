@@ -186,9 +186,6 @@ if __name__ == "__main__":
     # rechunk moving
     moving = moving.rechunk((160, 160, 160))
 
-    # persist
-    moving = moving.persist()
-
     # Define moving path
     ome_path = os.path.join(out_path, args.out_name + "_ome.zarr")
 
@@ -272,7 +269,7 @@ if __name__ == "__main__":
     moving = da.clip(moving, low, high, dtype=np.float32)  # clip, and promote to float for scaling
     moving = (moving - low) / (high - low)
     moving = (moving * 65535).astype(input_dtype)
-    moving = moving.persist()
+    moving = moving.persist()  # keep in memory/dask cluster
 
     if moving_mask is not None:
         moving = da.where(moving_mask.astype(bool), moving, 0)
@@ -355,9 +352,6 @@ if __name__ == "__main__":
     # rechunk fixed
     fixed = fixed.rechunk((160, 160, 160))
 
-    # persist
-    fixed = fixed.persist()
-
     # Get fixed image mask
     fixed_mask = None
     mask_pyramid = None
@@ -438,7 +432,7 @@ if __name__ == "__main__":
     fixed = da.clip(fixed, low, high, dtype=np.float32)  # clip, and promote to float for scaling
     fixed = (fixed - low) / (high - low)
     fixed = (fixed * 65535).astype(input_dtype)
-    fixed = fixed.persist()
+    fixed = fixed.persist()  # persist in memory
 
     if fixed_mask is not None:
         fixed = da.where(fixed_mask.astype(bool), fixed, 0)
