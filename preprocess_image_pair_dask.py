@@ -107,7 +107,7 @@ def parse_arguments():
     parser.add_argument("--write_nifti", type=bool, default=True, help="Write preprocessed images to nifti files for registration (note: very slow).")
 
     parser.add_argument("--num_workers", type=int, default=32, help="Number of workers for Dask cluster.")
-    parser.add_argument("--memory_limit", type=str, default="8GB", help="Memory limit for each Dask worker.")
+    parser.add_argument("--memory_limit", type=str, default="12GB", help="Memory limit for each Dask worker.")
 
     args = parser.parse_args()
     return args
@@ -148,7 +148,6 @@ if __name__ == "__main__":
     ##################### DASK CLUSTER ######################
     cluster = LocalCluster(args.num_workers,
                            threads_per_worker=1,
-                           memory_target_fraction=0.95,
                            memory_limit=args.memory_limit)
     client = Client(cluster)
 
