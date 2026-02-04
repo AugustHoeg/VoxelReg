@@ -146,10 +146,10 @@ if __name__ == "__main__":
     print("Visualization is set to: ", visualize)
 
     ##################### DASK CLUSTER ######################
-    # cluster = LocalCluster(args.num_workers,
-    #                        threads_per_worker=1,
-    #                        memory_limit=args.memory_limit)
-    # client = Client(cluster)
+    cluster = LocalCluster(args.num_workers,
+                           threads_per_worker=1,
+                           memory_limit=args.memory_limit)
+    client = Client(cluster)
 
 
     ##################### MOVING IMAGE ######################
