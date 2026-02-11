@@ -248,7 +248,6 @@ if __name__ == "__main__":
         # write_label_metadata(group, 'LR')
 
         viz_slices(moving_mask, [200, 400, 600], save_dir=out_path, title=args.out_name + f"_moving_mask", axis=0, vmin=0, vmax=255)
-        print(f"min = {moving_mask[100, :, :].min().compute()}, max = {moving_mask[100, :, :].max().compute()}")
 
         # moving = da.where(moving_mask.astype(bool), moving, da.nan)
         moving = da.where(moving_mask.astype(bool), moving, 0)  # Avoids promotion to float due to nan
@@ -294,11 +293,7 @@ if __name__ == "__main__":
                 down = da.where(mask_pyramid[level + 1].astype(bool), down, 0)
             moving_pyramid.append(down)
 
-    with ProgressBar(dt=1):
-        print("Moving image min and max after clipping and scaling:")
-        print(f"min = {moving[100, :, :].min().compute()}, max = {moving[100, :, :].max().compute()}")
 
-    # slices = [moving.shape[0] // 4, moving.shape[0] // 3, moving.shape[0] // 2]
     for i, image in enumerate(moving_pyramid):
         print(f"Level {i} shape: {image.shape}, chunks: {image.chunksize}")
         slices = [image.shape[0] // 2, image.shape[1] // 2, image.shape[2] // 2]
@@ -457,10 +452,6 @@ if __name__ == "__main__":
             if mask_pyramid is not None:
                 down = da.where(mask_pyramid[level + 1].astype(bool), down, 0)
             fixed_pyramid.append(down)
-
-    with ProgressBar(dt=1):
-        print("fixed image min and max after clipping and scaling:")
-        print(f"min = {fixed[100, :, :].min().compute()}, max = {fixed[100, :, :].max().compute()}")
 
     for i, image in enumerate(fixed_pyramid):
         print(f"Level {i} shape: {image.shape}, chunks: {image.chunksize}")
