@@ -9,9 +9,9 @@ from dask.diagnostics import ProgressBar
 
 from utils.utils_image import plot_histogram
 from utils.utils_plot import viz_slices, viz_multiple_images
-from utils.utils_preprocess import get_image_and_affine, save_image_pyramid, get_image_pyramid, define_image_space, get_dtype, scale_n_clip, clip_rescale, mask_with_cylinder, dtype_min_max, minmax_scaler, compute_affine_scale
+from utils.utils_preprocess import get_image_and_affine, save_image_pyramid, get_dtype, mask_with_cylinder, compute_affine_scale
 from utils.utils_nifti import voxel2world, set_origin
-from utils.utils_dask import threshold_dask, otsu_threshold_dask
+from utils.utils_dask import threshold_dask, otsu_threshold_dask, crop_pad_vol
 from utils.utils_zarr import create_ome_group, write_ome_level
 
 # Define paths
@@ -66,15 +66,15 @@ def parse_arguments():
     parser.add_argument("--run_type", type=str, default="HOME PC", help="Run type: HOME PC or DTU HPC.")
     parser.add_argument("--dtype", type=str, default="UINT16", help="Data type of fixed/moving input images")
 
-    parser.add_argument("--moving_min_size", type=int, nargs=3, default=(0, 0, 0), help="Minimum size for cropping.")
-    parser.add_argument("--moving_max_size", type=int, nargs=3, default=(9999, 9999, 9999), help="Maximum size for cropping.")
-    parser.add_argument("--fixed_min_size", type=int, nargs=3, default=(0, 0, 0), help="Minimum size for cropping.")
-    parser.add_argument("--fixed_max_size", type=int, nargs=3, default=(9999, 9999, 9999), help="Maximum size for cropping.")
+    parser.add_argument("--moving_d_range", type=int, nargs=2, help="Start and end indices for moving first axis.")
+    parser.add_argument("--moving_h_range", type=int, nargs=2, help="Start and end indices for moving second axis.")
+    parser.add_argument("--moving_w_range", type=int, nargs=2, help="Start and end indices for moving third axis.")
+    parser.add_argument("--fixed_d_range", type=int, nargs=2, help="Start and end indices for fixed first axis.")
+    parser.add_argument("--fixed_h_range", type=int, nargs=2, help="Start and end indices for fixed second axis.")
+    parser.add_argument("--fixed_w_range", type=int, nargs=2, help="Start and end indices for fixed third axis.")
 
     parser.add_argument("--moving_pixel_size", type=float, nargs=3, default=(None, None, None), help="Pixel size in mm for moving image.")
     parser.add_argument("--fixed_pixel_size", type=float, nargs=3, default=(None, None, None), help="Pixel size in mm for fixed image.")
-
-    parser.add_argument("--margin_percent", type=float, default=0.5, help="Margin percentage for cropping.")
 
     parser.add_argument("--moving_divis_factor", type=int, default=8, help="Divisibility factor for cropping highest resolution moving image.")
     parser.add_argument("--fixed_divis_factor", type=int, default=8, help="Divisibility factor for cropping highest resolution fixed image.")
@@ -82,7 +82,6 @@ def parse_arguments():
     parser.add_argument("--moving_pyramid_depth", type=int, default=4, help="Depth of saved image pyramid.")
     parser.add_argument("--fixed_pyramid_depth", type=int, default=4, help="Depth of saved image pyramid.")
 
-    parser.add_argument("--f", type=int, default=1, help="LR resolution factor.")
     parser.add_argument("--moving_clip_percentiles", type=float, nargs=2, default=(1.0, 99.0), help="Lower and upper percentiles for image normalization")
     parser.add_argument("--fixed_clip_percentiles", type=float, nargs=2, default=(1.0, 99.0), help="Lower and upper percentiles for image normalization")
 
@@ -169,13 +168,7 @@ if __name__ == "__main__":
                                                  dtype=input_dtype,
                                                  backend="Dask")
 
-    # Define moving image space
-    # moving, moving_affine, moving_crop_start, moving_crop_end = define_image_space(moving, moving_affine, f=args.f,
-    #                                                                                min_size=args.moving_min_size,
-    #                                                                                max_size=args.moving_max_size,
-    #                                                                                margin_percent=args.margin_percent,
-    #                                                                                divis_factor=args.moving_divis_factor,
-    #                                                                                top_index=args.top_index)
+    moving = crop_pad_vol(moving, args.moving_d_range, args.moving_h_range, args.moving_w_range, pad_value=0)
 
     # Scale moving affines
     moving_affines = [moving_affine]
@@ -324,13 +317,7 @@ if __name__ == "__main__":
                                                dtype=input_dtype,
                                                backend="Dask")
 
-    # Define fixed image space
-    # fixed, fixed_affine, fixed_crop_start, fixed_crop_end = define_image_space(fixed, fixed_affine, f=1,
-    #                                                                            min_size=args.fixed_min_size,
-    #                                                                            max_size=args.fixed_max_size,
-    #                                                                            margin_percent=0.0,
-    #                                                                            divis_factor=args.fixed_divis_factor,
-    #                                                                            top_index=args.top_index)
+    fixed = crop_pad_vol(fixed, args.fixed_d_range, args.fixed_h_range, args.fixed_w_range, pad_value=0)
 
     # Set fixed origin to moving image top slice, centered in H, W
     p2 = [fixed.shape[0], fixed.shape[1] / 2, fixed.shape[2] / 2]

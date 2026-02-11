@@ -101,3 +101,93 @@ def otsu_threshold_dask(arr, bins=65535, value_range=(0, 65535), remove_zero_bin
     threshold = bin_centers[idx]
 
     return threshold
+
+
+def crop_pad_vol(
+    volume,
+    d_range,
+    h_range,
+    w_range,
+    pad_value=0,
+):
+    """
+    Crop and/or pad a 3D volume using explicit start/stop indices.
+
+    Parameters
+    ----------
+    volume : np.ndarray or da.Array
+        Input array of shape (D, H, W)
+    d_range : (int, int)
+    h_range : (int, int)
+    w_range : (int, int)
+        Desired output region in index space.
+    pad_value : scalar
+        Value used for padding outside bounds.
+
+    Returns
+    -------
+    Cropped/padded array of shape:
+        (z_stop - z_start, y_stop - y_start, x_stop - x_start)
+    """
+
+    is_dask = isinstance(volume, da.Array)
+
+    D, H, W = volume.shape
+
+    z0, z1 = d_range
+    y0, y1 = h_range
+    x0, x1 = w_range
+
+    # --- Compute intersection with valid region ---
+    z0_valid = max(z0, 0)
+    z1_valid = min(z1, D)
+
+    y0_valid = max(y0, 0)
+    y1_valid = min(y1, H)
+
+    x0_valid = max(x0, 0)
+    x1_valid = min(x1, W)
+
+    # --- Crop valid region ---
+    cropped = volume[
+        z0_valid:z1_valid,
+        y0_valid:y1_valid,
+        x0_valid:x1_valid,
+    ]
+
+    # --- Compute padding widths ---
+    pad_before = (
+        z0_valid - z0,
+        y0_valid - y0,
+        x0_valid - x0,
+    )
+
+    pad_after = (
+        z1 - z1_valid,
+        y1 - y1_valid,
+        x1 - x1_valid,
+    )
+
+    pad_width = tuple(
+        (before, after)
+        for before, after in zip(pad_before, pad_after)
+    )
+
+    # --- Apply padding if needed ---
+    if any(b > 0 or a > 0 for b, a in pad_width):
+        if is_dask:
+            cropped = da.pad(
+                cropped,
+                pad_width=pad_width,
+                mode="constant",
+                constant_values=pad_value,
+            )
+        else:
+            cropped = np.pad(
+                cropped,
+                pad_width=pad_width,
+                mode="constant",
+                constant_values=pad_value,
+            )
+
+    return cropped
