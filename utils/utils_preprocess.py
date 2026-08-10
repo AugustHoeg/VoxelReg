@@ -727,25 +727,28 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
     os.makedirs(out_path, exist_ok=True)
 
     for i in range(start_level, len(image_pyramid)):
-        if image_pyramid[i] is None:
+        image = image_pyramid[i]
+        if image is None:
             continue
-        # Save downscaled images
         # write_tiff(down, os.path.join(sample_path, filename + f"_down_{2**(i+1)}.tiff"))
         # np.save(os.path.join(out_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
-        if isinstance(image_pyramid[i], da.Array):
-            image_pyramid[i] = image_pyramid[i].compute()  # Convert dask array to numpy array
 
-        print(f"Writing pyramid image level: {i} with shape {image_pyramid[i].shape}")
-        write_nifti(image_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii.gz"), dtype=image_pyramid[i].dtype)
+        if isinstance(image, da.Array):
+            image = image.compute()  # Convert dask array to numpy array
+
+        print(f"Writing pyramid image level: {i} with shape {image.shape}")
+        write_nifti(image, affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii.gz"), dtype=image.dtype)
 
     if mask_pyramid is not None:
         for i in range(start_level, len(mask_pyramid)):
-            if mask_pyramid[i] is None:
+            mask = mask_pyramid[i]
+            if mask is None:
                 continue
             # np.save(os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.npy"), mask)
             # write_tiff(mask, os.path.join(sample_path, filename + "_mask.tiff"))
-            if isinstance(mask_pyramid[i], da.Array):
-                mask_pyramid[i] = mask_pyramid[i].compute()
 
-            print(f"Writing pyramid mask level: {i} with shape {mask_pyramid[i].shape}")
-            write_nifti(mask_pyramid[i], affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.nii.gz"), dtype=mask_pyramid[i].dtype)
+            if isinstance(mask, da.Array):
+                mask = mask.compute()
+
+            print(f"Writing pyramid mask level: {i} with shape {mask.shape}")
+            write_nifti(mask, affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.nii.gz"), dtype=mask.dtype)

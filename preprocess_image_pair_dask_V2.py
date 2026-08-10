@@ -42,8 +42,8 @@ out_name = "Oak_A"  # Name of the output file
 
 project_path = "../../Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/forams_A/"
 sample_path = project_path
-moving_path = sample_path + "forams_A_LR.tiff"
-fixed_path = sample_path + "forams_A_LR.tiff"
+moving_path = sample_path + "forams_A_LR.zarr/raw"
+fixed_path = sample_path + "forams_A_LR.zarr/raw"
 out_name = "forams_A"  # Name of the output file
 
 
