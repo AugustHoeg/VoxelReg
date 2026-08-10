@@ -148,7 +148,7 @@ if __name__ == "__main__":
     if args.run_type == "DTU_HPC":
         # Set up Dask cluster for DTU HPC
         cluster = LocalCluster(args.num_workers,
-                               threads_per_worker=1,
+                               threads_per_worker=2,
                                memory_limit=args.memory_limit)
         client = Client(cluster)
 
