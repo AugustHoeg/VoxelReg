@@ -15,7 +15,7 @@ from utils.utils_nifti import get_affine_from_itk_image
 from utils.utils_zarr import create_ome_group, write_ome_level
 
 # Define paths
-project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/"
+project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/3D_datasets/datasets/VoDaSuRe/"
 sample_path = project_path + "Larch_A_bin1x1/processed/"
 #moving_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"
 #fixed_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"
@@ -325,13 +325,13 @@ if __name__ == "__main__":
 
     viz_multiple_images([result_image, fixed_image_sparse], D // 5 * np.arange(1, 4), axis=2, save_dir=out_path, title=out_name + "_matched", savefig=True)
 
-    full_out_path = os.path.join(out_path, out_name + "_matched.npy")
-    np.save(full_out_path, result_array)
-    print(f"Output saved to {full_out_path}")
-
-    full_out_path = os.path.join(out_path, out_name + "_matched.tiff")
-    write_tiff(result_array, full_out_path)
-    print(f"Output saved to {full_out_path}")
+    # full_out_path = os.path.join(out_path, out_name + "_matched.npy")
+    # np.save(full_out_path, result_array)
+    # print(f"Output saved to {full_out_path}")
+    #
+    # full_out_path = os.path.join(out_path, out_name + "_matched.tiff")
+    # write_tiff(result_array, full_out_path)
+    # print(f"Output saved to {full_out_path}")
 
     full_out_path = os.path.join(out_path, out_name + "_matched.nii.gz")
     itk.imwrite(result_image, full_out_path)

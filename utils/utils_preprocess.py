@@ -752,3 +752,5 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
 
             print(f"Writing pyramid mask level: {i} with shape {mask.shape}")
             write_nifti(mask, affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.nii.gz"), dtype=mask.dtype)
+    else:
+        print("Mask pyramid is None, skipping write...")
