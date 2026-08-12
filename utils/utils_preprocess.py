@@ -749,7 +749,7 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
             # write_tiff(mask, os.path.join(sample_path, filename + "_mask.tiff"))
 
             if isinstance(mask, da.Array):
-                mask = mask.compute()
+                mask = mask.compute()   # Convert dask array to numpy array
 
             print(f"Writing pyramid mask level: {i} with shape {mask.shape}")
             write_nifti(mask, affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.nii.gz"), dtype=mask.dtype)

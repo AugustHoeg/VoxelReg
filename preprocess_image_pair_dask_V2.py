@@ -117,7 +117,8 @@ if __name__ == "__main__":
     args = parse_arguments()
 
     if args.run_type == "HOME PC":
-        project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/"
+        project_path = "/dtu/3d-imaging-center/projects/2025_DANFIX_163_VoDaSuRe/raw_data_extern/"
+        # project_path = "C:/Users/aulho/OneDrive - Danmarks Tekniske Universitet/Dokumenter/Github/Vedrana_master_project/3D_datasets/datasets/VoDaSuRe/"
     elif args.run_type == "DTU_HPC":
         project_path = "/dtu/3d-imaging-center/projects/2025_DANFIX_163_VoDaSuRe/raw_data_extern/"
 
@@ -193,12 +194,7 @@ if __name__ == "__main__":
                                                              dtype=np.uint8,
                                                              backend="Dask")
 
-        moving_mask, _, _, _ = define_image_space(moving_mask, moving_mask_affine, f=1,
-                                                 min_size=args.moving_min_size,
-                                                 max_size=args.moving_max_size,
-                                                 margin_percent=0.0,
-                                                 divis_factor=args.moving_divis_factor,
-                                                 top_index=args.top_index)
+        moving_mask = crop_pad_vol(moving_mask, args.moving_d_range, args.moving_h_range, args.moving_w_range, pad_value=0)
 
     elif args.moving_mask_method == "threshold":
         moving_threshold = args.moving_mask_threshold
@@ -345,12 +341,7 @@ if __name__ == "__main__":
                                                              dtype=np.uint8,
                                                              backend="Dask")
 
-        # fixed_mask, _, _, _ = define_image_space(fixed_mask, fixed_mask_affine, f=1,
-        #                                          min_size=args.fixed_min_size,
-        #                                          max_size=args.fixed_max_size,
-        #                                          margin_percent=0.0,
-        #                                          divis_factor=args.fixed_divis_factor,
-        #                                          top_index=args.top_index)
+        fixed_mask = crop_pad_vol(fixed_mask, args.fixed_d_range, args.fixed_h_range, args.fixed_w_range, pad_value=0)
 
     elif args.fixed_mask_method == "threshold":
         fixed_threshold = args.fixed_mask_threshold
