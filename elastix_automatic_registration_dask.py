@@ -30,12 +30,12 @@ out_name = "Larch_A_LFOV_registered"  # Name of the output file
 #moving_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"
 #fixed_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"
 
-sample_path = project_path + "Oak_A/"
-moving_path = sample_path + "moving_scale_1.nii.gz"
-fixed_path = sample_path + "fixed_scale_4.nii.gz"
-mask_path = sample_path + "fixed_scale_4_mask.nii.gz"
+sample_path = project_path + "forams_A/"
+moving_path = sample_path + "moving_scale_2.nii.gz"
+fixed_path = sample_path + "fixed_scale_8.nii.gz"
+mask_path = sample_path + "fixed_scale_8_mask.nii.gz"
 out_path = sample_path
-out_name = "Oak_A"  # Name of the output file
+out_name = "forams_A"  # Name of the output file
 
 
 # Load downsampled images
@@ -109,9 +109,9 @@ if __name__ == "__main__":
 
     #####
     print("REMOVE THIS")
-    args.affine_transform_file = os.path.join(sample_path, "test_transform_v2.txt")  # REMOVE THIS
+    args.affine_transform_file = os.path.join(sample_path, "transform.txt")  # REMOVE THIS
     args.mask_path = mask_path # REMOVE THIS
-    args.moving_image_roi = [np.inf, 240, 240]
+    args.moving_image_roi = [np.inf, np.inf, np.inf]
     #####
 
     filename, file_extension = os.path.basename(moving_path).split('.', 1)
@@ -280,13 +280,13 @@ if __name__ == "__main__":
     result_image.SetSpacing(spacing)
     result_image.SetDirection(direction)
 
-    full_out_path = os.path.join(out_path, out_name + ".npy")
-    np.save(full_out_path, result_array)
-    print(f"Output saved to {full_out_path}")
-
-    full_out_path = os.path.join(out_path, out_name + ".tiff")
-    write_tiff(result_array, full_out_path)
-    print(f"Output saved to {full_out_path}")
+    # full_out_path = os.path.join(out_path, out_name + ".npy")
+    # np.save(full_out_path, result_array)
+    # print(f"Output saved to {full_out_path}")
+    #
+    # full_out_path = os.path.join(out_path, out_name + ".tiff")
+    # write_tiff(result_array, full_out_path)
+    # print(f"Output saved to {full_out_path}")
 
     full_out_path = os.path.join(out_path, out_name + ".nii.gz")
     itk.imwrite(result_image, full_out_path)
@@ -346,9 +346,12 @@ if __name__ == "__main__":
     store, group = create_ome_group(ome_path, group_name=group_name, pyramid_depth=2)  # TODO what should be pyramid depth?
 
     # Write fixed to level 0
-    result_array = da.from_array(result_array)
-    result_array = result_array.reshape(D, H, W)
-    result_array = result_array.rechunk((160, 160, 160))
-    registered = write_ome_level(result_array, store, group_name, level=args.ome_level)
+    result_array = np.array(result_array)  # To numpy
+    result_array = result_array.transpose(2, 0, 1)  # Permute to D, H, W (slice first)
+    result_array = np.ascontiguousarray(result_array)  # Enforce C element order
+
+    da_result_array = da.from_array(result_array)  # To dask for writing OME
+    da_result_array = da_result_array.rechunk((160, 160, 160))  # Rechunk
+    registered = write_ome_level(da_result_array, store, group_name, level=args.ome_level)  # Write to disk
 
     print("Done")

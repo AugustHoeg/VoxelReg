@@ -23,7 +23,7 @@ def viz_slices(array, slice_indices, title="output", axis=0, savefig=True, save_
 
     if savefig:
         plt.savefig(os.path.join(save_dir, title + ".png"), dpi=300, bbox_inches='tight')
-        print(f"Saved figure as {title}")
+        print(f"Saved figure as {title}.png")
     else:
         plt.show()
 
@@ -81,7 +81,7 @@ def viz_multiple_images(image_list, slice_indices, title=None, axis=0, savefig=T
 
     if savefig:
         plt.savefig(os.path.join(save_dir, title + ".png"), dpi=300, bbox_inches='tight')
-        print(f"Saved figure as {title}")
+        print(f"Saved figure as {title}.png")
     else:
         plt.show()
 
