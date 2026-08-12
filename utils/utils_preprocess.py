@@ -726,24 +726,25 @@ def save_image_pyramid(image_pyramid, mask_pyramid, affines, scan_path, out_path
         out_path = os.path.join(os.path.dirname(scan_path), "processed")
     os.makedirs(out_path, exist_ok=True)
 
-    for i in range(start_level, len(image_pyramid)):
-        image = image_pyramid[i]
-        if image is None:
-            continue
-        # write_tiff(down, os.path.join(sample_path, filename + f"_down_{2**(i+1)}.tiff"))
-        # np.save(os.path.join(out_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
+    if image_pyramid is not None:
+        for i in range(start_level, len(image_pyramid)):
+            image = image_pyramid[i]
 
-        if isinstance(image, da.Array):
-            image = image.compute()  # Convert dask array to numpy array
+            # write_tiff(down, os.path.join(sample_path, filename + f"_down_{2**(i+1)}.tiff"))
+            # np.save(os.path.join(out_path, out_name + f"_scale_{2**i}.npy"), pyramid[i])
 
-        print(f"Writing pyramid image level: {i} with shape {image.shape}")
-        write_nifti(image, affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii.gz"), dtype=image.dtype)
+            if isinstance(image, da.Array):
+                image = image.compute()  # Convert dask array to numpy array
+
+            print(f"Writing pyramid image level: {i} with shape {image.shape}")
+            write_nifti(image, affines[i], os.path.join(out_path, out_name + f"_scale_{2 ** i}.nii.gz"), dtype=image.dtype)
+    else:
+        print("Image pyramid is None, skipping write...")
 
     if mask_pyramid is not None:
         for i in range(start_level, len(mask_pyramid)):
             mask = mask_pyramid[i]
-            if mask is None:
-                continue
+
             # np.save(os.path.join(out_path, out_name + f"_scale_{2 ** i}_mask.npy"), mask)
             # write_tiff(mask, os.path.join(sample_path, filename + "_mask.tiff"))
 
