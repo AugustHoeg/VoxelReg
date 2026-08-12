@@ -107,11 +107,11 @@ if __name__ == "__main__":
         args.affine_transform_file = os.path.join(sample_path, args.affine_transform_file)
         print("Affine transform file: ", args.affine_transform_file)
 
-    #####
-    print("REMOVE THIS")
-    args.affine_transform_file = os.path.join(sample_path, "transform.txt")  # REMOVE THIS
-    args.mask_path = mask_path # REMOVE THIS
-    args.moving_image_roi = [np.inf, np.inf, np.inf]
+    ##### ONLY FOR DEBUGGING
+    if args.run_type == "HOME PC":
+        args.affine_transform_file = os.path.join(sample_path, "transform.txt")  # REMOVE THIS
+        args.mask_path = mask_path # REMOVE THIS
+        args.moving_image_roi = [np.inf, np.inf, np.inf]
     #####
 
     filename, file_extension = os.path.basename(moving_path).split('.', 1)
