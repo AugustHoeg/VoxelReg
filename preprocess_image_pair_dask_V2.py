@@ -142,6 +142,9 @@ if __name__ == "__main__":
         out_path = os.path.join(sample_path, args.out_path)  # os.path.join(sample_path, args.out_name)
         print("Output path: ", out_path)
 
+    # Create out_path if it does not already exist
+    os.makedirs(out_path, exist_ok=True)
+
     visualize = False  # True
     print("Visualization is set to: ", visualize)
 
