@@ -345,9 +345,9 @@ if __name__ == "__main__":
     # Create OME group with metadata
     store, group = create_ome_group(ome_path, group_name=group_name, pyramid_depth=2)  # TODO what should be pyramid depth?
 
-    # Write fixed to level 0
+    # Write fixed to level args.ome_level
     result_array = np.array(result_array)  # To numpy
-    result_array = result_array.transpose(2, 0, 1)  # Permute to D, H, W (slice first)
+    result_array = result_array.transpose(2, 1, 0)  # Permute to D, H, W (slice first) and reverse HW (ITK Convention)
     result_array = np.ascontiguousarray(result_array)  # Enforce C element order
 
     da_result_array = da.from_array(result_array)  # To dask for writing OME
