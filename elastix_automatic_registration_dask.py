@@ -30,12 +30,12 @@ out_name = "Larch_A_LFOV_registered"  # Name of the output file
 #moving_path = sample_path + "Larch_A_bin1x1_LFOV_80kV_7W_air_2p5s_6p6mu_bin1_recon.tiff"
 #fixed_path = sample_path + "Larch_A_bin1x1_4X_80kV_7W_air_1p5_1p67mu_bin1_pos1_recon.tif"
 
-sample_path = project_path + "forams_A/"
+sample_path = project_path + "coral_A/"
 moving_path = sample_path + "moving_scale_2.nii.gz"
 fixed_path = sample_path + "fixed_scale_8.nii.gz"
 mask_path = sample_path + "fixed_scale_8_mask.nii.gz"
 out_path = sample_path
-out_name = "forams_A"  # Name of the output file
+out_name = "coral_A"  # Name of the output file
 
 
 # Load downsampled images
