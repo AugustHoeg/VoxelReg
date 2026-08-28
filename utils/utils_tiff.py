@@ -256,7 +256,7 @@ def timestamp():
 
 def tiff2zarr(
         tiff_path,
-        nworkers,
+        num_workers=16,
         read_window=np.s_[:, :],
         zarr_path="data.zarr",
         group_name="raw",
@@ -287,14 +287,14 @@ def tiff2zarr(
             shape=(n_frames, slice_shape[0], slice_shape[1]),
             chunks=(1, slice_shape[0], slice_shape[1]),
             dtype=dtype,
-            compressors=BloscCodec(cname=BloscCname[cname], clevel=3, shuffle=BloscShuffle.bitshuffle)
+            compressors=BloscCodec(cname=BloscCname[cname], clevel=clevel, shuffle=BloscShuffle.bitshuffle)
         )
 
         print(f"Created zarr store: {zarr_path}")
         print(f"Shape: {(n_frames, slice_shape[0], slice_shape[1])}")
 
         # ---- multiprocessing ----
-        pool = mp.Pool(nworkers)
+        pool = mp.Pool(num_workers)
         results = []
 
         for frame_idx in range(n_frames):
@@ -313,6 +313,96 @@ def tiff2zarr(
         pool.join()
 
         print("\nwrite_count", write_count)
+
+    if return_as_dask:
+        image = da.from_zarr(store, component=group_name)
+        return image
+    else:
+        return store, group
+
+
+def tiff2zarr_dask(
+        tiff_path,
+        num_workers=16,
+        read_window=np.s_[:, :],
+        zarr_path="data.zarr",
+        group_name="raw",
+        dtype=None,
+        cname="lz4",
+        clevel=3,
+        return_as_dask=True):
+    """
+    Convert a TIFF stack to a chunked, Blosc-compressed zarr array.
+
+    Unlike ``tiff2zarr``, this variant does NOT rely on ``tif.pages`` exposing
+    every frame. It opens the whole series through tifffile's zarr store
+    (``imread(..., aszarr=True)``), wraps it in a dask array, and streams it to
+    disk slice-by-slice via ``da.store`` so the full volume is never held in RAM.
+
+    Args:
+        tiff_path (str): Path to the (multi-page / series) TIFF file.
+        read_window (tuple of slices): Spatial crop applied to each frame,
+            e.g. ``np.s_[100:900, :]``. Defaults to the full slice.
+        zarr_path (str): Output zarr store path.
+        group_name (str): Name of the array within the zarr group.
+        dtype: Cast the data to this dtype before writing. ``None`` keeps the
+            source dtype (e.g. float32).
+        cname (str): Blosc compressor name (key into ``BloscCname``).
+        clevel (int): Blosc compression level.
+        num_workers (int or None): Threads for the dask write. ``None`` lets dask
+            decide. Reads go through a single open TIFF handle, so keep this
+            modest if you hit tifffile thread-safety issues (see note below).
+        return_as_dask (bool): If True, return a dask array backed by the new
+            store; otherwise return ``(store, group)``.
+    """
+
+    # ---- open the whole TIFF series as a (lazy) zarr-backed dask array ----
+    # This is the key difference vs. tiff2zarr: it works even when tif.pages
+    # only exposes the first frame, because tifffile resolves the full series.
+    tiff_store = tifffile.imread(tiff_path, aszarr=True)
+    try:
+        darr = da.from_zarr(tiff_store)  # shape (n_frames, H, W), chunks (1, H, W)
+
+        # Apply the spatial read window to the (Y, X) dims of every frame.
+        darr = darr[(slice(None),) + tuple(read_window)]
+
+        if dtype is not None:
+            darr = darr.astype(dtype)
+
+        n_frames, H, W = darr.shape
+        print("n_frames", n_frames)
+
+        # Chunk one slice per chunk to match the write pattern below.
+        chunks = (1, H, W)
+        darr = darr.rechunk(chunks)
+
+        # ---- create the output zarr array (same setup as tiff2zarr) ----
+        store = zarr.storage.LocalStore(zarr_path)
+        group = zarr.group(store=store)
+
+        if os.path.exists(os.path.join(store.root, group_name)):
+            print(f"OME level {group_name} already exists, skipping write.")
+        else:
+            z = group.create_dataset(
+                name=group_name,
+                shape=(n_frames, H, W),
+                chunks=chunks,
+                dtype=darr.dtype,
+                compressors=BloscCodec(cname=BloscCname[cname], clevel=clevel, shuffle=BloscShuffle.bitshuffle)
+            )
+
+            print(f"Created zarr store: {zarr_path}")
+            print(f"Shape: {(n_frames, H, W)}")
+
+            # Stream the write. Each dask block is exactly one output chunk
+            # (a single Z-slice), so lock=False is safe for the writes and
+            # memory stays bounded by (num_workers * slice size).
+            print(f"{timestamp()} – writing {n_frames} frames ...")
+            da.store(darr, z, lock=False, num_workers=num_workers)
+            print(f"{timestamp()} – done.")
+    finally:
+        # dask ran eagerly above, so the source handle is safe to close now.
+        tiff_store.close()
 
     if return_as_dask:
         image = da.from_zarr(store, component=group_name)
