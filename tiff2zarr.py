@@ -1,7 +1,7 @@
 import os
 import argparse
 import numpy as np
-from utils.utils_tiff import tiff2zarr
+from utils.utils_tiff import tiff2zarr, tiff2zarr_dask
 
 def parse_arguments():
 
@@ -26,8 +26,8 @@ if __name__ == "__main__":
     scan_path = os.path.join(args.base_path, args.tiff_path)
     out_path = os.path.join(args.out_path, args.tiff_path.replace(".tiff", ".zarr"))
 
-    image = tiff2zarr(scan_path,
-                      nworkers=args.num_workers,
+    image = tiff2zarr_dask(scan_path,
+                      num_workers=args.num_workers,
                       zarr_path=out_path,
                       group_name="raw",
                       dtype=args.out_dtype,
