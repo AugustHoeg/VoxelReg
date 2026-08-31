@@ -197,7 +197,10 @@ if __name__ == "__main__":
                                                              dtype=np.uint8,
                                                              backend="Dask")
 
-        moving_mask = crop_pad_vol(moving_mask, args.moving_d_range, args.moving_h_range, args.moving_w_range, pad_value=0)
+        if moving_mask.shape != moving.shape:  # If shape is not the same, crop and pad mask:
+            moving_mask = crop_pad_vol(moving_mask, args.moving_d_range, args.moving_h_range, args.moving_w_range, pad_value=0)
+        else:
+            print("Same shape as moving mask, skipping crop and padding...")
 
     elif args.moving_mask_method == "threshold":
         moving_threshold = args.moving_mask_threshold
@@ -344,7 +347,10 @@ if __name__ == "__main__":
                                                              dtype=np.uint8,
                                                              backend="Dask")
 
-        fixed_mask = crop_pad_vol(fixed_mask, args.fixed_d_range, args.fixed_h_range, args.fixed_w_range, pad_value=0)
+        if fixed_mask.shape != fixed.shape:  # If shape is not the same, crop and pad mask:
+            fixed_mask = crop_pad_vol(fixed_mask, args.fixed_d_range, args.fixed_h_range, args.fixed_w_range, pad_value=0)
+        else:
+            print("Same shape as fixed mask, skipping crop and padding...")
 
     elif args.fixed_mask_method == "threshold":
         fixed_threshold = args.fixed_mask_threshold

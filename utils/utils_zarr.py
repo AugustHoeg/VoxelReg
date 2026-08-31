@@ -36,10 +36,12 @@ def write_ome_metadata(group, num_levels, scale=2):
 
 
 
-def create_ome_group(path, group_name='HR', pyramid_depth=4, scale=2, **kwargs):
+def create_ome_group(path, group_name='HR', pyramid_depth=4, scale=2, mode="w", **kwargs):
 
-    # Create/open a Zarr array in write mode
-    store = parse_url(path, mode="w").store
+    # Create/open a Zarr array. Use mode="w" for the first group written to a
+    # file (clean overwrite) and mode="a" for subsequent groups so previously
+    # written groups in the same file are not wiped.
+    store = parse_url(path, mode=mode).store
     root = zarr.group(store=store)
 
     out_path = path
@@ -107,6 +109,15 @@ def create_ome_group(path, group_name='HR', pyramid_depth=4, scale=2, **kwargs):
 
 
 def write_ome_level(image, store, group_name, level=0, chunk_size=None, cname='lz4', clevel=3):
+
+    # Accept dask, zarr or numpy arrays. zarr/numpy are wrapped as dask arrays so
+    # the data is streamed to disk rather than materialized fully in memory.
+    if not isinstance(image, da.Array):
+        if isinstance(image, np.ndarray):
+            image = da.from_array(image)
+        else:
+            # assume a zarr array (or zarr-array-like) backing store
+            image = da.from_zarr(image)
 
     if chunk_size is not None:
         if chunk_size != image.chunksize:
