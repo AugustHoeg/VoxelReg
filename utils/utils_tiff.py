@@ -328,6 +328,8 @@ def tiff2zarr_dask(
         zarr_path="data.zarr",
         group_name="raw",
         dtype=None,
+        rescale=True,
+        in_range=None,
         cname="lz4",
         clevel=3,
         return_as_dask=True):
@@ -347,6 +349,13 @@ def tiff2zarr_dask(
         group_name (str): Name of the array within the zarr group.
         dtype: Cast the data to this dtype before writing. ``None`` keeps the
             source dtype (e.g. float32).
+        rescale (bool): If True (and ``dtype`` is given), linearly rescale the
+            input range to the dtype's natural range before casting: integer
+            dtypes map to ``[iinfo.min, iinfo.max]`` (e.g. ``[0, 65535]`` for
+            uint16), floats map to ``[0, 1]``. Ignored when ``dtype`` is None.
+        in_range (tuple or None): ``(in_min, in_max)`` source range to map from.
+            If None, the global min/max are computed with a dask reduction
+            (one extra streaming pass over the whole volume).
         cname (str): Blosc compressor name (key into ``BloscCname``).
         clevel (int): Blosc compression level.
         num_workers (int or None): Threads for the dask write. ``None`` lets dask
@@ -367,7 +376,33 @@ def tiff2zarr_dask(
         darr = darr[(slice(None),) + tuple(read_window)]
 
         if dtype is not None:
-            darr = darr.astype(dtype)
+            out_dtype = np.dtype(dtype)
+
+            if rescale:
+                # ---- target range from the output dtype ----
+                if np.issubdtype(out_dtype, np.integer):
+                    out_min, out_max = np.iinfo(out_dtype).min, np.iinfo(out_dtype).max
+                else:
+                    out_min, out_max = 0.0, 1.0
+
+                # ---- source range (auto min/max = one extra streaming pass) ----
+                if in_range is None:
+                    print(f"{timestamp()} – computing input min/max ...")
+                    in_min, in_max = da.compute(darr.min(), darr.max())
+                    in_min, in_max = float(in_min), float(in_max)
+                else:
+                    in_min, in_max = float(in_range[0]), float(in_range[1])
+                print(f"rescaling [{in_min}, {in_max}] -> [{out_min}, {out_max}]")
+
+                # ---- linear rescale in float, then clip/round/cast (all lazy) ----
+                span = in_max - in_min
+                scale = (out_max - out_min) / span if span > 0 else 0.0
+                darr = (darr.astype(np.float32) - in_min) * scale + out_min
+                darr = da.clip(darr, out_min, out_max)
+                if np.issubdtype(out_dtype, np.integer):
+                    darr = da.round(darr)
+
+            darr = darr.astype(out_dtype)
 
         n_frames, H, W = darr.shape
         print("n_frames", n_frames)

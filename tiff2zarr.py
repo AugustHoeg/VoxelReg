@@ -11,7 +11,7 @@ def parse_arguments():
     parser.add_argument("--tiff_path", type=str, required=False, help="Path to tiff image.")
     parser.add_argument("--out_path", type=str, required=False, help="path for the output image.")
     parser.add_argument("--out_dtype", type=str, required=False, default=np.uint16, help="data format to convert to")
-
+    parser.add_argument("--rescale", action="store_true", help="Flag to indicate if the image should be rescaled before casting")
     parser.add_argument("--num_workers", type=int, default=32, help="Number of workers for parallel processing")
 
     args = parser.parse_args()
@@ -33,6 +33,7 @@ if __name__ == "__main__":
                       dtype=args.out_dtype,
                       cname="lz4",
                       clevel=3,
+                      rescale=args.rescale,
                       return_as_dask=False)
 
     print(f"Conversion complete.")
