@@ -15,8 +15,8 @@ def parse_arguments():
     parser.add_argument("--scan_path", type=str, required=False, help="Path to fixed image.")
     parser.add_argument("--out_path", type=str, required=False, help="path for the output image.")
     parser.add_argument("--out_name", type=str, required=False, default="out", help="Name for the output image.")
-    parser.add_argument("--out_format", type=str, default=".npy", help="data format to save to")
-    parser.add_argument("--out_dataformat", type=str, required=False, default=None, help="data format to convert to")
+    parser.add_argument("--out_format", type=str, default=".tiff", help="data format to save to")
+    parser.add_argument("--dtype", type=str, required=True, default=np.uint16, help="input data type")
 
     args = parser.parse_args()
     return args
@@ -33,21 +33,14 @@ if __name__ == "__main__":
     out_format = args.out_format
 
     print(f"Loading {scan_path}")
-    image = load_image(scan_path, dtype=np.float32)
-
-    if args.out_dataformat == "UINT8":
-        out_dataformat = np.uint8
-        rescale(image)  # rescale to [0 1]
-        image *= 255
-    else:
-        out_dataformat = np.float32
+    image = load_image(scan_path, dtype=args.dtype)
 
     print(f"Writing {scan_path}")
     out_path = os.path.join(args.base_path, args.out_path, args.out_name + out_format)
     if out_format == ".npy":
-        write_npy(image, output_path=out_path, dtype=out_dataformat)
+        write_npy(image, output_path=out_path, dtype=args.dtype)
     elif out_format == ".tiff" or out_format == ".tif":
-        write_tiff(image, output_path=out_path, dtype=out_dataformat)
+        write_tiff(image, output_path=out_path, dtype=args.dtype)
     else:
         raise ValueError(f"Unsupported file format: {out_format}")
 
